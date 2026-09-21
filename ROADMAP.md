@@ -50,7 +50,7 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
       - `open_coded` — qısa/rəqəm cavab, bir neçə qəbul olunan cavab (`0,5` = `0.5` = `1/2`)
       - `open_written` — həll yazılır, əl ilə qiymətləndirilir
       Mövcud `open_ended` tipini `open_written`-ə migration ilə çevir.
-- [ ] Excel/CSV ilə toplu sual importu (şablon faylı ilə).
+- [x] Excel/CSV ilə toplu sual importu (şablon faylı ilə).
 
 ## P0: Alış və giriş hüququ
 
@@ -94,6 +94,11 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 
 ## P1: Təhlükəsizlik və keyfiyyət
 
+- [ ] `composer audit` 14 paketdə 42 zəiflik göstərir (league/commonmark, guzzlehttp/guzzle,
+      symfony/*, laravel/framework). Əksəriyyəti dolayı asılılıqdır; `composer update` ilə
+      baxılmalıdır (ayrıca tapşırıq, sınaqdan keçirilməlidir).
+- [ ] `Admin/Exams/Index.vue` filtrləri işləmir: səhifə `subject`/`status` göndərir, controller isə
+      `subject_id`/`group_id`/`status` gözləyir; `active`/`inactive` statusları ümumiyyətlə emal olunmur.
 - [ ] `saveAnswer`: `question_id` həmin imtahana, `selected_option_id` həmin suala aid olmalıdır
       (hazırda yoxlanmır).
 - [ ] `Exam::$appends = ['questions_count']` accessor-u hər serializasiyada sorğu göndərir: sil,

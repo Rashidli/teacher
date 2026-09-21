@@ -10,6 +10,28 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Excel/CSV ilə toplu sual importu
+
+`maatwebsite/excel` paketi quraşdırıldı (lazım olan PHP genişlənmələri — zip, gd, xml, mbstring —
+serverdə artıq mövcud idi, əlavə quraşdırma tələb olunmadı).
+
+**Axın:** şablonu yüklə → doldur → faylı yüklə → **önizləmə** → təsdiq.
+
+- **Şablon** (`.xlsx`) imtahana görə qurulur: variant sütunlarının sayı `options_per_question`-a
+  uyğundur. İki vərəq var — "Suallar" (başlıqlar + üç nümunə sətir) və "İzah" (hər sütunun mənası,
+  qaydalar).
+- **Önizləmə** heç nə yazmır: hər sətir üçün tip, düzgün cavab və xətalar cədvəldə göstərilir.
+  Yoxlanılan hallar: boş sual, tanınmayan tip, boş variant, imtahandakından artıq variant,
+  variantlar arasında olmayan düzgün cavab, boş qısa cavab.
+- **Yazma** bütöv bir tranzaksiyadadır: bir sətir belə xətalıdırsa heç bir sual yazılmır.
+  İmport mövcud sualların ardınca sıralanır.
+- Fayl önizləmə ilə təsdiq arasında `storage/app/private/question-imports` altında saxlanılır,
+  uğurlu importdan sonra silinir; təsdiqlənməyən yükləmələr bir gündən sonra təmizlənir.
+- Formatlar: `.xlsx` (əsas), `.xls`, UTF-8 `.csv`. Maksimum 10 MB.
+- Şəkillər fayl ilə yüklənmir — sual yarandıqdan sonra redaktə səhifəsindən qoşulur.
+
+**Testlər:** `AdminQuestionImportTest` (10 test). Cəmi 85 test / 302 assertion keçir.
+
 ### 2026-09-21 — Admin sual idarəsi və yeni sual tipləri
 
 **Migration** (`2026_09_21_000001_add_question_types_and_accepted_answers`):

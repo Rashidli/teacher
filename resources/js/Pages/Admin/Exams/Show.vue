@@ -147,12 +147,20 @@ const toggleActive = () => {
                                         ({{ exam.questions?.length || 0 }})
                                     </span>
                                 </h3>
-                                <Link
-                                    :href="route('admin.exams.questions.create', exam.id)"
-                                    class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
-                                >
-                                    + Sual əlavə et
-                                </Link>
+                                <div class="flex items-center gap-2">
+                                    <Link
+                                        :href="route('admin.exams.questions.import', exam.id)"
+                                        class="px-4 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200"
+                                    >
+                                        Toplu import
+                                    </Link>
+                                    <Link
+                                        :href="route('admin.exams.questions.create', exam.id)"
+                                        class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
+                                    >
+                                        + Sual əlavə et
+                                    </Link>
+                                </div>
                             </div>
                             <div v-if="exam.questions?.length" class="space-y-4">
                                 <div

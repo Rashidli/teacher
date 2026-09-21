@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminExamController;
 use App\Http\Controllers\Admin\AdminGroupController;
 use App\Http\Controllers\Admin\AdminQuestionController;
+use App\Http\Controllers\Admin\AdminQuestionImportController;
 use App\Http\Controllers\Admin\AdminSubjectController;
 use App\Http\Controllers\Admin\AdminTeacherController;
 use App\Http\Controllers\Admin\Auth\AdminLoginController;
@@ -95,6 +96,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Questions (imtahan daxilində)
         Route::prefix('exams/{exam}')->name('exams.')->group(function () {
+            // Toplu import: /questions/{question} route-larından ƏVVƏL, "import" ID kimi oxunmasın
+            Route::get('/questions/import', [AdminQuestionImportController::class, 'create'])->name('questions.import');
+            Route::get('/questions/import/template', [AdminQuestionImportController::class, 'template'])->name('questions.import.template');
+            Route::post('/questions/import/preview', [AdminQuestionImportController::class, 'preview'])->name('questions.import.preview');
+            Route::post('/questions/import', [AdminQuestionImportController::class, 'store'])->name('questions.import.store');
+
             Route::get('/questions/create', [AdminQuestionController::class, 'create'])->name('questions.create');
             Route::post('/questions', [AdminQuestionController::class, 'store'])->name('questions.store');
             Route::get('/questions/{question}/edit', [AdminQuestionController::class, 'edit'])->name('questions.edit');
