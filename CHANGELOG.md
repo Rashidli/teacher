@@ -10,6 +10,48 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Alış, ödəniş və imtahana giriş hüququ
+
+**Migration** (`2026_09_21_000002_create_payments_and_exam_accesses_tables`):
+
+`payments` — **polimorfdur** (`purchasable_type`/`purchasable_id`): hazırda yalnız imtahan satılır,
+fənn paketi, qrup paketi və abunə gələndə cədvəl dəyişməyəcək. `amount` `decimal(10,2)` və alış
+anındakı qiyməti saxlayır — imtahanın qiyməti sonra dəyişsə də ödəniş tarixçəsi düz qalır.
+`currency` defolt AZN. `provider_ref` unikaldır.
+
+`exam_accesses` — `user_id`, `exam_id`, `source` (payment/manual/free), `payment_id`, `expires_at`,
+`attempts_allowed` (null = limitsiz), `granted_by`, `note`, `revoked_at`, `unique(user_id, exam_id)`.
+
+**Ödəniş qaydaları:**
+- Status yalnız irəli gedir: `pending → paid | failed`, `paid → refunded`. İcazəsiz keçid xəta verir,
+  yəni uğursuz ödəniş sonradan "uğurlu" callback ilə açıla bilmir.
+- Callback **idempotentdir**: eyni cavab iki dəfə gəlsə status bir dəfə dəyişir və giriş iki dəfə
+  yaradılmır.
+- Ödənişin `paid` olması və girişin açılması **bir tranzaksiyadadır** (`lockForUpdate` ilə).
+- İmza yoxlanışı interfeysdədir (`verifyCallback`); yanlış imzalı sorğu 403 alır.
+- `payload`-da kart məlumatı saxlanılmır: həssas açarlar (`pan`, `cvv`, `exp_*` və s.) atılır,
+  mətn içindəki tam kart nömrəsi son 4 rəqəmdən başqa maskalanır.
+- `refunded` statusu girişi avtomatik ləğv edir.
+
+**Giriş hüququ:**
+- Pullu imtahan artıq girişsiz başladıla bilmir (əvvəl hər kəs pulsuz başlaya bilirdi).
+- Təkrar alışda yeni sətir yaranmır — mövcud sətir yenilənir, müddət uzadılır
+  (`PAYMENT_ACCESS_VALID_DAYS`, boş = müddətsiz).
+- Ləğv sətri silmir (`revoked_at`): qeyd, kimin verdiyi və ödəniş bağlantısı audit üçün qalır.
+- Admin əl ilə giriş verir (email və ya telefonla şagirdi tapır), qeydə köçürmənin qəbz nömrəsini
+  yazır, lazım olsa ləğv edir. İstəyə bağlı: bitmə tarixi və cəhd limiti.
+
+**FakePaymentGateway:** real bank əvəzinə öz sınaq səhifəmizə yönləndirir, orada "Uğurlu"/"Uğursuz"
+seçilir və **real callback route-u** çağırılır — bütün axın indidən işləyir. Bank qoşulanda yalnız
+yeni driver yazılacaq.
+
+**Təhlükəsizlik:** `fake` provayderi produksiyada QADAĞANDIR — sınaq bank səhifəsinin route-u
+ümumiyyətlə qeydiyyatdan keçmir, alış cəhdi xəta verir və "Al" düyməsi göstərilmir. Əks halda
+kimsə saxta "Uğurlu" düyməsi ilə pulsuz giriş əldə edə bilərdi.
+
+**Testlər:** `ExamPurchaseTest` (11), `AdminExamAccessTest` (14), `PaymentGatewayFactoryTest` (6).
+Cəmi 116 test / 408 assertion keçir.
+
 ### 2026-09-21 — Excel/CSV ilə toplu sual importu
 
 `maatwebsite/excel` paketi quraşdırıldı (lazım olan PHP genişlənmələri — zip, gd, xml, mbstring —

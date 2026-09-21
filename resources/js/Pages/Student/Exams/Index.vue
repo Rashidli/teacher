@@ -9,6 +9,7 @@ const props = defineProps({
     subjects: Array,
     groups: Array,
     filters: Object,
+    purchasesEnabled: { type: Boolean, default: false },
 });
 
 const { teachersEnabled } = useFeatures();
@@ -88,6 +89,25 @@ const applyFilters = () => {
                                 <span>{{ exam.questions_count }} sual</span>
                                 <span>{{ exam.duration_minutes }} dəqiqə</span>
                             </div>
+
+                            <!-- Qiymət və giriş statusu -->
+                            <div class="mb-4 flex items-center justify-between">
+                                <span
+                                    v-if="exam.is_free"
+                                    class="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                                >
+                                    Pulsuz
+                                </span>
+                                <span
+                                    v-else-if="exam.has_access"
+                                    class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
+                                >
+                                    Alınıb
+                                </span>
+                                <span v-else class="text-sm font-semibold text-gray-900">
+                                    {{ exam.price }} AZN
+                                </span>
+                            </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-gray-500">
                                     <template v-if="teachersEnabled">{{ exam.teacher?.full_name }}</template>
@@ -96,7 +116,7 @@ const applyFilters = () => {
                                     :href="route('student.exams.show', exam.id)"
                                     class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
                                 >
-                                    Baxış
+                                    {{ exam.is_free || exam.has_access ? 'Baxış' : 'Al' }}
                                 </Link>
                             </div>
                         </div>

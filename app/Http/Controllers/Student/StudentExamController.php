@@ -8,11 +8,19 @@ use App\Models\ExamAttempt;
 use App\Models\Subject;
 use App\Models\Group;
 use App\Models\SubjectGroupScore;
+use App\Services\Payment\ExamAccessService;
+use App\Services\Payment\PaymentGatewayFactory;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class StudentExamController extends Controller
 {
+    public function __construct(
+        private readonly ExamAccessService $access,
+        private readonly PaymentGatewayFactory $gateways,
+    ) {
+    }
+
     public function index(Request $request)
     {
         $query = Exam::with(['subject', 'teacher', 'group'])
@@ -30,8 +38,17 @@ class StudentExamController extends Controller
 
         $exams = $query->latest()->paginate(12);
 
+        // Kataloqda "Alınıb" / "Pulsuz" / "Al" statusu üçün
+        $student = auth('student')->user();
+        $exams->getCollection()->transform(function (Exam $exam) use ($student) {
+            $exam->setAttribute('has_access', $this->access->allows($student, $exam));
+
+            return $exam;
+        });
+
         return Inertia::render('Student/Exams/Index', [
             'exams' => $exams,
+            'purchasesEnabled' => $this->gateways->available(),
             'subjects' => Subject::active()->get(),
             'groups' => Group::active()->orderBy('number')->get(),
             'filters' => $request->only(['subject_id', 'group_id']),
@@ -56,15 +73,26 @@ class StudentExamController extends Controller
             ->latest()
             ->get();
 
+        $access = $this->access->activeAccess(auth('student')->user(), $exam);
+
         return Inertia::render('Student/Exams/Show', [
             'exam' => $exam,
             'activeAttempt' => $activeAttempt,
             'completedAttempts' => $completedAttempts,
+            'hasAccess' => $exam->is_free || $access !== null,
+            'access' => $access,
+            'purchasesEnabled' => $this->gateways->available(),
         ]);
     }
 
     public function start(Request $request, Exam $exam)
     {
+        // Pullu imtahan: aktiv giriş olmadan cəhd yaradıla bilməz
+        if (! $this->access->allows(auth('student')->user(), $exam)) {
+            return redirect()->route('student.exams.show', $exam)
+                ->with('error', 'Bu imtahan ödənişlidir. Başlamaq üçün əvvəlcə alın.');
+        }
+
         // Aktiv cəhd varsa yoxla
         $activeAttempt = auth('student')->user()->examAttempts()
             ->where('exam_id', $exam->id)

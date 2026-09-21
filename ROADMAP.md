@@ -54,15 +54,15 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 
 ## P0: Alış və giriş hüququ
 
-- [ ] `exam_accesses` cədvəli: `user_id`, `exam_id`, `source` (payment/manual/free),
+- [x] `exam_accesses` cədvəli: `user_id`, `exam_id`, `source` (payment/manual/free),
       `payment_id` (nullable), `expires_at` (nullable), timestamps; unique(user_id, exam_id).
-- [ ] `StudentExamController@start`: imtahan `is_free` deyilsə və tələbənin aktiv girişi yoxdursa,
+- [x] `StudentExamController@start`: imtahan `is_free` deyilsə və tələbənin aktiv girişi yoxdursa,
       imtahan səhifəsinə "Al" mesajı ilə qaytar. Hazırda pullu imtahanı hər kəs pulsuz başlada bilir.
-- [ ] Admin paneldə tələbəyə əl ilə giriş vermək (ilk satışlar üçün).
-- [ ] `PaymentGateway` interface + `payments` cədvəli (status: pending/paid/failed/refunded, amount,
+- [x] Admin paneldə tələbəyə əl ilə giriş vermək (ilk satışlar üçün).
+- [x] `PaymentGateway` interface + `payments` cədvəli (status: pending/paid/failed/refunded, amount,
       provider, provider_ref, payload json). Konkret bank inteqrasiyası sonra; indi yalnız interface
       və callback route skeleti.
-- [ ] İmtahan kataloqunda qiymət, "Alınıb" / "Pulsuz" / "Al" statusu.
+- [x] İmtahan kataloqunda qiymət, "Alınıb" / "Pulsuz" / "Al" statusu.
 
 ## P0: Qruplar və bal sistemi (DİM-ə uyğun)
 

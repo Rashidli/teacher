@@ -7,13 +7,21 @@ const props = defineProps({
     exam: Object,
     activeAttempt: Object,
     completedAttempts: Array,
+    hasAccess: { type: Boolean, default: true },
+    access: { type: Object, default: null },
+    purchasesEnabled: { type: Boolean, default: false },
 });
 
 const form = useForm({});
+const purchaseForm = useForm({});
 const { teachersEnabled } = useFeatures();
 
 const startExam = () => {
     form.post(route('student.exams.start', props.exam.id));
+};
+
+const purchase = () => {
+    purchaseForm.post(route('student.exams.purchase', props.exam.id));
 };
 </script>
 
@@ -119,8 +127,33 @@ const startExam = () => {
                             </div>
                         </div>
 
+                        <!-- Alış: giriş yoxdursa imtahan başladıla bilmir -->
+                        <div v-if="!hasAccess" class="border-t border-gray-200 pt-6">
+                            <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                                    <h4 class="font-medium text-indigo-900">Bu imtahan ödənişlidir</h4>
+                                    <span class="text-2xl font-semibold text-indigo-900">{{ exam.price }} AZN</span>
+                                </div>
+
+                                <button
+                                    v-if="purchasesEnabled"
+                                    type="button"
+                                    @click="purchase"
+                                    :disabled="purchaseForm.processing"
+                                    class="mt-4 w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-semibold"
+                                >
+                                    {{ purchaseForm.processing ? 'Yönləndirilir...' : 'Al' }}
+                                </button>
+
+                                <p v-else class="mt-4 text-sm text-indigo-900">
+                                    Onlayn ödəniş hazırda aktiv deyil. İmtahanı almaq üçün bizimlə əlaqə saxlayın —
+                                    köçürmə təsdiqləndikdən sonra imtahan hesabınızda açılacaq.
+                                </p>
+                            </div>
+                        </div>
+
                         <!-- Start Exam -->
-                        <div v-if="!activeAttempt" class="border-t border-gray-200 pt-6">
+                        <div v-else-if="!activeAttempt" class="border-t border-gray-200 pt-6">
                             <form @submit.prevent="startExam" class="space-y-6">
                                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                     <h4 class="font-medium text-yellow-800 mb-2">Diqqət!</h4>

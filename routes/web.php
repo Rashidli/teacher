@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminExamAccessController;
 use App\Http\Controllers\Admin\AdminExamController;
 use App\Http\Controllers\Admin\AdminGroupController;
 use App\Http\Controllers\Admin\AdminQuestionController;
@@ -17,6 +18,9 @@ use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentExamController;
 use App\Http\Controllers\Student\StudentResultController;
 use App\Http\Controllers\Student\Auth\StudentLoginController;
+use App\Http\Controllers\Payments\FakeGatewayController;
+use App\Http\Controllers\Payments\PaymentCallbackController;
+use App\Http\Controllers\Student\StudentPaymentController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -93,6 +97,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('exams', AdminExamController::class);
         Route::post('/exams/{exam}/toggle-active', [AdminExamController::class, 'toggleActive'])->name('exams.toggle-active');
         Route::post('/exams/{exam}/toggle-publish', [AdminExamController::class, 'togglePublish'])->name('exams.toggle-publish');
+
+        // İmtahana giriş hüququ (əl ilə vermə / ləğv)
+        Route::get('/exams/{exam}/access', [AdminExamAccessController::class, 'index'])->name('exams.access.index');
+        Route::post('/exams/{exam}/access', [AdminExamAccessController::class, 'store'])->name('exams.access.store');
+        Route::delete('/exams/{exam}/access/{access}', [AdminExamAccessController::class, 'destroy'])->name('exams.access.destroy');
 
         // Questions (imtahan daxilində)
         Route::prefix('exams/{exam}')->name('exams.')->group(function () {
@@ -174,6 +183,7 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::get('/exams', [StudentExamController::class, 'index'])->name('exams.index');
         Route::get('/exams/{exam}', [StudentExamController::class, 'show'])->name('exams.show');
         Route::post('/exams/{exam}/start', [StudentExamController::class, 'start'])->name('exams.start');
+        Route::post('/exams/{exam}/purchase', [StudentPaymentController::class, 'store'])->name('exams.purchase');
 
         // İmtahan cəhdi
         Route::get('/attempts/{attempt}', [StudentExamController::class, 'attempt'])->name('exams.attempt');
@@ -185,6 +195,20 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::get('/results', [StudentResultController::class, 'index'])->name('results.index');
     });
 });
+
+// =====================================================
+// ÖDƏNİŞ
+// =====================================================
+// Bankın cavabı: sessiya yoxdur, imza ilə yoxlanılır (PaymentCallbackController).
+Route::match(['get', 'post'], '/payments/callback/{provider}', PaymentCallbackController::class)
+    ->name('payments.callback');
+
+// Sınaq bank səhifəsi: yalnız fake driver seçiləndə və produksiyadan kənarda mövcuddur
+if (config('payments.driver') === 'fake' && ! app()->isProduction()) {
+    Route::get('/payments/fake/{payment}', [FakeGatewayController::class, 'show'])
+        ->middleware('auth:student')
+        ->name('payments.fake.show');
+}
 
 // Profile routes (shared)
 Route::middleware('auth:admin,teacher,student')->group(function () {

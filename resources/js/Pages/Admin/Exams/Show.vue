@@ -149,6 +149,12 @@ const toggleActive = () => {
                                 </h3>
                                 <div class="flex items-center gap-2">
                                     <Link
+                                        :href="route('admin.exams.access.index', exam.id)"
+                                        class="px-4 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200"
+                                    >
+                                        Giriş hüquqları
+                                    </Link>
+                                    <Link
                                         :href="route('admin.exams.questions.import', exam.id)"
                                         class="px-4 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200"
                                     >
