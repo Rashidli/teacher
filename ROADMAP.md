@@ -132,42 +132,56 @@ Mövcud URL slug-ları (`mekteb`, `miq`, `suruculuk-imtahani`) saxlanılır.
 
 ### Mərhələ 1 — Kateqoriya iyerarxiyası
 
-- [ ] `categories` cədvəli: `parent_id` (sonsuz dərinlik), `slug` (ASCII), `name`, `description`,
-      `is_active`, `order`, SEO sahələri (`title`, `meta_description`, `h1`, `intro`).
-- [ ] `category_subject` pivotu: `question_count`, `max_score`, `options_per_question`
-      (sonra `sector` də əlavə olunacaq — bax Mərhələ 4).
+- [ ] `categories` cədvəli: `parent_id` (sonsuz dərinlik), `group_id` (nullable — bal üçün mövcud
+      `groups` cədvəlinə bağlantı), `slug`, `path` (URL üçün), `name`, `description`, `is_active`,
+      `order` və SEO sahələri (`seo_title`, `seo_description`, `h1`, `intro`).
+- [ ] **`groups` cədvəli bal hesablaması üçün ayrıca qalır**, kateqoriya ağacında təkrarlanmır:
+      abituriyent qrup düyünləri `categories.group_id` ilə mövcud qruplara bağlanır.
+- [ ] `category_subject` pivotu: `question_count`, `options_per_question`, `max_score` (nullable —
+      qrupa bağlı kateqoriyalarda bal `subject_group_scores`-dan gəlir, təkrarlanmır).
 - [ ] Seeder ilə ağac: Orta məktəb, Abituriyent (I mərhələ, I–V qrup, altqruplar, Kollec),
       Magistratura, Dövlət qulluğu, Müəllimlər (MİQ, Sertifikasiya, Diaqnostik, Məktəbəqədər),
-      Sürücülük (A, B, C, D, BE, CE, DE), Digər (deaktiv: Rezidentura, Doktorantura, ADSİ,
-      beynəlxalq, hüquq, olimpiadalar).
-- [ ] Mövcud `groups` cədvəli ilə əlaqə: abituriyent qrupları həm qrup, həm kateqoriyadır —
-      təkrarlanma olmasın deyə `groups.category_id` bağlantısı.
+      Sürücülük (A, B, C, D, BE, CE, DE), Digər (deaktiv).
+- [ ] Mövcud slug-lar saxlanılır (`mekteb`, `miq`, `suruculuk-imtahani` …) — `path` sütunu
+      iyerarxiyadan asılı olmadan sabit URL verir.
 - [ ] `routes/web.php`-dəki hardcoded slug siyahısı və `categories.js` DB-yə köçürülür,
       placeholder səhifələr real kataloqa çevrilir.
-- [ ] Admin: kateqoriya CRUD (ağac görünüşü, sürüşdürmə, aktiv/deaktiv).
+- [ ] Admin: kateqoriya CRUD (ağac görünüşü, sıra, aktiv/deaktiv).
 
-### Mərhələ 2 — Çoxfənli imtahanlar (exam_sections)
+### Mərhələ 2 — Sual bankı (struktur dəyişikliyi)
+
+Suallar hazırda birbaşa imtahana bağlıdır (`questions.exam_id`), ona görə təkrar istifadə oluna
+bilmir. Çoxfənli imtahanlar və mövzu sınağı bunun üzərində qurulacaq, ona görə **əvvəl bu gəlir**.
+
+- [ ] `topics`: `subject_id`, `name`, `slug`, `quarter` (1–4), `order`.
+- [ ] `questions`-a: `subject_id`, `topic_id`, `difficulty` (sadə/orta/mürəkkəb), `source`.
+- [ ] `exam_question` pivotu (`exam_id`, `question_id`, `order`); `questions.exam_id` silinir.
+- [ ] Mövcud 57 sualın köçürülməsi: hər sual öz imtahanının fənninə bağlanır, pivot doldurulur.
+      Migration geri qaytarıla bilən olmalıdır.
+- [ ] Admin: sual bankı səhifəsi (fənn/mövzu/çətinlik/tip üzrə filtr), imtahana mövcud sual əlavə
+      etmə, mövzu CRUD (sürücülük mövzuları da buradan).
+- [ ] Excel importu mövzu və çətinlik sütunlarını da qəbul etsin.
+
+### Mərhələ 3 — Çoxfənli imtahanlar (exam_sections)
+
+Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seçilir.
 
 - [ ] `exam_sections`: `exam_id`, `subject_id`, `question_count`, `max_score`, `order`.
-- [ ] Suallar bölməyə bağlanır; bal hər bölmə üzrə ayrıca, sonra ümumi bal.
-- [ ] `ScoringStrategy` çoxfənli imtahanı dəstəkləsin (hazırkı düstur fənn səviyyəsində işləyir).
+- [ ] `exam_question` bölməyə bağlanır (`section_id`).
+- [ ] `ScoringStrategy` çoxfənli imtahanı dəstəkləsin: hər bölmə üzrə ayrıca bal, sonra ümumi bal
+      (mövcud düstur fənn səviyyəsində işləyir, dəyişmir).
 - [ ] İmtahan interfeysində fənn tabları, nəticədə fənn-fənn bölgü.
 - [ ] `exam_templates`: hansı fənlər, hər fəndən neçə sual, sual növlərinin sayı, müddət,
       variant sayı, bal strategiyası. İmtahanlar şablondan qurulur (sabit variantlar: A, B, C…).
 
-### Mərhələ 3 — Mövzular və rüb üzrə mövzu sınağı
+### Mərhələ 4 — Rüb üzrə mövzu sınağı
 
-- [ ] `topics`: `subject_id`, `name`, `slug`, `quarter` (1–4), `order`.
-- [ ] `questions.topic_id` + `questions.difficulty` (sadə/orta/mürəkkəb) + `questions.source`.
-- [ ] **Struktur dəyişikliyi:** suallar hazırda imtahana (`exam_id`) bağlıdır; vizyona görə
-      fənn+mövzuya bağlanmalı, imtahan isə sual dəstini seçməlidir (`exam_question` pivotu).
-      Bu, mövcud 57 sualın köçürülməsini tələb edir — ayrıca planla.
-- [ ] Rüb üzrə mövzu sınağı axını: qrup → mövzu sınağı → rüb → imtahan; şablonda
-      "kumulyativ rüb" seçimi.
+- [ ] Axın: qrup → mövzu sınağı → rüb → imtahan. İmtahan qrupun bütün fənlərindən ibarətdir,
+      suallar yalnız seçilmiş rübün mövzularından düşür (bölmələr üzərində).
+- [ ] Şablonda "kumulyativ rüb" seçimi (2-ci rüb = 1+2, yoxsa yalnız 2).
 - [ ] Mövzu testi (məşq): tək mövzu, taymersiz, bir hissəsi pulsuz.
-- [ ] Admin: mövzu CRUD (sürücülük mövzuları da buradan redaktə olunur).
 
-### Mərhələ 4 — Rus sektoru
+### Mərhələ 5 — Rus sektoru
 
 - [ ] `users.sector` (az/ru) — qeydiyyat və profildə; imtahan seçimində dəyişdirilə bilsin.
 - [ ] `questions.language` (az/ru) + `translation_group_id` (eyni sualın iki dil versiyası).
@@ -175,17 +189,17 @@ Mövcud URL slug-ları (`mekteb`, `miq`, `suruculuk-imtahani`) saxlanılır.
       ru → Rus dili) — I mərhələ, 9/11-ci sinif buraxılış, III qrup.
 - [ ] Orta məktəb altında "Azərbaycan dili (dövlət dili kimi)" — yalnız ru sektorunda görünür.
 - [ ] Kateqoriyada "ru sektoru aktivdir" bayrağı; məzmun hazır olmayanda ru seçimi gizlənir.
-- [ ] İmtahan və məhsullar sektora bağlıdır (az alan ru-ya giriş almır; paketdə hər iki sektor seçimi).
+- [ ] İmtahan və məhsullar sektora bağlıdır (az alan ru-ya giriş almır).
 - [ ] Admin: sual filtri sektora görə. `config/scoring.php`-də sektor üzrə override imkanı.
 
-### Mərhələ 5 — SEO və sitemap
+### Mərhələ 6 — SEO və sitemap
 
 - [ ] Kateqoriya/fənn/mövzu səhifələri üçün DB-dən redaktə olunan title, meta description, H1, mətn.
 - [ ] Breadcrumb + schema.org JSON-LD (BreadcrumbList, Quiz).
 - [ ] `sitemap.xml` (hər iki dil), canonical (var) + rusca slug-lar (translit, ASCII).
 - [ ] İç-içə URL-lər: `/abituriyent/1-ci-qrup/rk/movzu-sinagi/2-ci-rub` kimi.
 
-### Mərhələ 6 — Şagird statistikası
+### Mərhələ 7 — Şagird statistikası
 
 - [ ] Fənn üzrə irəliləyiş, mövzu üzrə zəif yerlər analitikası.
 - [ ] Əvvəlki cəhdlərlə müqayisə, nəticə səhifəsində qrafik.
