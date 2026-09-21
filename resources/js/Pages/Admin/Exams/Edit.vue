@@ -132,10 +132,14 @@ const submit = () => {
                                     id="price"
                                     v-model="form.price"
                                     type="number"
-                                    min="0"
+                                    min="0.01"
                                     step="0.01"
+                                    required
                                     class="mt-1 block w-full"
                                 />
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Ödənişli imtahanın qiyməti sıfırdan böyük olmalıdır.
+                                </p>
                                 <InputError :message="form.errors.price" class="mt-2" />
                             </div>
                         </div>

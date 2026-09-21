@@ -64,6 +64,39 @@ class AdminExamController extends Controller
     }
 
     /**
+     * Ödənişli imtahanın qiyməti mütləq sıfırdan böyük olmalıdır: əks halda kataloqda
+     * "0 AZN" görünür və "Al" düyməsi sıfır məbləğli ödəniş yaradırdı.
+     */
+    private function priceRules(Request $request): array
+    {
+        if ($request->boolean('is_free')) {
+            return ['nullable', 'numeric', 'min:0'];
+        }
+
+        return ['required', 'numeric', 'min:0.01'];
+    }
+
+    /** @return array<string, string> */
+    private function priceMessages(): array
+    {
+        return [
+            'price.required' => 'Ödənişli imtahan üçün qiymət göstərilməlidir.',
+            'price.min' => 'Ödənişli imtahanın qiyməti sıfırdan böyük olmalıdır.',
+            'price.numeric' => 'Qiymət rəqəm olmalıdır.',
+        ];
+    }
+
+    /** Pulsuz imtahanda qiymət saxlanılmır. */
+    private function normalisePrice(array $validated): array
+    {
+        if (filter_var($validated['is_free'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            $validated['price'] = 0;
+        }
+
+        return $validated;
+    }
+
+    /**
      * Müəllim modulu söndürülüb olanda imtahanın sahibi EXAM_OWNER_ID-dir.
      * Təyin olunmayıbsa və ya belə istifadəçi yoxdursa null qaytarır.
      */
@@ -89,9 +122,11 @@ class AdminExamController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'duration_minutes' => ['required', 'integer', 'min:10', 'max:180'],
-            'price' => ['nullable', 'numeric', 'min:0'],
             'is_free' => ['boolean'],
-        ]);
+            'price' => $this->priceRules($request),
+        ], $this->priceMessages());
+
+        $validated = $this->normalisePrice($validated);
 
         // Müəllim modulu söndürülüb: imtahanın sahibi EXAM_OWNER_ID (admin hesabı).
         // Konfiqurasiya yoxdursa 500 yox, formada aydın mesaj göstərilir.
@@ -143,12 +178,12 @@ class AdminExamController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'duration_minutes' => ['required', 'integer', 'min:10', 'max:180'],
-            'price' => ['nullable', 'numeric', 'min:0'],
             'is_free' => ['boolean'],
+            'price' => $this->priceRules($request),
             'is_active' => ['boolean'],
-        ]);
+        ], $this->priceMessages());
 
-        $exam->update($validated);
+        $exam->update($this->normalisePrice($validated));
 
         return redirect()->route('admin.exams.show', $exam)
             ->with('success', 'İmtahan uğurla yeniləndi.');

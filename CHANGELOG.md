@@ -10,6 +10,31 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Asılılıq zəiflikləri, qalan P1 işləri və vizyon üzrə ROADMAP
+
+**Təhlükəsizlik yeniləmələri.** `composer audit` 41 → 0, `npm audit` 14 → 0. Paket-paket
+yeniləndi, hər addımdan sonra bütün testlər keçdi; major versiya dəyişikliyi lazım olmadı.
+Laravel v12.47 → v12.69, vite 7.3.6, postcss 8.5.28, axios 1.20.0.
+
+**Cəhdin həyat dövrü testləri** (`AttemptLifecycleTest`): vaxtı keçmiş cəhdin avtomatik bitməsi,
+vaxt bitəndən sonra yeni cəhd, başqasının cəhdinə baxmaq/cavab yazmaq/bitirmək/nəticəsini görmək
+üçün 403, bitmiş cəhdə cavab yazıla bilməməsi.
+
+**Admin imtahan siyahısının filtrləri.** Səhifə controller-in gözlədiyi parametrləri göndərmirdi
+(`subject`/`status` əvəzinə `subject_id`/`group_id`/`status`), ona görə fənn filtri heç vaxt
+işləmirdi; controller isə `active`/`inactive` statuslarını emal etmirdi. Hər ikisi düzəldildi,
+qrup filtri və "sıfırla" düyməsi əlavə olundu, səhifələmə filtrləri saxlayır.
+
+**Qiymət validasiyası.** `is_free = false` olanda qiymət məcburidir və sıfırdan böyük olmalıdır.
+Əvvəl ödənişli imtahan 0 AZN qiymətlə saxlanıla bilirdi: kataloqda "0 AZN" görünür və "Al" düyməsi
+sıfır məbləğli ödəniş yaradırdı. Pulsuz işarələnəndə qiymət avtomatik sıfırlanır.
+
+**ROADMAP.** Layihə vizyonu sənədi mövcud kodla tutuşduruldu; qalan işlər P2-də altı mərhələyə
+bölündü (kateqoriya iyerarxiyası → çoxfənli imtahanlar → mövzular və rüb sınağı → rus sektoru →
+SEO/sitemap → şagird statistikası), sonraya qalanlar P3-də.
+
+**Testlər:** 157 test / 616 assertion.
+
 ### 2026-09-21 — DİM bal sistemi, qruplar və açıq sualların qiymətləndirilməsi
 
 **Qrup strukturu.** `groups`-a `parent_id`, `code`, `stage`, `is_testable` əlavə olundu, `number`

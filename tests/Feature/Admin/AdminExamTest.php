@@ -248,4 +248,68 @@ class AdminExamTest extends TestCase
                 $this->assertStringContainsString('subject_id='.$subject->id, $next['url']);
             });
     }
+
+    /** Ödənişli imtahan sıfır qiymətlə saxlanıla bilməz. */
+    public function test_a_paid_exam_requires_a_price_above_zero(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.exams.store'), $this->validPayload(['is_free' => false, 'price' => 0]))
+            ->assertSessionHasErrors('price');
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.exams.store'), $this->validPayload(['is_free' => false, 'price' => null]))
+            ->assertSessionHasErrors('price');
+
+        $this->assertSame(0, Exam::count());
+    }
+
+    public function test_a_free_exam_does_not_need_a_price(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.exams.store'), $this->validPayload(['is_free' => true, 'price' => null]))
+            ->assertSessionHasNoErrors();
+
+        // Pulsuz imtahanda qiymət saxlanılmır
+        $this->assertSame('0.00', Exam::firstOrFail()->price);
+    }
+
+    /** Pulsuz işarələnəndə əvvəlki qiymət sıfırlanır. */
+    public function test_marking_an_exam_free_clears_its_price(): void
+    {
+        $admin = $this->admin();
+        $exam = Exam::factory()->paid(25.00)->create(['teacher_id' => $admin->id]);
+
+        $this->actingAs($admin, 'admin')->put(route('admin.exams.update', $exam), [
+            'title' => $exam->title,
+            'description' => null,
+            'duration_minutes' => 60,
+            'is_free' => true,
+            'price' => 25.00,
+            'is_active' => true,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('0.00', $exam->refresh()->price);
+        $this->assertTrue($exam->is_free);
+    }
+
+    public function test_updating_an_exam_to_paid_requires_a_price(): void
+    {
+        $admin = $this->admin();
+        $exam = Exam::factory()->create(['teacher_id' => $admin->id, 'is_free' => true, 'price' => 0]);
+
+        $this->actingAs($admin, 'admin')->put(route('admin.exams.update', $exam), [
+            'title' => $exam->title,
+            'description' => null,
+            'duration_minutes' => 60,
+            'is_free' => false,
+            'price' => 0,
+            'is_active' => true,
+        ])->assertSessionHasErrors('price');
+
+        $this->assertTrue($exam->refresh()->is_free);
+    }
 }

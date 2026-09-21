@@ -124,16 +124,86 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
   lazım olacaq (`--dry-run` ilə köhnə və yeni balları yan-yana göstərsin). Hazırda bazada cəhd
   yoxdur, ona görə yazılmayıb.
 
-## P2: Satışdan sonra (hələ başlanmır)
+## P2: Platforma vizyonu — mərhələlərlə
 
-- [ ] Çoxfənli imtahanlar: `exam_sections` (exam_id, subject_id, question_count, max_score, order).
-      Ümumi sınaq və qrup üzrə mövzu sınağı bunun üzərində qurulacaq.
-- [ ] Mövzular (`topics`: subject_id, name, quarter 1–4), suala `topic_id`; mövzu sınağı:
-      qrup → rüb → qrupun bütün fənlərindən imtahan (kumulyativ və ya yox, seçim).
-- [ ] Rus sektoru: istifadəçidə `sector` (az/ru), imtahanda `sector`, ana dili fənni sektora görə
-      (Azərbaycan dili / Rus dili), ru sektoru üçün "Azərbaycan dili (dövlət dili kimi)".
-- [ ] Kateqoriya iyerarxiyası DB-də (hazırda `routes/web.php`-də hardcoded slug-lar və
-      `categories.js`): orta məktəb, abituriyent, magistratura, dövlət qulluğu, MİQ, sürücülük;
-      hər kateqoriyaya imtahanlar bağlansın, placeholder səhifələr real kataloqa çevrilsin.
-- [ ] SEO: sitemap.xml, kateqoriya/fənn səhifələri üçün meta, schema.org.
-- [ ] Tələbə statistikası: fənn üzrə irəliləyiş, zəif mövzular.
+Mənbə: layihə vizyonu sənədi. Aşağıdakılar sənəddə olub, kodda **hələ olmayan** hissələrdir.
+Bal hesablaması (DİM düsturu, ScoringStrategy, config/scoring.php) artıq həll olunub — toxunulmur.
+Mövcud URL slug-ları (`mekteb`, `miq`, `suruculuk-imtahani`) saxlanılır.
+
+### Mərhələ 1 — Kateqoriya iyerarxiyası
+
+- [ ] `categories` cədvəli: `parent_id` (sonsuz dərinlik), `slug` (ASCII), `name`, `description`,
+      `is_active`, `order`, SEO sahələri (`title`, `meta_description`, `h1`, `intro`).
+- [ ] `category_subject` pivotu: `question_count`, `max_score`, `options_per_question`
+      (sonra `sector` də əlavə olunacaq — bax Mərhələ 4).
+- [ ] Seeder ilə ağac: Orta məktəb, Abituriyent (I mərhələ, I–V qrup, altqruplar, Kollec),
+      Magistratura, Dövlət qulluğu, Müəllimlər (MİQ, Sertifikasiya, Diaqnostik, Məktəbəqədər),
+      Sürücülük (A, B, C, D, BE, CE, DE), Digər (deaktiv: Rezidentura, Doktorantura, ADSİ,
+      beynəlxalq, hüquq, olimpiadalar).
+- [ ] Mövcud `groups` cədvəli ilə əlaqə: abituriyent qrupları həm qrup, həm kateqoriyadır —
+      təkrarlanma olmasın deyə `groups.category_id` bağlantısı.
+- [ ] `routes/web.php`-dəki hardcoded slug siyahısı və `categories.js` DB-yə köçürülür,
+      placeholder səhifələr real kataloqa çevrilir.
+- [ ] Admin: kateqoriya CRUD (ağac görünüşü, sürüşdürmə, aktiv/deaktiv).
+
+### Mərhələ 2 — Çoxfənli imtahanlar (exam_sections)
+
+- [ ] `exam_sections`: `exam_id`, `subject_id`, `question_count`, `max_score`, `order`.
+- [ ] Suallar bölməyə bağlanır; bal hər bölmə üzrə ayrıca, sonra ümumi bal.
+- [ ] `ScoringStrategy` çoxfənli imtahanı dəstəkləsin (hazırkı düstur fənn səviyyəsində işləyir).
+- [ ] İmtahan interfeysində fənn tabları, nəticədə fənn-fənn bölgü.
+- [ ] `exam_templates`: hansı fənlər, hər fəndən neçə sual, sual növlərinin sayı, müddət,
+      variant sayı, bal strategiyası. İmtahanlar şablondan qurulur (sabit variantlar: A, B, C…).
+
+### Mərhələ 3 — Mövzular və rüb üzrə mövzu sınağı
+
+- [ ] `topics`: `subject_id`, `name`, `slug`, `quarter` (1–4), `order`.
+- [ ] `questions.topic_id` + `questions.difficulty` (sadə/orta/mürəkkəb) + `questions.source`.
+- [ ] **Struktur dəyişikliyi:** suallar hazırda imtahana (`exam_id`) bağlıdır; vizyona görə
+      fənn+mövzuya bağlanmalı, imtahan isə sual dəstini seçməlidir (`exam_question` pivotu).
+      Bu, mövcud 57 sualın köçürülməsini tələb edir — ayrıca planla.
+- [ ] Rüb üzrə mövzu sınağı axını: qrup → mövzu sınağı → rüb → imtahan; şablonda
+      "kumulyativ rüb" seçimi.
+- [ ] Mövzu testi (məşq): tək mövzu, taymersiz, bir hissəsi pulsuz.
+- [ ] Admin: mövzu CRUD (sürücülük mövzuları da buradan redaktə olunur).
+
+### Mərhələ 4 — Rus sektoru
+
+- [ ] `users.sector` (az/ru) — qeydiyyat və profildə; imtahan seçimində dəyişdirilə bilsin.
+- [ ] `questions.language` (az/ru) + `translation_group_id` (eyni sualın iki dil versiyası).
+- [ ] `category_subject.sector`: ana dili fənni sektora görə (az → Azərbaycan dili,
+      ru → Rus dili) — I mərhələ, 9/11-ci sinif buraxılış, III qrup.
+- [ ] Orta məktəb altında "Azərbaycan dili (dövlət dili kimi)" — yalnız ru sektorunda görünür.
+- [ ] Kateqoriyada "ru sektoru aktivdir" bayrağı; məzmun hazır olmayanda ru seçimi gizlənir.
+- [ ] İmtahan və məhsullar sektora bağlıdır (az alan ru-ya giriş almır; paketdə hər iki sektor seçimi).
+- [ ] Admin: sual filtri sektora görə. `config/scoring.php`-də sektor üzrə override imkanı.
+
+### Mərhələ 5 — SEO və sitemap
+
+- [ ] Kateqoriya/fənn/mövzu səhifələri üçün DB-dən redaktə olunan title, meta description, H1, mətn.
+- [ ] Breadcrumb + schema.org JSON-LD (BreadcrumbList, Quiz).
+- [ ] `sitemap.xml` (hər iki dil), canonical (var) + rusca slug-lar (translit, ASCII).
+- [ ] İç-içə URL-lər: `/abituriyent/1-ci-qrup/rk/movzu-sinagi/2-ci-rub` kimi.
+
+### Mərhələ 6 — Şagird statistikası
+
+- [ ] Fənn üzrə irəliləyiş, mövzu üzrə zəif yerlər analitikası.
+- [ ] Əvvəlki cəhdlərlə müqayisə, nəticə səhifəsində qrafik.
+- [ ] İstifadəçi kabineti: alınmış imtahanlar, keçmiş nəticələr.
+
+---
+
+## P3: Vizyondan qalan, sonraya saxlanılan
+
+- [ ] Yeni sual növləri: uyğunluq (matching), mətn/situasiya əsaslı sual qrupu, esse.
+- [ ] `open_written` cavabında şagirdin həll şəklini yükləməsi.
+- [ ] Məhsul növləri: fənn paketi, qrup paketi, abunə (hazırda yalnız tək imtahan satılır).
+- [ ] Rollar: rəyçi (sualı təsdiqləyən) və qiymətləndirici; sual təsdiq axını
+      (müəllif → rəyçi → təsdiqlənmiş suallar imtahana düşür); sualda müəllif (gəlir bölgüsü üçün).
+- [ ] Digər bal strategiyaları: `DimGraduation9/11`, `DimMaster`, `CivilService`, `TeacherMiq`,
+      `DrivingTheory`. Dövlət qulluğunun bilinən qaydası: qapalı 1 bal, açıq 2 bal, yanlış/boş 0;
+      müddət qapalı 1:30, açıq 2:00, esse 30 dəq.
+- [ ] İmtahan interfeysində sual naviqasiya paneli (cavablanmış / boş / işarələnmiş), oflayn dayanıqlıq.
+- [ ] Bank inteqrasiyası (hazırda FakePaymentGateway; produksiyada onlayn alış bağlıdır).
+- [ ] Faza 4: repetitor modulu — şagird qrupları, imtahan təyini, kağız cavab kartlarının
+      telefonla skan edilməsi (OMR), valideyn hesabatı.
