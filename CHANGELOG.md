@@ -10,6 +10,26 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Admin imtahan yarada/redaktə edə bilir
+
+**Problem:** `AdminExamController` `Admin/Exams/Create` və `Edit` səhifələrini render edirdi,
+amma bu fayllar mövcud deyildi — `/admin/exams/create` və redaktə səhifəsi 500 verirdi.
+
+**Həll:**
+- `Admin/Exams/Create.vue`: fənn, qrup, başlıq, təsvir, müddət, pulsuz/qiymət. Müəllim seçimi
+  yalnız müəllim modulu açıq olanda görünür. İmtahan qaralama kimi yaradılır.
+- `Admin/Exams/Edit.vue`: başlıq, təsvir, müddət, pulsuz/qiymət, aktivlik. Fənn və qrup
+  redaktə edilmir (imtahanda artıq suallar və cəhdlər ola bilər) — yalnız məlumat kimi göstərilir.
+- `EXAM_OWNER_ID` təyin olunmayıbsa artıq 500 verilmir: səhifə açılanda xəbərdarlıq banneri,
+  göndərişdə isə formada aydın validasiya mesajı görünür.
+- Test infrastrukturu: `SubjectFactory`, `GroupFactory`, `ExamFactory` əlavə edildi,
+  `Subject`/`Group`/`Exam` modellərinə `HasFactory` verildi.
+- `AdminExamTest` (11 test): səhifələrin açılması, imtahanın yaradılması və sahibinin təyini,
+  pullu imtahanın qiyməti, sahib konfiqurasiya olunmayanda aydın xəta, redaktə, validasiya,
+  qonaq və şagird üçün giriş qadağası.
+
+**Nəticə:** 44 test / 131 assertion, hamısı keçir. Frontend yenidən build edildi.
+
 ### 2026-09-21 — Giriş məlumatları repodan çıxarıldı
 
 - Bu sənəddəki "Giriş Məlumatları" bölməsi (admin və müəllim hesabları) tamamilə silindi.

@@ -35,9 +35,9 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 
 ## P0: Admin imtahan yarada bilsin (hazırda 500 verir)
 
-- [ ] `resources/js/Pages/Admin/Exams/Create.vue` və `Edit.vue` yoxdur, amma controller onları render
+- [x] `resources/js/Pages/Admin/Exams/Create.vue` və `Edit.vue` yoxdur, amma controller onları render
       edir. Yarat (mövcud admin dizaynına uyğun).
-- [ ] `EXAM_OWNER_ID` məntiqini yoxla: `.env`-də yoxdursa admin aydın mesaj görsün, 500 yox.
+- [x] `EXAM_OWNER_ID` məntiqini yoxla: `.env`-də yoxdursa admin aydın mesaj görsün, 500 yox.
 
 ## P0: Admin sual idarəsi
 

@@ -8,6 +8,7 @@ use App\Models\Group;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class AdminExamController extends Controller
@@ -53,7 +54,24 @@ class AdminExamController extends Controller
             'teachers' => config('features.teachers') ? User::verifiedTeachers()->with('subjects')->get() : [],
             'subjects' => Subject::active()->get(),
             'groups' => Group::active()->orderBy('number')->get(),
+            // Forma doldurulmamışdan əvvəl xəbərdarlıq göstərilsin
+            'ownerConfigured' => $this->examOwnerId() !== null,
         ]);
+    }
+
+    /**
+     * Müəllim modulu söndürülüb olanda imtahanın sahibi EXAM_OWNER_ID-dir.
+     * Təyin olunmayıbsa və ya belə istifadəçi yoxdursa null qaytarır.
+     */
+    private function examOwnerId(): ?int
+    {
+        if (config('features.teachers')) {
+            return null;
+        }
+
+        $ownerId = config('features.exam_owner_id');
+
+        return $ownerId && User::whereKey($ownerId)->exists() ? (int) $ownerId : null;
     }
 
     public function store(Request $request)
@@ -71,11 +89,17 @@ class AdminExamController extends Controller
             'is_free' => ['boolean'],
         ]);
 
-        // Müəllim modulu söndürülüb: imtahanın sahibi EXAM_OWNER_ID (admin hesabı)
+        // Müəllim modulu söndürülüb: imtahanın sahibi EXAM_OWNER_ID (admin hesabı).
+        // Konfiqurasiya yoxdursa 500 yox, formada aydın mesaj göstərilir.
         if (! $teachersEnabled) {
-            $ownerId = config('features.exam_owner_id');
+            $ownerId = $this->examOwnerId();
 
-            abort_unless($ownerId && User::whereKey($ownerId)->exists(), 500, 'EXAM_OWNER_ID .env-də təyin olunmayıb və ya belə istifadəçi yoxdur.');
+            if ($ownerId === null) {
+                throw ValidationException::withMessages([
+                    'exam_owner' => 'İmtahan sahibi təyin olunmayıb: .env faylında EXAM_OWNER_ID '
+                        .'mövcud admin hesabının ID-si olmalıdır. Dəyişiklikdən sonra `php artisan config:clear`.',
+                ]);
+            }
 
             $validated['teacher_id'] = $ownerId;
         }
