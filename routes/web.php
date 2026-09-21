@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminExamController;
 use App\Http\Controllers\Admin\AdminGroupController;
+use App\Http\Controllers\Admin\AdminQuestionController;
 use App\Http\Controllers\Admin\AdminSubjectController;
 use App\Http\Controllers\Admin\AdminTeacherController;
 use App\Http\Controllers\Admin\Auth\AdminLoginController;
@@ -91,6 +92,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('exams', AdminExamController::class);
         Route::post('/exams/{exam}/toggle-active', [AdminExamController::class, 'toggleActive'])->name('exams.toggle-active');
         Route::post('/exams/{exam}/toggle-publish', [AdminExamController::class, 'togglePublish'])->name('exams.toggle-publish');
+
+        // Questions (imtahan daxilində)
+        Route::prefix('exams/{exam}')->name('exams.')->group(function () {
+            Route::get('/questions/create', [AdminQuestionController::class, 'create'])->name('questions.create');
+            Route::post('/questions', [AdminQuestionController::class, 'store'])->name('questions.store');
+            Route::get('/questions/{question}/edit', [AdminQuestionController::class, 'edit'])->name('questions.edit');
+            Route::put('/questions/{question}', [AdminQuestionController::class, 'update'])->name('questions.update');
+            Route::delete('/questions/{question}', [AdminQuestionController::class, 'destroy'])->name('questions.destroy');
+            Route::post('/questions/{question}/move/{direction}', [AdminQuestionController::class, 'move'])->name('questions.move');
+        });
     });
 });
 

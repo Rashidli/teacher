@@ -14,7 +14,7 @@ class Exam extends Model
 
     protected $fillable = [
         'teacher_id', 'subject_id', 'group_id', 'title', 'description',
-        'duration_minutes', 'price', 'is_free', 'is_active', 'is_published',
+        'duration_minutes', 'options_per_question', 'price', 'is_free', 'is_active', 'is_published',
         'published_at', 'created_by_admin'
     ];
 
@@ -25,6 +25,7 @@ class Exam extends Model
         'is_published' => 'boolean',
         'published_at' => 'datetime',
         'duration_minutes' => 'integer',
+        'options_per_question' => 'integer',
         'created_by_admin' => 'boolean',
     ];
 

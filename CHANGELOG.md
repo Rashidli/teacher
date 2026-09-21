@@ -10,6 +10,44 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Admin sual idarəsi və yeni sual tipləri
+
+**Migration** (`2026_09_21_000001_add_question_types_and_accepted_answers`):
+- `questions.type` `enum` → `string(32)`. Enum dəyişmək MariaDB-də cədvəli hər dəfə yenidən qurur;
+  sətir sütunu yeni tip əlavə etməyi migrationsuz mümkün edir (validasiya `Question::TYPES`-dədir).
+- Mövcud `open_ended` → `open_written` (produksiyada belə sual yox idi, data itkisi olmadı).
+- `questions.accepted_answers` (JSON) — yalnız `open_coded` üçün.
+- `exams.options_per_question` — 4 və ya 5, imtahan səviyyəsində.
+
+**Sual tipləri:**
+
+| Tip | Necə yoxlanır |
+|-----|----------------|
+| `multiple_choice` | Variant sayı imtahandakı ilə eyni olmalıdır, düz bir düzgün cavab |
+| `open_coded` | `AnswerNormalizer` ilə avtomatik |
+| `open_written` | Admin əl ilə qiymətləndirir |
+
+**AnswerNormalizer** (`app/Support/AnswerNormalizer.php`): cavablar sətir kimi deyil, ƏDƏD kimi
+müqayisə olunur. Admin `0,5` yazsa, şagirdin `0.5`, `.5`, `1/2`, `2/4` cavabları da qəbul olunur
+(tolerantlıq 1e-9). Ədədə çevrilməyən cavablar normallaşdırılmış mətn kimi tutuşdurulur; Azərbaycan
+əlifbasındakı `İ/i` və `I/ı` fərqi nəzərə alınır (`İKİ` = `iki`, `IKI` ≠ `iki`). `accepted_answers`
+yalnız ədədi olmayan alternativlər üçündür.
+
+**Backend:** `AdminQuestionController` (create/store/edit/update/destroy/move) və ortaq
+`QuestionService`. Şəkil yükləmə məntiqi servisə köçürüldü — `TeacherQuestionController` də artıq
+eyni servisi çağırır, iki fərqli implementasiya qalmadı. Redaktə zamanı yenidən yüklənməyən variant
+şəkilləri itmir, istifadədən çıxan şəkillər isə diskdən silinir.
+
+**Frontend:** `Components/Questions/QuestionForm.vue` — formula önizləməsi, tez-formula düymələri,
+üç sual tipi, şəkil yükləmə bir komponentdə. `Admin/Questions/Create.vue` və `Edit.vue` onu işlədir.
+`Admin/Exams/Show.vue`-da sual əlavə etmə, redaktə, silmə və yuxarı/aşağı sıralama düymələri,
+formula ilə render.
+
+**Testlər:** `AnswerNormalizerTest` (16 unit test), `AdminQuestionTest` (15 feature test).
+Cəmi 75 test / 228 assertion keçir.
+
+**Diqqət:** migration hələ produksiya bazasında işlədilməyib.
+
 ### 2026-09-21 — Admin imtahan yarada/redaktə edə bilir
 
 **Problem:** `AdminExamController` `Admin/Exams/Create` və `Edit` səhifələrini render edirdi,

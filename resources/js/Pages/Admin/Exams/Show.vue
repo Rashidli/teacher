@@ -1,10 +1,29 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import MathText from '@/Components/MathText.vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     exam: Object,
 });
+
+const QUESTION_TYPE_LABELS = {
+    multiple_choice: 'Test',
+    open_coded: 'Qısa cavab',
+    open_written: 'Açıq (əl ilə yoxlanır)',
+};
+
+const moveQuestion = (question, direction) => {
+    router.post(route('admin.exams.questions.move', [props.exam.id, question.id, direction]), {}, {
+        preserveScroll: true,
+    });
+};
+
+const deleteQuestion = (question) => {
+    if (confirm('Sual silinsin? Bu əməliyyat geri qaytarılmır.')) {
+        router.delete(route('admin.exams.questions.destroy', [props.exam.id, question.id]));
+    }
+};
 
 const togglePublish = () => {
     useForm({}).post(route('admin.exams.toggle-publish', props.exam.id));
@@ -121,7 +140,20 @@ const toggleActive = () => {
 
                         <!-- Questions -->
                         <div class="border-t border-gray-200 pt-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Suallar</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    Suallar
+                                    <span class="ml-2 text-sm font-normal text-gray-500">
+                                        ({{ exam.questions?.length || 0 }})
+                                    </span>
+                                </h3>
+                                <Link
+                                    :href="route('admin.exams.questions.create', exam.id)"
+                                    class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
+                                >
+                                    + Sual əlavə et
+                                </Link>
+                            </div>
                             <div v-if="exam.questions?.length" class="space-y-4">
                                 <div
                                     v-for="(question, index) in exam.questions"
@@ -133,7 +165,20 @@ const toggleActive = () => {
                                             {{ index + 1 }}
                                         </span>
                                         <div class="flex-1">
-                                            <p class="text-gray-900 font-medium">{{ question.question_text }}</p>
+                                            <div class="flex items-start justify-between gap-3">
+                                                <MathText :text="question.question_text" class="text-gray-900 font-medium" />
+                                                <span class="flex-shrink-0 px-2 py-0.5 bg-gray-200 text-gray-700 text-xs rounded">
+                                                    {{ QUESTION_TYPE_LABELS[question.type] ?? question.type }}
+                                                </span>
+                                            </div>
+
+                                            <img
+                                                v-if="question.question_image"
+                                                :src="`/storage/${question.question_image}`"
+                                                alt="Sual şəkli"
+                                                class="mt-3 max-w-xs rounded border border-gray-200"
+                                            />
+
                                             <div v-if="question.options?.length" class="mt-3 space-y-2">
                                                 <div
                                                     v-for="option in question.options"
@@ -145,15 +190,54 @@ const toggleActive = () => {
                                                             : 'bg-white border border-gray-200'
                                                     ]"
                                                 >
-                                                    {{ option.option_text }}
+                                                    <span class="font-medium mr-1">{{ option.option_letter }})</span>
+                                                    <MathText :text="option.option_text" class="inline" />
                                                     <span v-if="option.is_correct" class="ml-2 text-xs">(Düzgün)</span>
                                                 </div>
                                             </div>
+
+                                            <p v-if="question.type === 'open_coded' && question.accepted_answers?.length"
+                                                class="mt-3 text-sm text-gray-700">
+                                                Düzgün cavab:
+                                                <code class="bg-white border border-gray-200 rounded px-1">
+                                                    {{ question.accepted_answers.join(' , ') }}
+                                                </code>
+                                            </p>
+
+                                            <p v-if="question.explanation" class="mt-2 text-sm text-gray-500">
+                                                İzah: {{ question.explanation }}
+                                            </p>
+                                        </div>
+
+                                        <div class="flex flex-shrink-0 items-center gap-1">
+                                            <button
+                                                type="button"
+                                                @click="moveQuestion(question, 'up')"
+                                                :disabled="index === 0"
+                                                class="px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-30 hover:bg-white"
+                                                title="Yuxarı"
+                                            >↑</button>
+                                            <button
+                                                type="button"
+                                                @click="moveQuestion(question, 'down')"
+                                                :disabled="index === exam.questions.length - 1"
+                                                class="px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-30 hover:bg-white"
+                                                title="Aşağı"
+                                            >↓</button>
+                                            <Link
+                                                :href="route('admin.exams.questions.edit', [exam.id, question.id])"
+                                                class="px-2 py-1 text-sm text-indigo-600 hover:text-indigo-800"
+                                            >Redaktə</Link>
+                                            <button
+                                                type="button"
+                                                @click="deleteQuestion(question)"
+                                                class="px-2 py-1 text-sm text-red-600 hover:text-red-800"
+                                            >Sil</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <p v-else class="text-gray-500">Hələ sual əlavə edilməyib</p>
+                            <p v-else class="text-gray-500">Hələ sual əlavə edilməyib.</p>
                         </div>
                     </div>
                 </div>

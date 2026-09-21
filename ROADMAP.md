@@ -41,11 +41,11 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 
 ## P0: Admin sual idarəsi
 
-- [ ] Admin panelində imtahan daxilində sual CRUD: yaratma, redaktə, silmə, sıralama.
+- [x] Admin panelində imtahan daxilində sual CRUD: yaratma, redaktə, silmə, sıralama.
       `Teacher/Questions/Create.vue` və `Edit.vue`-dakı formula önizləməsini (MathText, tez-formula
       düymələri) təkrar istifadə et, ortaq komponentə çıxar.
-- [ ] Şəkil yükləmə (sual və variant şəkli), storage link.
-- [ ] Sual növləri:
+- [x] Şəkil yükləmə (sual və variant şəkli), storage link.
+- [x] Sual növləri:
       - `multiple_choice` — variant sayı 4 və ya 5, imtahan səviyyəsində seçilir
       - `open_coded` — qısa/rəqəm cavab, bir neçə qəbul olunan cavab (`0,5` = `0.5` = `1/2`)
       - `open_written` — həll yazılır, əl ilə qiymətləndirilir
