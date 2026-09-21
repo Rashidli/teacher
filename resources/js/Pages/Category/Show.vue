@@ -1,47 +1,101 @@
 <script setup>
-import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 import SiteFooter from '@/Components/Site/SiteFooter.vue';
 import SeoHead from '@/Components/Site/SeoHead.vue';
-import { categories, categoryRoute } from '@/data/categories';
 import { useLocale } from '@/Composables/useLocale';
 
-// Müvəqqəti səhifə: kateqoriyanın testləri hələ hazırlanır (testlər açılana qədər noindex).
-const props = defineProps({
-    slug: { type: String, required: true },
+defineProps({
+    category: { type: Object, required: true },
+    breadcrumb: { type: Array, default: () => [] },
+    children: { type: Array, default: () => [] },
+    subjects: { type: Array, default: () => [] },
+    exams: { type: Array, default: () => [] },
+    seo: { type: Object, default: () => ({}) },
 });
 
 const { lroute } = useLocale();
-const others = computed(() => categories.filter((c) => c.slug !== props.slug));
 </script>
 
 <template>
-    <SeoHead :title="$t(`categories.${slug}.title`)" noindex />
+    <SeoHead :title="seo.title" :description="seo.description" />
 
     <div class="site">
         <SiteHeader />
 
-        <main class="wrap placeholder">
-            <p class="crumb"><Link :href="lroute('home')">{{ $t('category_page.home') }}</Link></p>
-            <h1 class="title">{{ $t(`categories.${slug}.title`) }}</h1>
-            <p class="lead">{{ $t('category_page.lead') }}</p>
-            <div class="actions">
-                <Link :href="lroute('register')" class="button">{{ $t('category_page.register') }}</Link>
-                <Link :href="lroute('login')" class="link">{{ $t('category_page.login') }}</Link>
-            </div>
+        <main class="wrap page">
+            <nav class="crumb" aria-label="breadcrumb">
+                <Link :href="lroute('home')">{{ $t('category_page.home') }}</Link>
+                <template v-for="(item, index) in breadcrumb" :key="item.url">
+                    <span class="sep" aria-hidden="true">/</span>
+                    <Link v-if="index < breadcrumb.length - 1" :href="item.url">{{ item.name }}</Link>
+                    <span v-else class="current">{{ item.name }}</span>
+                </template>
+            </nav>
 
-            <section class="others" aria-labelledby="others-title">
-                <h2 id="others-title" class="others-title">{{ $t('category_page.others') }}</h2>
-                <ul>
-                    <li v-for="item in others" :key="item.slug">
-                        <Link :href="lroute(categoryRoute(item))">
-                            <span class="name">{{ $t(`categories.${item.slug}.name`) }}</span>
-                            <span class="short">{{ $t(`categories.${item.slug}.short`) }}</span>
+            <h1 class="title">{{ category.h1 }}</h1>
+            <p v-if="category.short" class="lead">{{ category.short }}</p>
+            <p v-if="category.intro" class="intro">{{ category.intro }}</p>
+            <p v-else-if="category.description" class="intro">{{ category.description }}</p>
+
+            <!-- Alt kateqoriyalar -->
+            <section v-if="children.length" class="block" aria-labelledby="children-title">
+                <h2 id="children-title" class="block-title">{{ $t('category_page.sections') }}</h2>
+                <ul class="cards">
+                    <li v-for="child in children" :key="child.url">
+                        <Link :href="child.url" class="card">
+                            <span class="card-name">{{ child.name }}</span>
+                            <span v-if="child.short" class="card-short">{{ child.short }}</span>
                         </Link>
                     </li>
                 </ul>
             </section>
+
+            <!-- Fənlər və bal -->
+            <section v-if="subjects.length" class="block" aria-labelledby="subjects-title">
+                <h2 id="subjects-title" class="block-title">{{ $t('category_page.subjects') }}</h2>
+                <ul class="subjects">
+                    <li v-for="subject in subjects" :key="subject.name">
+                        <span class="subject-name">{{ subject.name }}</span>
+                        <span class="subject-meta">
+                            <template v-if="subject.question_count">
+                                {{ subject.question_count }} {{ $t('category_page.questions') }}
+                            </template>
+                            <template v-if="subject.max_score">
+                                · {{ $t('category_page.max_score') }}: {{ subject.max_score }}
+                            </template>
+                        </span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Satışdakı imtahanlar (bu düyün və alt düyünlər) -->
+            <section v-if="exams.length" class="block" aria-labelledby="exams-title">
+                <h2 id="exams-title" class="block-title">{{ $t('category_page.exams') }}</h2>
+                <ul class="cards">
+                    <li v-for="exam in exams" :key="exam.id">
+                        <Link :href="lroute('login')" class="card">
+                            <span class="card-name">{{ exam.title }}</span>
+                            <span class="card-short">
+                                {{ exam.subject }} · {{ exam.questions_count }} {{ $t('category_page.questions') }}
+                                · {{ exam.duration_minutes }} {{ $t('category_page.minutes') }}
+                            </span>
+                            <span class="card-price">
+                                {{ exam.is_free ? $t('category_page.free') : `${exam.price} AZN` }}
+                            </span>
+                        </Link>
+                    </li>
+                </ul>
+            </section>
+
+            <p v-if="!children.length && !exams.length" class="empty">
+                {{ category.has_exams ? $t('category_page.lead') : $t('category_page.info_only') }}
+            </p>
+
+            <div class="actions">
+                <Link :href="lroute('register')" class="button">{{ $t('category_page.register') }}</Link>
+                <Link :href="lroute('login')" class="link">{{ $t('category_page.login') }}</Link>
+            </div>
         </main>
 
         <SiteFooter />
@@ -49,123 +103,121 @@ const others = computed(() => categories.filter((c) => c.slug !== props.slug));
 </template>
 
 <style scoped>
-.placeholder {
-    padding-block: 40px 80px;
+.page {
+    padding-block: 32px 72px;
 }
 
 .crumb {
-    margin: 0 0 8px;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
 }
 
-.crumb a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    color: var(--muted);
+.crumb .sep {
+    opacity: 0.4;
+}
+
+.crumb .current {
+    opacity: 0.7;
 }
 
 .title {
-    margin: 0;
-    max-width: 20ch;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: clamp(2rem, 1.4rem + 2.6vw, 3rem);
-    line-height: 1.15;
-    letter-spacing: -0.015em;
+    margin: 12px 0 8px;
 }
 
 .lead {
-    margin: 20px 0 0;
-    max-width: 56ch;
-    color: var(--muted);
+    margin: 0 0 8px;
+    font-size: 1.1rem;
+}
+
+.intro {
+    margin: 0 0 8px;
+    max-width: 65ch;
+    opacity: 0.85;
+}
+
+.block {
+    margin-top: 40px;
+}
+
+.block-title {
+    font-size: 1.15rem;
+    margin: 0 0 14px;
+}
+
+.cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px;
+    border: 1px solid rgba(22, 19, 14, 0.15);
+    border-radius: 12px;
+    text-decoration: none;
+    height: 100%;
+}
+
+.card:hover {
+    border-color: rgba(22, 19, 14, 0.4);
+}
+
+.card-name {
+    font-weight: 600;
+}
+
+.card-short {
+    font-size: 0.9rem;
+    opacity: 0.75;
+}
+
+.card-price {
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+.subjects {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.subjects li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid rgba(22, 19, 14, 0.12);
+    border-radius: 10px;
+}
+
+.subject-meta {
+    opacity: 0.7;
+    font-size: 0.9rem;
+}
+
+.empty {
+    margin-top: 32px;
+    opacity: 0.75;
 }
 
 .actions {
+    margin-top: 40px;
     display: flex;
     flex-wrap: wrap;
+    gap: 16px;
     align-items: center;
-    gap: 8px 20px;
-    margin-top: 28px;
-}
-
-.button {
-    display: inline-flex;
-    align-items: center;
-    min-height: 48px;
-    padding-inline: 20px;
-    border-radius: 6px;
-    background: var(--pen);
-    color: #fff;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.button:hover {
-    background: var(--pen-deep);
-}
-
-.link {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    color: var(--pen);
-    font-weight: 500;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-}
-
-.others {
-    margin-top: 64px;
-    padding-top: 24px;
-    border-top: 1px solid var(--ink-red-line);
-}
-
-.others-title {
-    margin: 0 0 8px;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.375rem);
-}
-
-.others ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0 32px;
-}
-
-.others li {
-    border-bottom: 1px dashed var(--ink-red-line);
-}
-
-.others a {
-    display: grid;
-    min-height: 56px;
-    padding-block: 8px;
-    align-content: center;
-    color: var(--graphite);
-    text-decoration: none;
-}
-
-.others a:hover .name {
-    color: var(--pen);
-}
-
-.name {
-    font-weight: 600;
-}
-
-.short {
-    color: var(--muted);
-    font-size: 0.875rem;
-}
-
-@media (min-width: 720px) {
-    .others ul {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 </style>

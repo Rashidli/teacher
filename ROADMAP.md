@@ -130,23 +130,23 @@ Mənbə: layihə vizyonu sənədi. Aşağıdakılar sənəddə olub, kodda **hə
 Bal hesablaması (DİM düsturu, ScoringStrategy, config/scoring.php) artıq həll olunub — toxunulmur.
 Mövcud URL slug-ları (`mekteb`, `miq`, `suruculuk-imtahani`) saxlanılır.
 
-### Mərhələ 1 — Kateqoriya iyerarxiyası
+### Mərhələ 1 — Kateqoriya iyerarxiyası ✅ (21.09.2026)
 
-- [ ] `categories` cədvəli: `parent_id` (sonsuz dərinlik), `group_id` (nullable — bal üçün mövcud
+- [x] `categories` cədvəli: `parent_id` (sonsuz dərinlik), `group_id` (nullable — bal üçün mövcud
       `groups` cədvəlinə bağlantı), `slug`, `path` (URL üçün), `name`, `description`, `is_active`,
       `order` və SEO sahələri (`seo_title`, `seo_description`, `h1`, `intro`).
-- [ ] **`groups` cədvəli bal hesablaması üçün ayrıca qalır**, kateqoriya ağacında təkrarlanmır:
+- [x] **`groups` cədvəli bal hesablaması üçün ayrıca qalır**, kateqoriya ağacında təkrarlanmır:
       abituriyent qrup düyünləri `categories.group_id` ilə mövcud qruplara bağlanır.
-- [ ] `category_subject` pivotu: `question_count`, `options_per_question`, `max_score` (nullable —
+- [x] `category_subject` pivotu: `question_count`, `options_per_question`, `max_score` (nullable —
       qrupa bağlı kateqoriyalarda bal `subject_group_scores`-dan gəlir, təkrarlanmır).
-- [ ] Seeder ilə ağac: Orta məktəb, Abituriyent (I mərhələ, I–V qrup, altqruplar, Kollec),
+- [x] Seeder ilə ağac: Orta məktəb, Abituriyent (I mərhələ, I–V qrup, altqruplar, Kollec),
       Magistratura, Dövlət qulluğu, Müəllimlər (MİQ, Sertifikasiya, Diaqnostik, Məktəbəqədər),
       Sürücülük (A, B, C, D, BE, CE, DE), Digər (deaktiv).
-- [ ] Mövcud slug-lar saxlanılır (`mekteb`, `miq`, `suruculuk-imtahani` …) — `path` sütunu
+- [x] Mövcud slug-lar saxlanılır (`mekteb`, `miq`, `suruculuk-imtahani` …) — `path` sütunu
       iyerarxiyadan asılı olmadan sabit URL verir.
-- [ ] `routes/web.php`-dəki hardcoded slug siyahısı və `categories.js` DB-yə köçürülür,
+- [x] `routes/web.php`-dəki hardcoded slug siyahısı və `categories.js` DB-yə köçürülür,
       placeholder səhifələr real kataloqa çevrilir.
-- [ ] Admin: kateqoriya CRUD (ağac görünüşü, sıra, aktiv/deaktiv).
+- [x] Admin: kateqoriya CRUD (ağac görünüşü, sıra, aktiv/deaktiv).
 
 ### Mərhələ 2 — Sual bankı (struktur dəyişikliyi)
 

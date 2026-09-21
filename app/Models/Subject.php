@@ -20,6 +20,13 @@ class Subject extends Model
         'order' => 'integer',
     ];
 
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class)
+            ->withPivot(['question_count', 'options_per_question', 'max_score', 'order'])
+            ->withTimestamps();
+    }
+
     public function teachers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'subject_teacher');

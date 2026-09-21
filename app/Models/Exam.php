@@ -13,7 +13,7 @@ class Exam extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'teacher_id', 'subject_id', 'group_id', 'title', 'description',
+        'teacher_id', 'subject_id', 'group_id', 'category_id', 'title', 'description',
         'duration_minutes', 'options_per_question', 'price', 'is_free', 'is_active', 'is_published',
         'published_at', 'created_by_admin'
     ];
@@ -42,6 +42,11 @@ class Exam extends Model
     public function group(): BelongsTo
     {
         return $this->belongsTo(Group::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function questions(): HasMany

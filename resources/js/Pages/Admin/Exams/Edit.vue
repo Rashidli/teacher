@@ -9,6 +9,7 @@ import { watch } from 'vue';
 
 const props = defineProps({
     exam: { type: Object, required: true },
+    categories: { type: Array, default: () => [] },
 });
 
 /*
@@ -16,6 +17,7 @@ const props = defineProps({
  * fənn/qrup dəyişsə bal hesablaması mənasını itirir. Dəyişmək lazımdırsa yeni imtahan yaradılır.
  */
 const form = useForm({
+    category_id: props.exam.category_id ?? '',
     title: props.exam.title,
     description: props.exam.description ?? '',
     duration_minutes: props.exam.duration_minutes,
@@ -96,6 +98,21 @@ const submit = () => {
                                 rows="3"
                             ></textarea>
                             <InputError :message="form.errors.description" class="mt-2" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="category_id" value="Kateqoriya" />
+                            <select
+                                id="category_id"
+                                v-model="form.category_id"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">— seçilməyib —</option>
+                                <option v-for="category in categories" :key="category.id" :value="category.id">
+                                    {{ category.label }}
+                                </option>
+                            </select>
+                            <InputError :message="form.errors.category_id" class="mt-2" />
                         </div>
 
                         <div>

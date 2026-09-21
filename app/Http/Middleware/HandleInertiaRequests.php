@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Category;
 use App\Support\Localization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -89,6 +90,17 @@ class HandleInertiaRequests extends Middleware
             'features' => [
                 'teachers' => $teachersEnabled,
             ],
+            // Kök kateqoriyalar: ana səhifə və altlıq hər səhifədə işlədir.
+            // Lazy (closure) — yalnız istifadə olunanda sorğu gedir.
+            'categories' => fn () => Category::active()->roots()
+                ->orderBy('order')
+                ->get(['id', 'name', 'short', 'path', 'translations'])
+                ->map(fn (Category $category) => [
+                    'path' => $category->path,
+                    'name' => $category->localized('name'),
+                    'short' => $category->localized('short'),
+                    'url' => Localization::categoryUrl($category->path),
+                ]),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

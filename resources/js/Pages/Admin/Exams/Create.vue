@@ -12,12 +12,14 @@ const props = defineProps({
     teachers: { type: Array, default: () => [] },
     subjects: { type: Array, default: () => [] },
     groups: { type: Array, default: () => [] },
+    categories: { type: Array, default: () => [] },
     // false: .env-də EXAM_OWNER_ID yoxdur, imtahan yaradıla bilməz
     ownerConfigured: { type: Boolean, default: true },
 });
 
 const form = useForm({
     teacher_id: '',
+    category_id: '',
     subject_id: '',
     group_id: '',
     title: '',
@@ -150,6 +152,24 @@ const submit = () => {
                                 </select>
                                 <InputError :message="form.errors.group_id" class="mt-2" />
                             </div>
+                        </div>
+
+                        <div>
+                            <InputLabel for="category_id" value="Kateqoriya" />
+                            <select
+                                id="category_id"
+                                v-model="form.category_id"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">— seçilməyib —</option>
+                                <option v-for="category in categories" :key="category.id" :value="category.id">
+                                    {{ category.label }}
+                                </option>
+                            </select>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Kateqoriyanın bal qrupu varsa, imtahanın qrupu ondan götürülür.
+                            </p>
+                            <InputError :message="form.errors.category_id" class="mt-2" />
                         </div>
 
                         <div>

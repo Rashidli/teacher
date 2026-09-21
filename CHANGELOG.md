@@ -10,6 +10,46 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Kateqoriya iyerarxiyası (P2 Mərhələ 1)
+
+**Migration:** `categories` (parent_id, group_id, slug, path, SEO sahələri, translations),
+`category_subject` pivotu, `exams.category_id`.
+
+**Struktur qərarları:**
+- `groups` cədvəli bal hesablaması üçün ayrıca qalır və ağacda təkrarlanmır: abituriyent qrup
+  düyünləri `categories.group_id` ilə mövcud qruplara bağlanır (10 düyün).
+- `category_subject.max_score` nullable — qrupa bağlı kateqoriyalarda bal `subject_group_scores`-dan
+  gəlir, iki mənbə yaranmır. Dövlət qulluğu kimi qrupsuz kateqoriyalarda bal pivotdadır.
+- `path` ayrıca sütundur: MİQ ağacda "Müəllimlər"in altındadır, URL-i isə `/miq` olaraq qalır.
+  Bütün mövcud ünvanlar (`mekteb`, `abituriyent`, `magistratura`, `dovlet-qullugu`, `miq`,
+  `suruculuk-imtahani`) qorundu.
+- İmtahan ən dəqiq düyünə bağlanır; kateqoriya səhifəsi öz imtahanları ilə yanaşı bütün alt
+  düyünlərin imtahanlarını göstərir. İmtahan saxlananda kateqoriyanın qrupu varsa `group_id`
+  ondan götürülür.
+
+**Seeder:** 54 kateqoriya — Orta məktəb, Abituriyent (I mərhələ, I–V qrup, RK/Rİ və DT/TC
+altqrupları, Kollec), Magistratura, Dövlət qulluğu, Müəllimlər, Sürücülük, Digər (deaktiv).
+`path` üzrə idempotent; təkrar işlədiləndə adminin deaktiv etdiyi kateqoriya geri açılmır.
+Dövlət qulluğu üçün iki yeni fənn əlavə edildi: Qanunvericilik və Məntiq.
+
+**Route:** hardcoded 6 kateqoriya route-u silindi, yerinə faylın sonunda `/{path}` catch-all.
+Dil prefiksli variant ondan əvvəl qeydiyyatdan keçir — əks halda `/{path}` `ru/abituriyent`
+ünvanını da udurdu. `RouteRegistrationTest` bütün mövcud route-ların yerində qaldığını yoxlayır.
+
+**Frontend:** `resources/js/data/categories.js` və `lang/{az,ru}/categories.php` silindi, adlar
+DB-dədir. Kök kateqoriyalar paylaşılan Inertia props-u ilə gəlir. Kateqoriya səhifəsi
+placeholder-dən real kataloqa çevrildi: breadcrumb, alt bölmələr, fənlər və maksimal ballar,
+satışdakı imtahanlar. Rusca adlar `translations` JSON sütununda — `/ru` səhifələri əvvəlki kimi
+tərcümə olunur, tərcüməsi olmayan yeni düyünlər Azərbaycan adı ilə görünür.
+
+**Admin:** kateqoriya CRUD (ağac görünüşü, SEO sahələri, aktiv/deaktiv). Slug dəyişəndə alt ağacın
+bütün yolları yenilənir; kateqoriya öz alt ağacına köçürülə bilmir; uşağı və ya imtahanı olan
+kateqoriya silinmir.
+
+**Data:** mövcud 6 imtahan `/abituriyent/1-ci-qrup` düyününə bağlandı. İmtahan #1 pulsuz işarələndi.
+
+**Testlər:** `CategoryTest` (22), `RouteRegistrationTest` (23). Cəmi 202 test / 775 assertion.
+
 ### 2026-09-21 — Asılılıq zəiflikləri, qalan P1 işləri və vizyon üzrə ROADMAP
 
 **Təhlükəsizlik yeniləmələri.** `composer audit` 41 → 0, `npm audit` 14 → 0. Paket-paket

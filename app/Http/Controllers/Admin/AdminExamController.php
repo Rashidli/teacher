@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Group;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -58,6 +60,7 @@ class AdminExamController extends Controller
             'teachers' => config('features.teachers') ? User::verifiedTeachers()->with('subjects')->get() : [],
             'subjects' => Subject::active()->get(),
             'groups' => Group::active()->orderBy('number')->get(),
+            'categories' => $this->categoryOptions(),
             // Forma doldurulmamışdan əvvəl xəbərdarlıq göstərilsin
             'ownerConfigured' => $this->examOwnerId() !== null,
         ]);
@@ -74,6 +77,38 @@ class AdminExamController extends Controller
         }
 
         return ['required', 'numeric', 'min:0.01'];
+    }
+
+    /**
+     * Kateqoriyanın bal qrupu varsa, imtahanın qrupu ondan götürülür — iki mənbə
+     * arasında ziddiyyət yaranmasın (kateqoriya ağacı və bal matrisi uyğun qalsın).
+     */
+    private function applyCategoryGroup(array $validated): array
+    {
+        if (empty($validated['category_id'])) {
+            return $validated;
+        }
+
+        $groupId = Category::whereKey($validated['category_id'])->value('group_id');
+
+        if ($groupId) {
+            $validated['group_id'] = $groupId;
+        }
+
+        return $validated;
+    }
+
+    /** İmtahan bağlana bilən kateqoriyalar (yalnız test keçirilənlər) */
+    private function categoryOptions()
+    {
+        return Category::active()
+            ->where('has_exams', true)
+            ->orderBy('path')
+            ->get(['id', 'name', 'path'])
+            ->map(fn (Category $category) => [
+                'id' => $category->id,
+                'label' => $category->path.' — '.$category->name,
+            ]);
     }
 
     /** @return array<string, string> */
@@ -119,6 +154,7 @@ class AdminExamController extends Controller
             'teacher_id' => $teachersEnabled ? ['required', 'exists:users,id'] : ['exclude'],
             'subject_id' => ['required', 'exists:subjects,id'],
             'group_id' => ['required', 'exists:groups,id'],
+            'category_id' => ['nullable', Rule::exists('categories', 'id')],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'duration_minutes' => ['required', 'integer', 'min:10', 'max:180'],
@@ -126,7 +162,7 @@ class AdminExamController extends Controller
             'price' => $this->priceRules($request),
         ], $this->priceMessages());
 
-        $validated = $this->normalisePrice($validated);
+        $validated = $this->normalisePrice($this->applyCategoryGroup($validated));
 
         // Müəllim modulu söndürülüb: imtahanın sahibi EXAM_OWNER_ID (admin hesabı).
         // Konfiqurasiya yoxdursa 500 yox, formada aydın mesaj göstərilir.
@@ -166,6 +202,7 @@ class AdminExamController extends Controller
 
         return Inertia::render('Admin/Exams/Edit', [
             'exam' => $exam,
+            'categories' => $this->categoryOptions(),
             'teachers' => config('features.teachers') ? User::verifiedTeachers()->with('subjects')->get() : [],
             'subjects' => Subject::active()->get(),
             'groups' => Group::active()->orderBy('number')->get(),
@@ -181,9 +218,10 @@ class AdminExamController extends Controller
             'is_free' => ['boolean'],
             'price' => $this->priceRules($request),
             'is_active' => ['boolean'],
+            'category_id' => ['nullable', Rule::exists('categories', 'id')],
         ], $this->priceMessages());
 
-        $exam->update($this->normalisePrice($validated));
+        $exam->update($this->normalisePrice($this->applyCategoryGroup($validated)));
 
         return redirect()->route('admin.exams.show', $exam)
             ->with('success', 'İmtahan uğurla yeniləndi.');

@@ -27,16 +27,27 @@ class SubjectSeeder extends Seeder
             ['name' => 'Biologiya', 'category' => 'technical', 'order' => 12],
             ['name' => 'Coğrafiya', 'category' => 'technical', 'order' => 13],
             ['name' => 'İnformatika', 'category' => 'technical', 'order' => 14],
+            // Dövlət qulluğu və magistratura üçün (fənlər kateqoriyalar arasında paylaşılır)
+            ['name' => 'Qanunvericilik', 'category' => 'humanitarian', 'order' => 15],
+            ['name' => 'Məntiq', 'category' => 'technical', 'order' => 16],
         ];
 
+        // Idempotent: seeder təkrar işlədiləndə mövcud fənlər yenilənir, dublikat yaranmır.
+        // is_active yalnız yaradılanda təyin olunur — admin deaktiv etdiyi fənn geri açılmasın.
         foreach ($subjects as $subject) {
-            Subject::create([
+            $model = Subject::firstOrNew(['slug' => Str::slug($subject['name'])]);
+
+            $model->fill([
                 'name' => $subject['name'],
-                'slug' => Str::slug($subject['name']),
                 'category' => $subject['category'],
                 'order' => $subject['order'],
-                'is_active' => true,
             ]);
+
+            if (! $model->exists) {
+                $model->is_active = true;
+            }
+
+            $model->save();
         }
     }
 }

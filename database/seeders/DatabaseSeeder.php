@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             SubjectSeeder::class,
             GroupSeeder::class,
             SubjectGroupScoreSeeder::class,
+            CategorySeeder::class,
             AdminUserSeeder::class,
         ]);
     }

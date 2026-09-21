@@ -46,6 +46,18 @@ class Localization
         return route(static::routeName($name, $locale), $parameters, $absolute);
     }
 
+    /**
+     * Kateqoriya səhifəsinin URL-i: "/abituriyent" və ya "/ru/abituriyent".
+     * Kateqoriyalar adlandırılmış route yox, yol (path) üzrə həll olunur.
+     */
+    public static function categoryUrl(string $path, ?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
+        $path = trim($path, '/');
+
+        return url($locale === static::default() ? $path : $locale.'/'.$path);
+    }
+
     /** Route dil prefiksli ictimai qrupa aiddirmi (routes/web.php-də 'localized' => true) */
     public static function isLocalizedRoute(Request $request): bool
     {

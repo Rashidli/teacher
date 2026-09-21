@@ -1,17 +1,24 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 import SiteFooter from '@/Components/Site/SiteFooter.vue';
 import TutorsSection from '@/Components/Site/TutorsSection.vue';
 import { useFeatures } from '@/Composables/useFeatures';
 import SeoHead from '@/Components/Site/SeoHead.vue';
-import { categories, categoryRoute } from '@/data/categories';
 import { useLocale } from '@/Composables/useLocale';
 
 const { teachersEnabled } = useFeatures();
 const { lroute } = useLocale();
 
-const path = (slug) => lroute(`category.${slug}`);
+// Kateqoriyalar paylaşılan props-dan (DB), adlar cari dildədir
+const categories = computed(() => usePage().props.categories ?? []);
+
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+// Ana səhifədəki sabit kartlar üçün: yol ilə axtarış
+const byPath = (wanted) => categories.value.find((c) => c.path === wanted) ?? { name: '', url: '#' };
+const path = (wanted) => byPath(wanted).url;
 
 // Hero-dakı dekorativ "kod" şəbəkəsi: hər sütunda bir xana karandaşla doldurulur.
 const codeMarks = [2, 0, 1, 2, 0];
@@ -75,12 +82,12 @@ const topics = [
 
                         <nav aria-labelledby="hero-question">
                             <ul class="choices">
-                                <li v-for="category in categories" :key="category.slug">
-                                    <Link :href="lroute(categoryRoute(category))" class="choice">
-                                        <span class="bubble" aria-hidden="true">{{ category.letter }}</span>
+                                <li v-for="(category, index) in categories" :key="category.path">
+                                    <Link :href="category.url" class="choice">
+                                        <span class="bubble" aria-hidden="true">{{ LETTERS[index] }}</span>
                                         <span class="choice-text">
-                                            <span class="choice-name">{{ $t(`categories.${category.slug}.name`) }}</span>
-                                            <span class="choice-short">{{ $t(`categories.${category.slug}.short`) }}</span>
+                                            <span class="choice-name">{{ category.name }}</span>
+                                            <span class="choice-short">{{ category.short }}</span>
                                         </span>
                                         <span class="choice-go" aria-hidden="true">{{ $t('landing.card.go') }}</span>
                                     </Link>
@@ -113,7 +120,7 @@ const topics = [
                                 <li class="path-step">
                                     <Link :href="path('mekteb')" class="path-card">
                                         <span class="path-node" aria-hidden="true"></span>
-                                        <h4 class="path-name">{{ $t('categories.mekteb.name') }}</h4>
+                                        <h4 class="path-name">{{ byPath('mekteb').name }}</h4>
                                         <p class="path-text">{{ $t('landing.exams.education.school') }}</p>
                                         <span class="card-action">{{ $t('landing.exams.action') }}</span>
                                     </Link>
@@ -121,7 +128,7 @@ const topics = [
                                 <li class="path-step path-step--main">
                                     <Link :href="path('abituriyent')" class="path-card">
                                         <span class="path-node" aria-hidden="true"></span>
-                                        <h4 class="path-name">{{ $t('categories.abituriyent.name') }}</h4>
+                                        <h4 class="path-name">{{ byPath('abituriyent').name }}</h4>
                                         <p class="path-text">{{ $t('landing.exams.education.applicant') }}</p>
                                         <span class="groups-row">
                                             <span class="groups-label">{{ $t('landing.exams.education.groups_label') }}</span>
@@ -135,7 +142,7 @@ const topics = [
                                 <li class="path-step">
                                     <Link :href="path('magistratura')" class="path-card">
                                         <span class="path-node" aria-hidden="true"></span>
-                                        <h4 class="path-name">{{ $t('categories.magistratura.name') }}</h4>
+                                        <h4 class="path-name">{{ byPath('magistratura').name }}</h4>
                                         <p class="path-text">{{ $t('landing.exams.education.master') }}</p>
                                         <span class="card-action">{{ $t('landing.exams.action') }}</span>
                                     </Link>

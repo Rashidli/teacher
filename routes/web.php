@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminExamAccessController;
 use App\Http\Controllers\Admin\AdminExamController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Student\Auth\StudentLoginController;
 use App\Http\Controllers\Payments\FakeGatewayController;
 use App\Http\Controllers\Payments\PaymentCallbackController;
 use App\Http\Controllers\Student\StudentPaymentController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -42,11 +44,6 @@ $publicRoutes = function () use ($auth) {
     Route::get('/qaydalar', fn () => Inertia::render('Terms', [
         'content' => __('terms'),
     ]))->name('terms');
-
-    // Kateqoriya səhifələri (müvəqqəti placeholder, testlər hazır olanda controller-ə keçiriləcək)
-    foreach (['abituriyent', 'mekteb', 'magistratura', 'dovlet-qullugu', 'miq', 'suruculuk-imtahani'] as $slug) {
-        Route::inertia('/'.$slug, 'Category/Show', ['slug' => $slug])->name('category.'.$slug);
-    }
 
     // Giriş, qeydiyyat, parol bərpası
     $auth['guest']();
@@ -75,6 +72,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('auth:admin')->group(function () {
         Route::post('/logout', [AdminLoginController::class, 'destroy'])->name('logout');
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+        // Categories (kateqoriya ağacı)
+        Route::resource('categories', AdminCategoryController::class)->except(['show']);
 
         // Subjects
         Route::get('/subjects', [AdminSubjectController::class, 'index'])->name('subjects.index');
@@ -222,3 +222,22 @@ Route::middleware('auth:admin,teacher,student')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// =====================================================
+// KATEQORİYA SƏHİFƏLƏRİ (catch-all)
+// =====================================================
+// DİQQƏT: bu blok faylın SONUNDA olmalıdır. Laravel ilk uyğun gələn route-u seçir, ona görə
+// /login, /admin/…, /student/… kimi ünvanlar yuxarıda qeydiyyatdan keçdiyi üçün buraya düşmür.
+// Yeni route əlavə edəndə onu bu blokdan ƏVVƏL yazın (RouteRegistrationTest bunu yoxlayır).
+$categoryRoutes = function () {
+    Route::get('/{path}', [CategoryController::class, 'show'])
+        ->where('path', '[A-Za-z0-9\-]+(?:/[A-Za-z0-9\-]+)*')
+        ->name('category.show');
+};
+
+// Dil prefiksli variant ƏVVƏL: prefikssiz "/{path}" onsuz da "ru/abituriyent"i tutardı
+foreach (array_diff(config('locales.supported'), [config('locales.default')]) as $locale) {
+    Route::group(['prefix' => $locale, 'as' => $locale.'.', 'localized' => true], $categoryRoutes);
+}
+
+Route::group(['localized' => true], $categoryRoutes);

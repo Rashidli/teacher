@@ -1,11 +1,14 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
-import { categories, categoryRoute } from '@/data/categories';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { useFeatures } from '@/Composables/useFeatures';
 import { useLocale } from '@/Composables/useLocale';
 
 const { teachersEnabled } = useFeatures();
 const { lroute } = useLocale();
+
+// Kök kateqoriyalar paylaşılan props-dan gəlir (HandleInertiaRequests), adlar cari dildədir
+const categories = computed(() => usePage().props.categories ?? []);
 
 const year = new Date().getFullYear();
 </script>
@@ -21,8 +24,8 @@ const year = new Date().getFullYear();
             <nav class="footer-col" aria-labelledby="footer-exams">
                 <h2 id="footer-exams" class="footer-heading">{{ $t('site.footer.exams') }}</h2>
                 <ul>
-                    <li v-for="category in categories" :key="category.slug">
-                        <Link :href="lroute(categoryRoute(category))">{{ $t(`categories.${category.slug}.name`) }}</Link>
+                    <li v-for="category in categories" :key="category.path">
+                        <Link :href="category.url">{{ category.name }}</Link>
                     </li>
                 </ul>
             </nav>
