@@ -7,6 +7,7 @@ use App\Models\Question;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /**
@@ -53,6 +54,8 @@ class QuestionService
 
     public function update(Question $question, array $data): Question
     {
+        $this->guardAgainstScoringChanges($question, $data);
+
         return DB::transaction(function () use ($question, $data) {
             $attributes = $this->questionAttributes($data, $question);
 
@@ -70,6 +73,84 @@ class QuestionService
 
             return $question->refresh();
         });
+    }
+
+    /**
+     * Cəhdlərdə işlənmiş sualda BAL NƏTİCƏSİNƏ təsir edən dəyişikliklər bloklanır:
+     * sual tipi, düzgün cavab, variant dəsti və qəbul olunan cavablar.
+     *
+     * Bunlar dəyişsə keçilmiş cəhdlərin nəticəsi mənasını itirər (bal yenidən hesablanmır,
+     * amma nəticə səhifəsi yeni "düzgün cavabı" göstərər). Belə hallarda sualın kopyası
+     * yaradılıb imtahanda əvəzlənməlidir — `duplicateInto()`.
+     *
+     * Mətn, izah, mənbə, çətinlik, mövzu və şəkil dəyişikliyi sərbəstdir.
+     */
+    private function guardAgainstScoringChanges(Question $question, array $data): void
+    {
+        if ($question->attemptUsageCount() === 0) {
+            return;
+        }
+
+        $errors = [];
+
+        if (($data['type'] ?? $question->type) !== $question->type) {
+            $errors['type'] = 'Bu sual şagird cəhdlərində istifadə olunub: sual tipi dəyişdirilə bilməz.';
+        }
+
+        if ($question->type === Question::TYPE_MULTIPLE_CHOICE && isset($data['options'])) {
+            $errors += $this->optionChangeErrors($question, $data['options']);
+        }
+
+        if ($question->type === Question::TYPE_OPEN_CODED && isset($data['accepted_answers'])) {
+            $before = $this->normalisedAnswers((array) $question->accepted_answers);
+            $after = $this->normalisedAnswers((array) $data['accepted_answers']);
+
+            if ($before !== $after) {
+                $errors['accepted_answers'] = 'Bu sual şagird cəhdlərində istifadə olunub: '
+                    .'qəbul olunan cavablar dəyişdirilə bilməz.';
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors + [
+                'question' => 'Dəyişikliyi tətbiq etmək üçün "Kopyala və imtahanda əvəzlə" '
+                    .'seçimindən istifadə edin — köhnə nəticələr toxunulmaz qalacaq.',
+            ]);
+        }
+    }
+
+    /** @return array<string, string> */
+    private function optionChangeErrors(Question $question, array $options): array
+    {
+        $currentLetters = $question->options->pluck('option_letter')->sort()->values()->all();
+        $newLetters = collect($options)->pluck('option_letter')->sort()->values()->all();
+
+        if ($currentLetters !== $newLetters) {
+            return ['options' => 'Bu sual şagird cəhdlərində istifadə olunub: variantlar əlavə edilə '
+                .'və ya silinə bilməz.'];
+        }
+
+        $currentCorrect = $question->options->firstWhere('is_correct', true)?->option_letter;
+        $newCorrect = collect($options)->first(fn ($option) => filter_var(
+            $option['is_correct'] ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        ))['option_letter'] ?? null;
+
+        if ($currentCorrect !== $newCorrect) {
+            return ['options' => 'Bu sual şagird cəhdlərində istifadə olunub: düzgün cavab '
+                .'dəyişdirilə bilməz.'];
+        }
+
+        return [];
+    }
+
+    /** @param  array<int, mixed>  $answers */
+    private function normalisedAnswers(array $answers): array
+    {
+        $values = array_map(fn ($value) => trim((string) $value), $answers);
+        sort($values);
+
+        return $values;
     }
 
     /**

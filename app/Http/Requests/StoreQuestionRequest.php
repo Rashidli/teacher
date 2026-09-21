@@ -43,6 +43,13 @@ class StoreQuestionRequest extends FormRequest
     {
         $optionCount = $this->exam()->options_per_question;
 
+        /*
+         * Qaydalar tipdən asılıdır: əks halda variantlı sual göndəriləndə boş `accepted_answers`
+         * "min:1" qaydasına ilişirdi (forma onu həmişə göndərir) və sual saxlanıla bilmirdi.
+         */
+        $isMultipleChoice = $this->input('type') === Question::TYPE_MULTIPLE_CHOICE;
+        $isOpenCoded = $this->input('type') === Question::TYPE_OPEN_CODED;
+
         return [
             'question_text' => ['required', 'string'],
             'question_image' => ['nullable', 'image', 'max:2048'],
@@ -57,24 +64,20 @@ class StoreQuestionRequest extends FormRequest
             'source' => ['nullable', 'string', 'max:255'],
             'explanation' => ['nullable', 'string', 'max:1000'],
 
-            // Variantlı test: variant sayı imtahandakı ilə eyni olmalıdır
-            'options' => [
-                Rule::requiredIf(fn () => $this->input('type') === Question::TYPE_MULTIPLE_CHOICE),
-                'array',
-                'size:'.$optionCount,
-            ],
+            // Variantlı test: variant sayı imtahandakı ilə eyni olmalıdır.
+            // Açıq suallarda forma köhnə variantları göndərə bilər — onlar nəzərə alınmır.
+            'options' => $isMultipleChoice
+                ? ['required', 'array', 'size:'.$optionCount]
+                : ['nullable', 'array'],
             'options.*.option_letter' => ['required_with:options', 'string', 'size:1'],
             'options.*.option_text' => ['required_with:options', 'string'],
             'options.*.option_image' => ['nullable', 'image', 'max:1024'],
             'options.*.is_correct' => ['required_with:options', 'boolean'],
 
             // Qısa cavab: ədədi cavablar AnswerNormalizer ilə tutulur, burada ən azı bir etalon lazımdır
-            'accepted_answers' => [
-                Rule::requiredIf(fn () => $this->input('type') === Question::TYPE_OPEN_CODED),
-                'array',
-                'min:1',
-                'max:10',
-            ],
+            'accepted_answers' => $isOpenCoded
+                ? ['required', 'array', 'min:1', 'max:10']
+                : ['nullable', 'array'],
             'accepted_answers.*' => ['required', 'string', 'max:255'],
         ];
     }

@@ -116,9 +116,7 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 
 ## Gələcək qeydlər
 
-- Produksiyada `composer install --no-dev --optimize-autoloader` istifadə edilməlidir. Testlər
-  ayrıca mühitə köçəndə dev paketləri (phpunit, mockery, pint, sail …) produksiya serverindən
-  çıxarılacaq — hazırda testlər elə produksiya qovluğunda işlədiyi üçün onlar quraşdırılı qalır.
+- Produksiyada `composer install --no-dev --optimize-autoloader` — bax **P2.5: Staging mühiti**.
 
 - Bal düsturu dəyişsə, mövcud cəhdləri yenidən hesablayan `attempts:rescore` artisan komandası
   lazım olacaq (`--dry-run` ilə köhnə və yeni balları yan-yana göstərsin). Hazırda bazada cəhd
@@ -208,6 +206,27 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 - [ ] İstifadəçi kabineti: alınmış imtahanlar, keçmiş nəticələr.
 
 ---
+
+## P2.5: Staging mühiti — PRODUKSİYAYA ÇIXMAZDAN ƏVVƏLKİ SON ADDIM
+
+Hazırda bütün işlər birbaşa produksiya qovluğunda görülür: testlər, migration-lar və
+`npm run build` canlı saytın üzərində işləyir. Satışa çıxmazdan əvvəl bu ayrılmalıdır.
+
+- [ ] Ayrıca qovluq: `/home/websites/web/staging.teacher.cvhazirla.az/public_html`.
+- [ ] Ayrıca subdomen: `staging.teacher.cvhazirla.az` (axtarış sistemlərindən bağlı —
+      `noindex` + `robots.txt`, mümkünsə parol qorunması).
+- [ ] Ayrıca baza: `websites_teacher_exam_staging` (produksiyadan surət, şagird məlumatları
+      anonimləşdirilmiş).
+- [ ] Ayrıca `.env`: `APP_ENV=staging`, `PAYMENT_DRIVER=fake` (staging-də sınaq ödənişi işləyir),
+      `MAIL_MAILER=log`.
+- [ ] İş qaydası: bütün dəyişikliklər staging-də edilir və orada yoxlanılır; produksiyaya
+      **yalnız `git pull`** ilə çıxarılır (kod redaktəsi produksiyada aparılmır).
+- [ ] Deploy addımları sənədləşdirilir: `git pull` → `composer install --no-dev
+      --optimize-autoloader` → `php artisan migrate --force` → `npm ci && npm run build` →
+      `php artisan config:cache route:cache view:cache`.
+- [ ] Produksiyada `composer install --no-dev`: dev paketləri (phpunit, mockery, pint, sail)
+      silinir — testlər staging-də işləyəcək.
+- [ ] Deploydan əvvəl avtomatik baza backup-ı (hazırda əl ilə alınır).
 
 ## P3: Vizyondan qalan, sonraya saxlanılan
 

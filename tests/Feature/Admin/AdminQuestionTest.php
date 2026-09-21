@@ -326,4 +326,44 @@ class AdminQuestionTest extends TestCase
 
         return $exam->questions()->reorder('questions.id', 'desc')->firstOrFail();
     }
+
+    /**
+     * Forma variantlı sualda da boş `accepted_answers` göndərir (sahə həmişə mövcuddur).
+     * Qaydalar tipə görə ayrılmasa, bu, "min:1"ə ilişir və sual ümumiyyətlə saxlanıla bilmir.
+     */
+    public function test_a_multiple_choice_question_is_saved_with_the_payload_the_form_sends(): void
+    {
+        $this->actingAs($this->admin, 'admin')
+            ->post(route('admin.exams.questions.store', $this->exam), [
+                'question_text' => 'Forma payload-u',
+                'type' => Question::TYPE_MULTIPLE_CHOICE,
+                'options' => $this->optionsPayload(),
+                // Forma bunları həmişə göndərir
+                'accepted_answers' => [''],
+                'difficulty' => 'medium',
+                'topic_id' => null,
+                'source' => '',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Question::count());
+    }
+
+    /** Açıq sualda forma köhnə variantları göndərə bilər — onlar nəzərə alınmamalıdır. */
+    public function test_an_open_question_ignores_leftover_options_from_the_form(): void
+    {
+        $this->actingAs($this->admin, 'admin')
+            ->post(route('admin.exams.questions.store', $this->exam), [
+                'question_text' => 'Açıq sual',
+                'type' => Question::TYPE_OPEN_WRITTEN,
+                'options' => $this->optionsPayload(),
+                'accepted_answers' => [''],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $question = Question::firstOrFail();
+
+        $this->assertSame(Question::TYPE_OPEN_WRITTEN, $question->type);
+        $this->assertCount(0, $question->options);
+    }
 }
