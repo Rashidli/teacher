@@ -35,7 +35,9 @@ class SubjectGroupScoreMatrixTest extends TestCase
             'cografiya' => '150.00',
         ],
         'III' => [
+            // Ana dili sektora görə dəyişir, balı eynidir
             'azerbaycan-dili' => '150.00',
+            'rus-dili' => '150.00',
             'edebiyyat' => '100.00',
             'cografiya' => '100.00',
             'tarix' => '150.00',
@@ -138,6 +140,18 @@ class SubjectGroupScoreMatrixTest extends TestCase
     {
         $this->assertSame([], $this->matrixFor('V'));
         $this->assertFalse(Group::where('code', 'V')->value('is_testable'));
+    }
+
+    /** Ru sektorunun ana dili (Rus dili) III qrupda Azərbaycan dili ilə eyni balı alır. */
+    public function test_the_russian_native_language_scores_like_the_azerbaijani_one(): void
+    {
+        $this->assertSame(
+            $this->matrixFor('III')['azerbaycan-dili'],
+            $this->matrixFor('III')['rus-dili'],
+        );
+
+        // I mərhələdə hər iki ana dili 100 baldır
+        $this->assertSame('100.00', $this->matrixFor('I-MERHELE')['rus-dili']);
     }
 
     public function test_the_seeder_is_idempotent(): void

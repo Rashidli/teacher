@@ -86,13 +86,23 @@ class CategorySeeder extends Seeder
                     ['slug' => '2-ci-qrup', 'name' => 'II qrup', 'group' => 'II',
                         'subjects' => ['riyaziyyat' => [], 'tarix' => [], 'cografiya' => []]],
                     [
+                        // Ana dili sektora görə: az → Azərbaycan dili, ru → Rus dili (bal eynidir)
                         'slug' => '3-cu-qrup', 'name' => 'III qrup', 'group' => 'III',
-                        'subjects' => ['azerbaycan-dili' => [], 'edebiyyat' => [], 'cografiya' => [], 'tarix' => []],
+                        'subjects' => [
+                            'az' => ['azerbaycan-dili' => [], 'edebiyyat' => [], 'cografiya' => [], 'tarix' => []],
+                            'ru' => ['rus-dili' => [], 'edebiyyat' => [], 'cografiya' => [], 'tarix' => []],
+                        ],
                         'children' => [
                             ['slug' => 'dt', 'name' => 'DT altqrupu', 'group' => 'III-DT',
-                                'subjects' => ['azerbaycan-dili' => [], 'edebiyyat' => [], 'tarix' => []]],
+                                'subjects' => [
+                                    'az' => ['azerbaycan-dili' => [], 'edebiyyat' => [], 'tarix' => []],
+                                    'ru' => ['rus-dili' => [], 'edebiyyat' => [], 'tarix' => []],
+                                ]],
                             ['slug' => 'tc', 'name' => 'TC altqrupu', 'group' => 'III-TC',
-                                'subjects' => ['azerbaycan-dili' => [], 'cografiya' => [], 'tarix' => []]],
+                                'subjects' => [
+                                    'az' => ['azerbaycan-dili' => [], 'cografiya' => [], 'tarix' => []],
+                                    'ru' => ['rus-dili' => [], 'cografiya' => [], 'tarix' => []],
+                                ]],
                         ],
                     ],
                     ['slug' => '4-cu-qrup', 'name' => 'IV qrup', 'group' => 'IV',

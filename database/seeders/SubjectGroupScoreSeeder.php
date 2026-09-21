@@ -12,8 +12,9 @@ use Illuminate\Database\Seeder;
  *
  * Qeydlər:
  * - "Tarix" bir fənndir; "Azərbaycan tarixi" və "Ümumi tarix" onun mövzu qruplarıdır.
- * - "Ana dili" → Azərbaycan dili. Rus sektoru əlavə olunanda (P2) Rus dili də ana dili kimi
- *   hesablanacaq.
+ * - "Ana dili" sektora görə dəyişir: az sektorunda Azərbaycan dili, ru sektorunda Rus dili.
+ *   Balı eynidir (III qrupda 150, I mərhələdə 100) — imtahanın sektoru hansı fənnin
+ *   işlədiləcəyini müəyyən edir (`category_subject.sector`).
  * - "Xarici dil" → mövcud bütün dillər (İngilis, Rus, Fransız, Alman).
  * - Ballar baş qrupa bağlanır: altqrupların (RK/Rİ, DT/TC) balları eynidir.
  */
@@ -39,7 +40,9 @@ class SubjectGroupScoreSeeder extends Seeder
                 'cografiya' => 150,
             ],
             'III' => [
+                // Ana dili: az sektorunda Azərbaycan dili, ru sektorunda Rus dili
                 'azerbaycan-dili' => 150,
+                'rus-dili' => 150,
                 'edebiyyat' => 100,
                 'cografiya' => 100,
                 ...array_fill_keys(self::TARIX, 150),
