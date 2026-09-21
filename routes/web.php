@@ -30,6 +30,7 @@ use App\Http\Controllers\Student\StudentPaymentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SectorController;
+use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -229,6 +230,9 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::get('/results', [StudentResultController::class, 'index'])->name('results.index');
     });
 });
+
+// Sitemap: hər iki dildə, kateqoriya ağacından qurulur (keşlənir)
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 // Qonağın tədris sektoru seçimi (kataloqdakı az/ru keçidi)
 Route::post('/sektor', [SectorController::class, 'update'])->name('sector.update');

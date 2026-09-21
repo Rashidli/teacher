@@ -20,6 +20,8 @@
             <title inertia>{{ __('site.brand') }}</title>
             @include('partials.seo')
         @endif
+
+        @include('partials.json-ld')
     </head>
     <body class="font-sans antialiased">
         @inertia

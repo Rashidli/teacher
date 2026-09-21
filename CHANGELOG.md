@@ -10,6 +10,33 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — SEO: rusca ünvanlar, JSON-LD və sitemap (P2 Mərhələ 6)
+
+**Migration:** `categories.ru_path` (unikal, boş ola bilər).
+
+**Rusca ünvanlar.** Rus səhifələri artıq tərcümə olunmuş ASCII ünvanla açılır:
+`/ru/abituriyent/1-ci-qrup` → `/ru/abiturient/1-ya-gruppa`. Köhnə ünvan 301 ilə yenisinə
+yönləndirilir, Azərbaycan ünvanları isə toxunulmadan qalır (`mekteb`, `miq`,
+`suruculuk-imtahani`). Ünvanı olmayan düyün Azərbaycan yolu ilə açılır — tərcümə gözləmir.
+
+**canonical/hreflang.** Səhifə öz dil variantlarını verə bilir (prefiks dəyişməklə alınmır),
+`seo` prop-u və Blade ehtiyat teqləri eyni mənbədən oxuyur.
+
+**JSON-LD.** Kateqoriya səhifələrində BreadcrumbList serverdə yazılır — axtarış robotu
+JavaScript icra etmədən yol zəncirini görür.
+
+**sitemap.xml.** Ana səhifə, qaydalar, bütün aktiv kateqoriyalar və imtahanı olan mövzu
+sınağı/rüb səhifələri; hər bənd hər iki dildə, `xhtml:link` ilə qarşılıqlı hreflang.
+Nəticə 1 saat keşlənir, admin kateqoriyanı dəyişəndə keş təmizlənir.
+
+**robots.txt.** Panel ünvanları (`/admin`, `/student`, `/teacher`, `/profile`, `/payments`)
+bağlandı, sitemap ünvanı göstərildi.
+
+**Admin.** Kateqoriya formasında "Rus dili" bloku: rusca ünvan, ad, qısa təsvir, title,
+meta description, H1 və giriş mətni. Valideynin rusca ünvanı dəyişəndə alt ağac da yenilənir.
+
+**Testlər:** 315 test / 1503 assertion (yeni `SeoTest`: 16 test).
+
 ### 2026-09-21 — Rus sektoru (P2 Mərhələ 5)
 
 **Migration:** `users.sector`, `questions.language` + `translation_group_id`, `exams.sector`,

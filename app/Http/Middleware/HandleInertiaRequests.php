@@ -96,12 +96,12 @@ class HandleInertiaRequests extends Middleware
             // Lazy (closure) — yalnız istifadə olunanda sorğu gedir.
             'categories' => fn () => Category::active()->roots()
                 ->orderBy('order')
-                ->get(['id', 'name', 'short', 'path', 'translations'])
+                ->get(['id', 'name', 'short', 'path', 'ru_path', 'translations'])
                 ->map(fn (Category $category) => [
-                    'path' => $category->path,
+                    'path' => $category->pathFor(),
                     'name' => $category->localized('name'),
                     'short' => $category->localized('short'),
-                    'url' => Localization::categoryUrl($category->path),
+                    'url' => $category->urlFor(),
                 ]),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

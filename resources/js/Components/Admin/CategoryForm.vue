@@ -105,6 +105,14 @@ const emit = defineEmits(['submit']);
                 />
                 <span class="text-sm text-gray-700">İmtahanı var</span>
             </label>
+            <label class="flex items-center gap-2">
+                <input
+                    v-model="form.ru_enabled"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                />
+                <span class="text-sm text-gray-700">Rus sektoru aktivdir</span>
+            </label>
             <div>
                 <InputLabel for="order" value="Sıra" />
                 <TextInput id="order" v-model="form.order" type="number" min="0" class="mt-1 block w-full" />
@@ -136,6 +144,55 @@ const emit = defineEmits(['submit']);
                 <textarea
                     id="intro"
                     v-model="form.intro"
+                    rows="4"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                ></textarea>
+            </div>
+        </fieldset>
+
+        <fieldset class="rounded-md border border-gray-200 p-4 space-y-4">
+            <legend class="px-1 text-sm font-medium text-gray-700">Rus dili</legend>
+            <p class="text-xs text-gray-500">
+                Boş qalan sahə Azərbaycan variantı ilə göstərilir. Ünvan boşdursa səhifə
+                Azərbaycan yolu ilə açılır.
+            </p>
+
+            <div>
+                <InputLabel for="ru_path" value="Rusca ünvan (/ru/...)" />
+                <TextInput id="ru_path" v-model="form.ru_path" type="text" class="mt-1 block w-full font-mono"
+                    placeholder="abiturient/1-ya-gruppa" />
+                <InputError :message="form.errors.ru_path" class="mt-2" />
+            </div>
+            <div>
+                <InputLabel for="ru_name" value="Ad (ru)" />
+                <TextInput id="ru_name" v-model="form.translations.name" type="text" class="mt-1 block w-full" />
+            </div>
+            <div>
+                <InputLabel for="ru_short" value="Qısa təsvir (ru)" />
+                <TextInput id="ru_short" v-model="form.translations.short" type="text" class="mt-1 block w-full" />
+            </div>
+            <div>
+                <InputLabel for="ru_seo_title" value="Title (ru)" />
+                <TextInput id="ru_seo_title" v-model="form.translations.seo_title" type="text" class="mt-1 block w-full" />
+            </div>
+            <div>
+                <InputLabel for="ru_seo_description" value="Meta description (ru)" />
+                <textarea
+                    id="ru_seo_description"
+                    v-model="form.translations.seo_description"
+                    rows="2"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                ></textarea>
+            </div>
+            <div>
+                <InputLabel for="ru_h1" value="H1 (ru)" />
+                <TextInput id="ru_h1" v-model="form.translations.h1" type="text" class="mt-1 block w-full" />
+            </div>
+            <div>
+                <InputLabel for="ru_intro" value="Giriş mətni (ru)" />
+                <textarea
+                    id="ru_intro"
+                    v-model="form.translations.intro"
                     rows="4"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
                 ></textarea>

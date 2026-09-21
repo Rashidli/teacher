@@ -134,7 +134,7 @@ class SectorTest extends TestCase
             'category_id' => $category->id, 'title' => 'Azərbaycan imtahanı',
         ]);
 
-        $this->get('/ru/abituriyent')->assertInertia(fn ($page) => $page
+        $this->get('/ru/abiturient')->assertInertia(fn ($page) => $page
             ->where('sector', Sector::RU)
             ->has('exams', 1)
             ->where('exams.0.title', 'Русский экзамен'));
@@ -161,7 +161,7 @@ class SectorTest extends TestCase
         $student = User::factory()->student()->create(['sector' => Sector::AZ]);
 
         $this->actingAs($student, 'student')
-            ->get('/ru/abituriyent')
+            ->get('/ru/abiturient')
             ->assertInertia(fn ($page) => $page
                 ->where('sector', Sector::AZ)
                 ->where('canSwitchSector', false)

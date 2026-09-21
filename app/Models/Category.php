@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Localization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,7 +24,7 @@ class Category extends Model
     use HasFactory;
 
     protected $fillable = [
-        'parent_id', 'group_id', 'slug', 'path', 'name', 'short', 'description',
+        'parent_id', 'group_id', 'slug', 'path', 'ru_path', 'name', 'short', 'description',
         'is_active', 'has_exams', 'ru_enabled', 'order', 'seo_title', 'seo_description', 'h1', 'intro',
         'translations',
     ];
@@ -53,6 +54,29 @@ class Category extends Model
         }
 
         return $this->{$field};
+    }
+
+    /**
+     * Dilə görə ünvan hissəsi. Rus dili üçün `ru_path`, yoxdursa Azərbaycan yolu —
+     * tərcümə edilməmiş düyün ünvansız qalmır.
+     */
+    public function pathFor(?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
+
+        if ($locale === Localization::default()) {
+            return (string) $this->path;
+        }
+
+        return filled($this->ru_path) ? $this->ru_path : (string) $this->path;
+    }
+
+    /** Səhifənin tam URL-i (dil prefiksi ilə) */
+    public function urlFor(?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
+
+        return Localization::categoryUrl($this->pathFor($locale), $locale);
     }
 
     protected static function booted(): void

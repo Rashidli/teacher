@@ -112,6 +112,7 @@ class TopicTrialFlowTest extends TestCase
             ->assertInertia(fn ($page) => $page->has('exams', 0));
     }
 
+    /** Rusca ünvanı olmayan düyün Azərbaycan yolu ilə açılır (tərcümə gözləmir). */
     public function test_the_russian_url_works(): void
     {
         $this->trial(2);
@@ -119,6 +120,24 @@ class TopicTrialFlowTest extends TestCase
         $this->get('/ru/abituriyent/1-ci-qrup/movzu-sinagi/2-ci-rub')
             ->assertOk()
             ->assertInertia(fn ($page) => $page->where('quarter', 2));
+    }
+
+    /** Rusca ünvan varsa, mövzu sınağı seqmentləri də onun ardınca gəlir. */
+    public function test_the_translated_url_is_used_when_it_exists(): void
+    {
+        $this->trial(2);
+        $this->group->update(['ru_path' => 'abiturient/1-ya-gruppa']);
+
+        $this->get('/ru/abiturient/1-ya-gruppa/movzu-sinagi/2-ci-rub')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('quarter', 2)
+                ->where('seo.canonical', url('ru/abiturient/1-ya-gruppa/movzu-sinagi/2-ci-rub')));
+
+        // Köhnə (Azərbaycan) ünvan tək kanonik ünvana yönləndirilir
+        $this->get('/ru/abituriyent/1-ci-qrup/movzu-sinagi/2-ci-rub')
+            ->assertRedirect(url('ru/abiturient/1-ya-gruppa/movzu-sinagi/2-ci-rub'))
+            ->assertStatus(301);
     }
 
     /** Rüb seqmenti yalnız "movzu-sinagi"dən sonra gələ bilər. */

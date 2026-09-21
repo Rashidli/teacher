@@ -187,7 +187,7 @@ class CategoryTest extends TestCase
     {
         $this->seedTree();
 
-        $this->get('/ru/abituriyent')
+        $this->get('/ru/abiturient')
             ->assertOk()
             ->assertInertia(fn ($page) => $page->where('category.name', 'Абитуриент'));
     }
@@ -197,7 +197,7 @@ class CategoryTest extends TestCase
     {
         $this->seedTree();
 
-        $this->get('/ru/abituriyent/2-ci-qrup')
+        $this->get('/ru/abiturient/2-ya-gruppa')
             ->assertOk()
             ->assertInertia(fn ($page) => $page->where('category.name', 'II qrup'));
     }
@@ -340,7 +340,8 @@ class CategoryTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('seo.canonical', url('abituriyent'))
-                ->where('seo.alternates.ru', url('ru/abituriyent'))
+                // Rusca ünvan tərcümə olunmuş yoldur (Mərhələ 6)
+                ->where('seo.alternates.ru', url('ru/abiturient'))
                 ->where('meta.title', 'Abituriyent'));
     }
 }

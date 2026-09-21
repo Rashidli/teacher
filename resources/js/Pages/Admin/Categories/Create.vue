@@ -22,6 +22,9 @@ const form = useForm({
     seo_description: '',
     h1: '',
     intro: '',
+    ru_enabled: false,
+    ru_path: '',
+    translations: { name: '', short: '', seo_title: '', seo_description: '', h1: '', intro: '' },
 });
 
 const submit = () => form.post(route('admin.categories.store'));

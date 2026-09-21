@@ -21,9 +21,68 @@ use Illuminate\Support\Facades\DB;
  *   OLMAYAN kateqoriyalarda göstərilir (qrupdakılar `subject_group_scores`-dan gəlir).
  *   Ana dili sektora görə dəyişdikdə açar sektorla verilir: ['az' => [...], 'ru' => [...]].
  * - `ru_enabled` rus sektoru keçidini göstərir; övladlar valideyndən miras alır.
+ * - `ru_path` rusca ünvandır (`/ru/abiturient/1-ya-gruppa`). Hissələr RU_SLUGS-dan gəlir,
+ *   yoxdursa Azərbaycan slug-ı işlənir. Düyün `ru_path` açarı ilə öz yolunu təyin edə bilər.
  */
 class CategorySeeder extends Seeder
 {
+    /**
+     * Rusca ünvan hissələri: Azərbaycan slug-ı → rus slug-ı (ASCII translit).
+     * Siyahıda olmayan düyün Azərbaycan slug-ını saxlayır.
+     */
+    private const RU_SLUGS = [
+        // Kök bölmələr
+        'mekteb' => 'shkola',
+        'abituriyent' => 'abiturient',
+        'magistratura' => 'magistratura',
+        'dovlet-qullugu' => 'gossluzhba',
+        'muellimler' => 'uchitelya',
+        'suruculuk-imtahani' => 'voditelskie-prava',
+        'diger' => 'drugie',
+
+        // Orta məktəb
+        '9-cu-sinif-buraxilis' => '9-klass-vypusknoy',
+        '11-ci-sinif-buraxilis' => '11-klass-vypusknoy',
+        'elave-tedris-dili' => 'dopolnitelnyy-yazyk',
+        '9-illik' => '9-letnee',
+        '11-illik' => '11-letnee',
+        'azerbaycan-dili-dovlet-dili' => 'azerbaydzhanskiy-gosudarstvennyy',
+
+        // Abituriyent
+        '1-ci-merhele' => '1-y-etap',
+        '1-ci-qrup' => '1-ya-gruppa',
+        '2-ci-qrup' => '2-ya-gruppa',
+        '3-cu-qrup' => '3-ya-gruppa',
+        '4-cu-qrup' => '4-ya-gruppa',
+        '5-ci-qrup' => '5-ya-gruppa',
+        'kollec' => 'kolledzh',
+
+        // Magistratura
+        'fenn-bloklari' => 'bloki-predmetov',
+        'mentiq' => 'logika',
+        'xarici-dil' => 'inostrannyy-yazyk',
+        'tam-sinaq' => 'polnyy-probnyy',
+
+        // Dövlət qulluğu
+        'fealiyyetin-davam-etdirilmesi' => 'prodolzhenie-deyatelnosti',
+
+        // Müəllimlər
+        'sertifikasiya' => 'sertifikatsiya',
+        'diaqnostik-qiymetlendirme' => 'diagnosticheskaya-otsenka',
+        'mektebeqeder' => 'doshkolnoe',
+
+        // Sürücülük
+        'kateqoriyalar' => 'kategorii',
+        'movzu-testleri' => 'testy-po-temam',
+        'biletler' => 'bilety',
+
+        // Digər
+        'doktorantura-xarici-dil' => 'doktorantura-inostrannyy',
+        'beynelxalq-imtahanlar' => 'mezhdunarodnye-ekzameny',
+        'huquq' => 'yurisprudentsiya',
+        'olimpiadalar' => 'olimpiady',
+    ];
+
     public function run(): void
     {
         $this->createTree($this->tree());
@@ -164,7 +223,7 @@ class CategorySeeder extends Seeder
                 'translations' => ['ru' => ['name' => 'Учителя', 'short' => 'MİQ, сертификация, диагностика']],
                 'children' => [
                     // Mövcud ünvan qorunur: ağacda burada, URL-də kökdə
-                    ['slug' => 'miq', 'name' => 'MİQ (müəllimlərin işə qəbulu)', 'path' => 'miq',
+                    ['slug' => 'miq', 'name' => 'MİQ (müəllimlərin işə qəbulu)', 'path' => 'miq', 'ru_path' => 'miq',
                         'translations' => ['ru' => ['name' => 'MİQ', 'short' => 'Приём учителей на работу']]],
                     ['slug' => 'sertifikasiya', 'name' => 'Sertifikasiya',
                         'description' => '60 sual: fənn, metodika və təlim strategiyaları.'],
@@ -230,6 +289,10 @@ class CategorySeeder extends Seeder
         unset($node['group']);
 
         $path = $node['path'] ?? trim(($parent?->path ? $parent->path.'/' : '').$node['slug'], '/');
+
+        $ruSlug = self::RU_SLUGS[$node['slug']] ?? $node['slug'];
+        $node['ru_path'] = $node['ru_path']
+            ?? trim(($parent?->ru_path ? $parent->ru_path.'/' : '').$ruSlug, '/');
 
         $category = Category::firstOrNew(['path' => $path]);
 

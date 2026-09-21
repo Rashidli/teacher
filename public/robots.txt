@@ -1,2 +1,8 @@
 User-agent: *
-Disallow:
+Disallow: /admin
+Disallow: /student
+Disallow: /teacher
+Disallow: /profile
+Disallow: /payments
+
+Sitemap: https://teacher.cvhazirla.az/sitemap.xml

@@ -217,12 +217,24 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
       fənn siyahısı hər iki sektorda eynidir.
 - [ ] `config/scoring.php`-də sektor üzrə override imkanı (yalnız fərq çıxarsa lazımdır).
 
-### Mərhələ 6 — SEO və sitemap
+### Mərhələ 6 — SEO və sitemap ✅
 
-- [ ] Kateqoriya/fənn/mövzu səhifələri üçün DB-dən redaktə olunan title, meta description, H1, mətn.
-- [ ] Breadcrumb + schema.org JSON-LD (BreadcrumbList, Quiz).
-- [ ] `sitemap.xml` (hər iki dil), canonical (var) + rusca slug-lar (translit, ASCII).
-- [ ] İç-içə URL-lər: `/abituriyent/1-ci-qrup/rk/movzu-sinagi/2-ci-rub` kimi.
+- [x] Kateqoriya səhifələri üçün DB-dən redaktə olunan title, meta description, H1, giriş mətni —
+      indi hər iki dildə (rus mətnləri `translations->ru`, admin formasında ayrıca blok).
+- [x] Breadcrumb + schema.org JSON-LD (BreadcrumbList) — serverdə Blade ilə yazılır, robot
+      JavaScript icra etmədən oxuyur.
+- [x] Rusca ünvanlar: `categories.ru_path` (ASCII translit, məs. `/ru/abiturient/1-ya-gruppa`).
+      Azərbaycan ünvanı ilə gələn rus səhifəsi 301 ilə tərcümə olunmuş ünvana yönləndirilir.
+      Mövcud Azərbaycan ünvanları dəyişməyib.
+- [x] canonical + hreflang (az, ru, x-default) tərcümə olunmuş yola görə qurulur.
+- [x] `sitemap.xml`: hər iki dil, `xhtml:link` alternativləri, kateqoriyalar + imtahanı olan
+      mövzu sınağı/rüb səhifələri; 1 saat keşlənir (admin dəyişiklikdə keş təmizlənir).
+- [x] `robots.txt`: panel ünvanları bağlandı, sitemap göstərildi.
+- [x] İç-içə URL-lər: `/abituriyent/1-ci-qrup/rk/movzu-sinagi/2-ci-rub` (Mərhələ 4-dən).
+- [ ] Quiz JSON-LD: imtahan səhifəsi ictimai olanda əlavə olunacaq (hazırda imtahanlar yalnız
+      şagird panelindədir, indeksləşmir).
+- [ ] Mövzu sınağı seqmentləri (`movzu-sinagi`, `N-ci-rub`) hər iki dildə eynidir — rus variantı
+      lazım olarsa ayrıca iş kimi.
 
 ### Mərhələ 7 — Şagird statistikası
 

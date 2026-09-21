@@ -23,6 +23,17 @@ const form = useForm({
     seo_description: props.category.seo_description ?? '',
     h1: props.category.h1 ?? '',
     intro: props.category.intro ?? '',
+    ru_enabled: Boolean(props.category.ru_enabled),
+    ru_path: props.category.ru_path ?? '',
+    // Rus mətnləri `translations->ru` altında saxlanılır
+    translations: {
+        name: props.category.translations?.name ?? '',
+        short: props.category.translations?.short ?? '',
+        seo_title: props.category.translations?.seo_title ?? '',
+        seo_description: props.category.translations?.seo_description ?? '',
+        h1: props.category.translations?.h1 ?? '',
+        intro: props.category.translations?.intro ?? '',
+    },
 });
 
 const submit = () => form.put(route('admin.categories.update', props.category.id));

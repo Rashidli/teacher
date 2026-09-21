@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\SitemapController;
 use App\Models\Category;
 use App\Models\Group;
 use App\Models\Subject;
@@ -17,9 +18,16 @@ use Inertia\Response;
  * Kateqoriya ağacının idarəsi.
  *
  * `path` dəyişəndə bütün alt düyünlərin yolları da yenilənir — əks halda URL-lər qırılardı.
+ * Eyni qayda rusca ünvana (`ru_path`) da aiddir.
+ *
+ * SEO mətnləri (title, meta description, H1, giriş mətni) hər iki dildə buradan redaktə olunur:
+ * Azərbaycan variantı sütunlarda, rus variantı `translations` JSON-unda saxlanılır.
  */
 class AdminCategoryController extends Controller
 {
+    /** Rus dilinə tərcümə olunan sahələr (`translations->ru`) */
+    private const TRANSLATABLE = ['name', 'short', 'description', 'seo_title', 'seo_description', 'h1', 'intro'];
+
     public function index(): Response
     {
         return Inertia::render('Admin/Categories/Index', [
@@ -52,6 +60,8 @@ class AdminCategoryController extends Controller
 
         Category::create($validated + ['path' => $this->buildPath($validated)]);
 
+        SitemapController::forget();
+
         return redirect()->route('admin.categories.index')->with('success', 'Kateqoriya yaradıldı.');
     }
 
@@ -59,9 +69,9 @@ class AdminCategoryController extends Controller
     {
         return Inertia::render('Admin/Categories/Edit', $this->formData($category) + [
             'category' => $category->only([
-                'id', 'parent_id', 'group_id', 'slug', 'path', 'name', 'short', 'description',
-                'is_active', 'has_exams', 'order', 'seo_title', 'seo_description', 'h1', 'intro',
-            ]),
+                'id', 'parent_id', 'group_id', 'slug', 'path', 'ru_path', 'name', 'short', 'description',
+                'is_active', 'has_exams', 'ru_enabled', 'order', 'seo_title', 'seo_description', 'h1', 'intro',
+            ]) + ['translations' => $this->russianFields($category)],
         ]);
     }
 
@@ -70,13 +80,20 @@ class AdminCategoryController extends Controller
         $validated = $this->validated($request, $category);
 
         $oldPath = $category->path;
+        $oldRuPath = $category->ru_path;
         $newPath = $this->buildPath($validated, $category);
 
         $category->update($validated + ['path' => $newPath]);
 
         if ($oldPath !== $newPath) {
-            $this->repathDescendants($oldPath, $newPath);
+            $this->repathDescendants('path', $oldPath, $newPath);
         }
+
+        if ($oldRuPath && $category->ru_path && $oldRuPath !== $category->ru_path) {
+            $this->repathDescendants('ru_path', $oldRuPath, $category->ru_path);
+        }
+
+        SitemapController::forget();
 
         return redirect()->route('admin.categories.index')->with('success', 'Kateqoriya yeniləndi.');
     }
@@ -93,12 +110,26 @@ class AdminCategoryController extends Controller
 
         $category->delete();
 
+        SitemapController::forget();
+
         return redirect()->route('admin.categories.index')->with('success', 'Kateqoriya silindi.');
+    }
+
+    /** Formaya rus mətnləri `translations` JSON-undan düz açarlarla verilir */
+    private function russianFields(Category $category): array
+    {
+        $fields = [];
+
+        foreach (self::TRANSLATABLE as $field) {
+            $fields[$field] = data_get($category->translations, 'ru.'.$field);
+        }
+
+        return $fields;
     }
 
     private function validated(Request $request, ?Category $category = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'parent_id' => [
                 'nullable',
                 Rule::exists('categories', 'id'),
@@ -117,10 +148,33 @@ class AdminCategoryController extends Controller
             'seo_description' => ['nullable', 'string', 'max:500'],
             'h1' => ['nullable', 'string', 'max:255'],
             'intro' => ['nullable', 'string', 'max:5000'],
+            'ru_enabled' => ['boolean'],
+            // Rusca ünvan: boş olanda səhifə Azərbaycan yolu ilə açılır
+            'ru_path' => [
+                'nullable', 'string', 'max:255',
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/',
+                Rule::unique('categories', 'ru_path')->ignore($category?->id),
+            ],
+            'translations' => ['nullable', 'array'],
+            'translations.name' => ['nullable', 'string', 'max:255'],
+            'translations.short' => ['nullable', 'string', 'max:255'],
+            'translations.description' => ['nullable', 'string', 'max:2000'],
+            'translations.seo_title' => ['nullable', 'string', 'max:255'],
+            'translations.seo_description' => ['nullable', 'string', 'max:500'],
+            'translations.h1' => ['nullable', 'string', 'max:255'],
+            'translations.intro' => ['nullable', 'string', 'max:5000'],
         ], [
             'slug.regex' => 'Slug yalnız kiçik latın hərfləri, rəqəm və defisdən ibarət olmalıdır (məs: 1-ci-qrup).',
+            'ru_path.regex' => 'Rusca ünvan yalnız kiçik latın hərfləri, rəqəm, defis və "/" ola bilər (məs: abiturient/1-ya-gruppa).',
+            'ru_path.unique' => 'Bu rusca ünvan başqa kateqoriyada işlənir.',
             'parent_id.not_in' => 'Kateqoriya öz alt kateqoriyasının altına köçürülə bilməz.',
         ]);
+
+        // Rus mətnləri `translations` JSON-unda "ru" açarının altında saxlanılır
+        $russian = array_filter($validated['translations'] ?? [], fn ($value) => filled($value));
+        $validated['translations'] = $russian === [] ? null : ['ru' => $russian];
+
+        return $validated;
     }
 
     private function buildPath(array $validated, ?Category $category = null): string
@@ -141,14 +195,14 @@ class AdminCategoryController extends Controller
         return $query->exists() ? $path.'-'.Str::random(4) : $path;
     }
 
-    /** Valideynin yolu dəyişəndə alt ağacın yolları da yenilənir */
-    private function repathDescendants(string $oldPath, string $newPath): void
+    /** Valideynin yolu dəyişəndə alt ağacın yolları da yenilənir (həm az, həm ru) */
+    private function repathDescendants(string $column, string $oldPath, string $newPath): void
     {
-        Category::where('path', 'like', $oldPath.'/%')
+        Category::where($column, 'like', $oldPath.'/%')
             ->get()
-            ->each(function (Category $descendant) use ($oldPath, $newPath) {
+            ->each(function (Category $descendant) use ($column, $oldPath, $newPath) {
                 $descendant->update([
-                    'path' => $newPath.substr($descendant->path, strlen($oldPath)),
+                    $column => $newPath.substr($descendant->{$column}, strlen($oldPath)),
                 ]);
             });
     }

@@ -89,9 +89,18 @@ class Localization
         return url($path === '' ? '/' : $path);
     }
 
+    /** Səhifənin öz dil variantlarını təyin etməsi üçün (kateqoriya səhifəsində ru ünvanı fərqlidir) */
+    public const ALTERNATES_ATTRIBUTE = 'seo_alternates';
+
+    /** Səhifənin strukturlaşdırılmış məlumatı (JSON-LD) — Blade `partials/seo` yazır */
+    public const JSON_LD_ATTRIBUTE = 'json_ld';
+
     /**
      * Canonical və hreflang məlumatı. Yalnız dil prefiksli ictimai səhifələr üçün,
      * digərləri (panellər) üçün null.
+     *
+     * Səhifə öz variantlarını sorğu atributunda verə bilər: kateqoriyanın rusca ünvanı
+     * prefiks dəyişməklə alınmır (`/abituriyent` → `/ru/abiturient`).
      */
     public static function seo(Request $request): ?array
     {
@@ -99,9 +108,14 @@ class Localization
             return null;
         }
 
-        $alternates = [];
-        foreach (static::supported() as $locale) {
-            $alternates[$locale] = static::urlFor($request, $locale);
+        $alternates = $request->attributes->get(static::ALTERNATES_ATTRIBUTE);
+
+        if (! is_array($alternates) || $alternates === []) {
+            $alternates = [];
+
+            foreach (static::supported() as $locale) {
+                $alternates[$locale] = static::urlFor($request, $locale);
+            }
         }
 
         return [

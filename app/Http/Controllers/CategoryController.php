@@ -7,6 +7,8 @@ use App\Models\Exam;
 use App\Models\Subject;
 use App\Support\Localization;
 use App\Support\Sector;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,15 +25,21 @@ class CategoryController extends Controller
 
     private const TOPIC_TRIAL_SEGMENT = 'movzu-sinagi';
 
-    public function show(string $path): Response
+    public function show(Request $request, string $path): Response|RedirectResponse
     {
         [$categoryPath, $view, $quarter] = $this->parsePath(trim($path, '/'));
 
-        $category = Category::active()
-            ->where('path', $categoryPath)
-            ->firstOr(fn () => abort(404));
+        $locale = app()->getLocale();
+        $category = $this->resolve($categoryPath, $locale);
+
+        // Rusca ünvanı olan düyünə Azərbaycan yolu ilə gəliblərsə, tək ünvan saxlanılır
+        if ($category->pathFor($locale) !== $categoryPath) {
+            return redirect()->to($this->pageUrl($category, $locale, $view, $quarter), 301);
+        }
 
         $sector = Sector::current();
+
+        $this->shareSeo($request, $category, $view, $quarter);
 
         $category->load([
             'children' => fn ($query) => $query->where('is_active', true),
@@ -47,19 +55,19 @@ class CategoryController extends Controller
                 'h1' => $category->localized('h1') ?: $category->localized('name'),
                 'intro' => $category->localized('intro'),
                 'has_exams' => $category->has_exams,
-                'url' => Localization::categoryUrl($category->path),
+                'url' => $category->urlFor($locale),
             ],
             'breadcrumb' => $category->ancestors()
                 ->push($category)
                 ->map(fn (Category $node) => [
                     'name' => $node->localized('name'),
-                    'url' => Localization::categoryUrl($node->path),
+                    'url' => $node->urlFor($locale),
                 ])
                 ->values(),
             'children' => $category->children->map(fn (Category $child) => [
                 'name' => $child->localized('name'),
                 'short' => $child->localized('short'),
-                'url' => Localization::categoryUrl($child->path),
+                'url' => $child->urlFor($locale),
             ]),
             // Sektor: daxil olmuş istifadəçidə profildən, qonaqda sessiya/URL dilindən
             'sector' => $sector,
@@ -73,8 +81,8 @@ class CategoryController extends Controller
             'view' => $view,
             'quarter' => $quarter,
             // Mövzu sınağı səhifəsində hansı rüblərdə imtahan var
-            'quarters' => $view === 'topic_trial' ? $this->availableQuarters($category, $sector) : [],
-            'topicTrialUrl' => Localization::categoryUrl($category->path.'/'.self::TOPIC_TRIAL_SEGMENT),
+            'quarters' => $view === 'topic_trial' ? $this->availableQuarters($category, $sector, $locale) : [],
+            'topicTrialUrl' => $this->pageUrl($category, $locale, 'topic_trial'),
             'hasTopicTrials' => $this->topicTrialQuery($category, $sector)->exists(),
             'exams' => $this->exams($category, $view, $quarter, $sector),
             /*
@@ -122,8 +130,98 @@ class CategoryController extends Controller
         return [implode('/', $segments), $view, $quarter];
     }
 
+    /**
+     * Kateqoriyanı ünvana görə tapır. Rus dilində əvvəlcə `ru_path` yoxlanılır,
+     * tapılmasa Azərbaycan yolu ilə açılır (sonra kanonik ünvana yönləndirilir).
+     */
+    private function resolve(string $path, string $locale): Category
+    {
+        if ($locale !== Localization::default()) {
+            $translated = Category::active()->where('ru_path', $path)->first();
+
+            if ($translated) {
+                return $translated;
+            }
+        }
+
+        return Category::active()->where('path', $path)->firstOr(fn () => abort(404));
+    }
+
+    /** Səhifənin tam ünvanı: kateqoriya + mövzu sınağı/rüb seqmentləri */
+    private function pageUrl(Category $category, string $locale, ?string $view = null, ?int $quarter = null): string
+    {
+        $path = $category->pathFor($locale);
+
+        if ($view === 'topic_trial') {
+            $path .= '/'.self::TOPIC_TRIAL_SEGMENT;
+
+            if ($quarter !== null) {
+                $path .= '/'.$quarter.'-ci-rub';
+            }
+        }
+
+        return Localization::categoryUrl($path, $locale);
+    }
+
+    /**
+     * Canonical/hreflang və JSON-LD sorğu atributlarında saxlanılır: həm Inertia-nın
+     * paylaşdığı `seo` prop-u, həm də `partials/seo` Blade şablonu oradan oxuyur.
+     * Beləliklə kateqoriya səhifəsi `seo` prop-unu üzərinə yazmır.
+     */
+    private function shareSeo(Request $request, Category $category, ?string $view, ?int $quarter): void
+    {
+        $alternates = [];
+
+        foreach (Localization::supported() as $locale) {
+            $alternates[$locale] = $this->pageUrl($category, $locale, $view, $quarter);
+        }
+
+        $request->attributes->set(Localization::ALTERNATES_ATTRIBUTE, $alternates);
+        $request->attributes->set(
+            Localization::JSON_LD_ATTRIBUTE,
+            $this->breadcrumbJsonLd($category, $view, $quarter),
+        );
+    }
+
+    /** schema.org BreadcrumbList: axtarış nəticələrində yol zənciri görünsün */
+    private function breadcrumbJsonLd(Category $category, ?string $view, ?int $quarter): array
+    {
+        $locale = app()->getLocale();
+
+        $items = collect([['name' => __('category_page.home'), 'url' => Localization::route('home', [], true, $locale)]]);
+
+        foreach ($category->ancestors()->push($category) as $node) {
+            $items->push(['name' => $node->localized('name'), 'url' => $node->urlFor($locale)]);
+        }
+
+        if ($view === 'topic_trial') {
+            $items->push([
+                'name' => __('category_page.topic_trial'),
+                'url' => $this->pageUrl($category, $locale, 'topic_trial'),
+            ]);
+
+            if ($quarter !== null) {
+                $items->push([
+                    'name' => $quarter.'-ci rüb',
+                    'url' => $this->pageUrl($category, $locale, 'topic_trial', $quarter),
+                ]);
+            }
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => $items->values()->map(fn (array $item, int $index) => [
+                '@type' => 'ListItem',
+                'position' => $index + 1,
+                'name' => $item['name'],
+                'item' => $item['url'],
+            ])->all(),
+        ];
+    }
+
     /** @return array<int, array{quarter: int, url: string, exams: int}> */
-    private function availableQuarters(Category $category, string $sector): array
+    private function availableQuarters(Category $category, string $sector, string $locale): array
     {
         return $this->topicTrialQuery($category, $sector)
             ->whereNotNull('quarter')
@@ -134,9 +232,7 @@ class CategoryController extends Controller
             ->map(fn ($row) => [
                 'quarter' => (int) $row->quarter,
                 'exams' => (int) $row->exams,
-                'url' => Localization::categoryUrl(
-                    $category->path.'/'.self::TOPIC_TRIAL_SEGMENT.'/'.$row->quarter.'-ci-rub'
-                ),
+                'url' => $this->pageUrl($category, $locale, 'topic_trial', (int) $row->quarter),
             ])
             ->all();
     }
