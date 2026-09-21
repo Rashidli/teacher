@@ -8,6 +8,29 @@
 
 ---
 
+## Jurnal (yeni dəyişikliklər üstdə)
+
+### 2026-09-21 — Test təməli bərpa edildi
+
+**Problem:** `php artisan test` işləmirdi — 25 testdən 20-si sınırdı, qalanları da yanlış səbəbdən
+"keçirdi". Bu, yeni funksionallıq üçün test yazmağı qeyri-mümkün edirdi.
+
+**Səbəblər və həll:**
+
+| Səbəb | Həll |
+|-------|------|
+| Serverdə PHP `pdo_sqlite` sürücüsü yox idi, `phpunit.xml` isə sqlite `:memory:` gözləyirdi | `php8.3-sqlite3` quraşdırıldı |
+| `UserFactory` starter-kit-dən qalmışdı: `first_name`, `last_name`, `phone`, `locale` sahələrini doldurmurdu (NOT NULL pozuntusu) | Factory migrasiyalara uyğunlaşdırıldı; `admin()`, `teacher()`, `student()`, `unverified()`, `inactive()`, `withoutPhone()` state-ləri əlavə edildi |
+| Testlər `web` guard ilə `actingAs()` edirdi, tətbiq isə `student` guard işlədir | Testlər `actingAs($user, 'student')`-ə keçirildi |
+| Testlər köhnə `route('dashboard')` və `name` sahəsi ilə işləyirdi | Real axına uyğunlaşdırıldı (`student.dashboard`, `first_name`/`last_name`) |
+| Test bazasında spatie rolları olmurdu, qeydiyyat `assignRole('student')`-də 500 verirdi | `Tests\TestCase` hər test bazası ilə birlikdə `RoleSeeder`-i yükləyir |
+
+**Əlavə edilən testlər:** şagird olmayan hesabın vahid giriş formasından keçə bilməməsi, telefon
+nömrəsinin serverdə `+994XXXXXXXXX` formatına gətirilməsi, şərtlərin qəbulunun məcburiliyi,
+telefonun unikallığı.
+
+**Nəticə:** 29 test / 75 assertion, hamısı keçir.
+
 ## 1. Giriş Məlumatları
 
 ### Admin

@@ -19,9 +19,9 @@ söndürülüb və söndürülü qalır.
 
 Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə yetirilə bilməz.
 
-- [ ] PHP `pdo_sqlite` sürücüsü (serverdə quraşdırıldı, 21.09.2026)
-- [ ] `UserFactory` migrasiyalarla uyğunlaşdırılsın (`first_name`, `last_name`, `phone`, `locale`)
-- [ ] Mövcud 20 sınıq starter-kit testi işlək vəziyyətə gətirilsin
+- [x] PHP `pdo_sqlite` sürücüsü (serverdə quraşdırıldı, 21.09.2026)
+- [x] `UserFactory` migrasiyalarla uyğunlaşdırılsın (`first_name`, `last_name`, `phone`, `locale`)
+- [x] Mövcud 20 sınıq starter-kit testi işlək vəziyyətə gətirilsin
 
 ---
 
