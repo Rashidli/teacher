@@ -99,8 +99,9 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
       testlər keçdi. Major versiya dəyişikliyi lazım olmadı.
 - [x] `npm audit` zəiflikləri: 14 zəiflik (2 critical, 8 high, 3 moderate, 1 low) bağlandı,
       indi `found 0 vulnerabilities`. Major versiya dəyişikliyi lazım olmadı.
-- [ ] `Admin/Exams/Index.vue` filtrləri işləmir: səhifə `subject`/`status` göndərir, controller isə
-      `subject_id`/`group_id`/`status` gözləyir; `active`/`inactive` statusları ümumiyyətlə emal olunmur.
+- [x] `Admin/Exams/Index.vue` filtrləri düzəldildi: səhifə indi `subject_id`/`group_id`/`status`
+      göndərir, seçimlər səhifə yenilənəndə qalır, qrup filtri və "sıfırla" düyməsi əlavə edildi;
+      controller `active`/`inactive` statuslarını da emal edir, səhifələmə filtrləri saxlayır.
 - [x] `saveAnswer`: `question_id` həmin imtahana, `selected_option_id` həmin suala aid olmalıdır
       (hazırda yoxlanmır).
 - [x] `Exam::$appends = ['questions_count']` accessor-u hər serializasiyada sorğu göndərir: sil,

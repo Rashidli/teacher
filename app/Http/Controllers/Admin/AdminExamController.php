@@ -30,13 +30,17 @@ class AdminExamController extends Controller
             $query->where('teacher_id', $request->teacher_id);
         }
 
-        if ($request->status === 'published') {
-            $query->where('is_published', true);
-        } elseif ($request->status === 'draft') {
-            $query->where('is_published', false);
-        }
+        // Status filtri: səhifədəki dörd seçimin hamısı emal olunur
+        match ($request->status) {
+            'published' => $query->where('is_published', true),
+            'draft' => $query->where('is_published', false),
+            'active' => $query->where('is_active', true),
+            'inactive' => $query->where('is_active', false),
+            default => null,
+        };
 
-        $exams = $query->latest()->paginate(15);
+        // withQueryString: səhifələmə keçidlərində filtrlər itmir
+        $exams = $query->latest()->paginate(15)->withQueryString();
 
         return Inertia::render('Admin/Exams/Index', [
             'exams' => $exams,

@@ -175,4 +175,77 @@ class AdminExamTest extends TestCase
             ->get(route('admin.exams.create'))
             ->assertRedirect(route('admin.login'));
     }
+
+    public function test_the_exam_list_filters_by_subject(): void
+    {
+        $admin = $this->admin();
+        $wanted = Subject::factory()->create();
+        $other = Subject::factory()->create();
+
+        Exam::factory()->create(['teacher_id' => $admin->id, 'subject_id' => $wanted->id, 'title' => 'Axtarılan']);
+        Exam::factory()->create(['teacher_id' => $admin->id, 'subject_id' => $other->id, 'title' => 'Digəri']);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.exams.index', ['subject_id' => $wanted->id]))
+            ->assertInertia(fn ($page) => $page
+                ->has('exams.data', 1)
+                ->where('exams.data.0.title', 'Axtarılan')
+                // Seçim səhifəyə geri qaytarılır ki, filtr formada görünsün
+                ->where('filters.subject_id', (string) $wanted->id));
+    }
+
+    public function test_the_exam_list_filters_by_group(): void
+    {
+        $admin = $this->admin();
+        $wanted = Group::factory()->create();
+
+        Exam::factory()->create(['teacher_id' => $admin->id, 'group_id' => $wanted->id, 'title' => 'Axtarılan']);
+        Exam::factory()->create(['teacher_id' => $admin->id, 'title' => 'Digəri']);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.exams.index', ['group_id' => $wanted->id]))
+            ->assertInertia(fn ($page) => $page->has('exams.data', 1)
+                ->where('exams.data.0.title', 'Axtarılan'));
+    }
+
+    /** Səhifədəki dörd status seçiminin hamısı işləməlidir. */
+    public function test_the_exam_list_filters_by_every_status_option(): void
+    {
+        $admin = $this->admin();
+
+        Exam::factory()->create(['teacher_id' => $admin->id, 'title' => 'Yayımda', 'is_published' => true, 'is_active' => true]);
+        Exam::factory()->create(['teacher_id' => $admin->id, 'title' => 'Qaralama', 'is_published' => false, 'is_active' => false]);
+
+        $expectations = [
+            'published' => 'Yayımda',
+            'draft' => 'Qaralama',
+            'active' => 'Yayımda',
+            'inactive' => 'Qaralama',
+        ];
+
+        foreach ($expectations as $status => $expectedTitle) {
+            $this->actingAs($admin, 'admin')
+                ->get(route('admin.exams.index', ['status' => $status]))
+                ->assertInertia(fn ($page) => $page
+                    ->has('exams.data', 1)
+                    ->where('exams.data.0.title', $expectedTitle));
+        }
+    }
+
+    /** Səhifələmə keçidlərində filtrlər itməməlidir. */
+    public function test_pagination_links_keep_the_filters(): void
+    {
+        $admin = $this->admin();
+        $subject = Subject::factory()->create();
+
+        Exam::factory()->count(20)->create(['teacher_id' => $admin->id, 'subject_id' => $subject->id]);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.exams.index', ['subject_id' => $subject->id]))
+            ->assertInertia(function ($page) use ($subject) {
+                $next = collect($page->toArray()['props']['exams']['links'])->firstWhere('label', '2');
+
+                $this->assertStringContainsString('subject_id='.$subject->id, $next['url']);
+            });
+    }
 }

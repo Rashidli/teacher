@@ -3,20 +3,38 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
-defineProps({
+const props = defineProps({
     exams: Object,
     subjects: Array,
-    filters: Object,
+    groups: { type: Array, default: () => [] },
+    filters: { type: Object, default: () => ({}) },
 });
 
-const filterSubject = ref('');
-const filterStatus = ref('');
+// Səhifə yenilənəndə seçimlər itməsin
+const filterSubject = ref(props.filters.subject_id ?? '');
+const filterGroup = ref(props.filters.group_id ?? '');
+const filterStatus = ref(props.filters.status ?? '');
 
 const applyFilters = () => {
-    router.get(route('admin.exams.index'), {
-        subject: filterSubject.value,
-        status: filterStatus.value,
-    }, { preserveState: true });
+    router.get(
+        route('admin.exams.index'),
+        // Boş dəyərlər URL-ə düşməsin
+        Object.fromEntries(
+            Object.entries({
+                subject_id: filterSubject.value,
+                group_id: filterGroup.value,
+                status: filterStatus.value,
+            }).filter(([, value]) => value !== '' && value !== null)
+        ),
+        { preserveState: true, preserveScroll: true, replace: true },
+    );
+};
+
+const resetFilters = () => {
+    filterSubject.value = '';
+    filterGroup.value = '';
+    filterStatus.value = '';
+    applyFilters();
 };
 
 const togglePublish = (exam) => {
@@ -55,16 +73,34 @@ const toggleActive = (exam) => {
                                 </option>
                             </select>
                             <select
+                                v-model="filterGroup"
+                                @change="applyFilters"
+                                class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">Bütün Qruplar</option>
+                                <option v-for="group in groups" :key="group.id" :value="group.id">
+                                    {{ group.name }}
+                                </option>
+                            </select>
+                            <select
                                 v-model="filterStatus"
                                 @change="applyFilters"
                                 class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
                                 <option value="">Bütün Statuslar</option>
                                 <option value="published">Dərc Edilib</option>
-                                <option value="unpublished">Dərc Edilməyib</option>
+                                <option value="draft">Dərc Edilməyib</option>
                                 <option value="active">Aktiv</option>
                                 <option value="inactive">Deaktiv</option>
                             </select>
+                            <button
+                                v-if="filterSubject || filterGroup || filterStatus"
+                                type="button"
+                                @click="resetFilters"
+                                class="text-sm text-gray-600 hover:text-gray-900"
+                            >
+                                Filtrləri sıfırla
+                            </button>
                         </div>
                     </div>
 
