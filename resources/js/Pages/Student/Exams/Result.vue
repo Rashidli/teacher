@@ -56,11 +56,25 @@ const getAnswerStatus = (answer) => {
                         </span>
                         <h1 class="text-2xl font-bold text-gray-900 mt-4">{{ exam.title }}</h1>
 
+                        <div
+                            v-if="attempt.awaiting_review"
+                            class="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+                        >
+                            Açıq suallar yoxlanılır. Aşağıdakı bal müvəqqətidir — yoxlama bitəndən
+                            sonra yenilənəcək.
+                        </div>
+
                         <div class="mt-8">
                             <div :class="['text-6xl font-bold', getScoreColor]">
-                                {{ attempt.score }}
+                                {{ attempt.relative_score }}
                             </div>
-                            <p class="text-gray-500 mt-2">bal</p>
+                            <p class="text-gray-500 mt-2">nisbi bal (100 ballıq)</p>
+
+                            <p class="mt-3 text-lg text-gray-700">
+                                Fənn balı:
+                                <span class="font-semibold text-gray-900">{{ attempt.score }}</span>
+                                <span class="text-gray-500"> / {{ attempt.max_subject_score }}</span>
+                            </p>
                         </div>
 
                         <div class="grid grid-cols-3 gap-4 mt-8 max-w-md mx-auto">

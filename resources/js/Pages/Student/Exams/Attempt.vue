@@ -11,6 +11,17 @@ const props = defineProps({
 });
 
 const selectedAnswers = ref({ ...(props.answers || {}) });
+
+// Açıq cavablar (open_coded / open_written) — serverdən gələn mətnlərlə doldurulur
+const openAnswers = ref(
+    Object.fromEntries(
+        (props.questions || [])
+            .filter((question) => question.type !== 'multiple_choice')
+            .map((question) => [question.id, question.open_answer ?? ''])
+    )
+);
+
+let openAnswerTimer = null;
 const timeRemaining = ref(props.attempt?.remaining_time || 0);
 const isSaving = ref(false);
 const isFinishing = ref(false);
@@ -26,7 +37,10 @@ const isTimeWarning = computed(() => timeRemaining.value <= 300);
 const isTimeCritical = computed(() => timeRemaining.value <= 60);
 
 const answeredCount = computed(() => {
-    return Object.keys(selectedAnswers.value).filter(key => selectedAnswers.value[key]).length;
+    const chosen = Object.keys(selectedAnswers.value).filter((key) => selectedAnswers.value[key]).length;
+    const written = Object.values(openAnswers.value).filter((text) => String(text).trim() !== '').length;
+
+    return chosen + written;
 });
 
 let timerInterval = null;
@@ -53,7 +67,28 @@ onUnmounted(() => {
     if (timerInterval) {
         clearInterval(timerInterval);
     }
+
+    clearTimeout(openAnswerTimer);
 });
+
+const saveOpenAnswer = (questionId) => {
+    clearTimeout(openAnswerTimer);
+
+    openAnswerTimer = setTimeout(async () => {
+        isSaving.value = true;
+
+        try {
+            await axios.post(route('student.exams.save-answer', props.attempt.id), {
+                question_id: questionId,
+                open_answer: openAnswers.value[questionId] ?? '',
+            });
+        } catch (error) {
+            console.error('Error saving answer:', error);
+        } finally {
+            isSaving.value = false;
+        }
+    }, 800);
+};
 
 const selectAnswer = async (questionId, optionId) => {
     selectedAnswers.value[questionId] = optionId;
@@ -340,13 +375,22 @@ const getQuestionStatus = (question) => {
                                 </button>
                             </div>
 
-                            <!-- Open Ended -->
+                            <!-- Açıq cavab: qısa cavab (open_coded) və ya yazılı həll (open_written) -->
                             <div v-else class="mt-4">
                                 <textarea
+                                    v-model="openAnswers[question.id]"
+                                    @input="saveOpenAnswer(question.id)"
                                     class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base"
-                                    rows="4"
-                                    placeholder="Cavabınızı yazın..."
+                                    :rows="question.type === 'open_coded' ? 2 : 6"
+                                    :placeholder="question.type === 'open_coded'
+                                        ? 'Cavabı yazın (məs: 0,5)'
+                                        : 'Həlli addım-addım yazın...'"
                                 ></textarea>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    {{ question.type === 'open_coded'
+                                        ? 'Rəqəm cavabı: 0,5 / 0.5 / 1/2 — hamısı qəbul olunur.'
+                                        : 'Bu sual müəllim tərəfindən yoxlanılacaq.' }}
+                                </p>
                             </div>
                         </div>
 

@@ -16,6 +16,12 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Bal hesablama üsulu: hazırda DİM bakalavr düsturu
+        $this->app->bind(
+            \App\Services\Scoring\ScoringStrategy::class,
+            \App\Services\Scoring\DimBachelorStrategy::class,
+        );
+
         //
     }
 

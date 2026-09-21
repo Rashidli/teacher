@@ -10,6 +10,62 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — DİM bal sistemi, qruplar və açıq sualların qiymətləndirilməsi
+
+**Qrup strukturu.** `groups`-a `parent_id`, `code`, `stage`, `is_testable` əlavə olundu, `number`
+nullable oldu. Altqruplar ayrıca cədvəl deyil, `parent_id` ilə qurulur — altqrupların balları
+eynidir, altqrup yalnız fənn dəstini göstərir, ona görə ballar baş qrupa bağlanır.
+
+| Qrup | Fənlər |
+|------|--------|
+| I (RK / Rİ) | Riyaziyyat, Fizika, Kimya / İnformatika |
+| II | Riyaziyyat, Tarix, Coğrafiya |
+| III (DT / TC) | Ana dili, Ədəbiyyat / Coğrafiya, Tarix |
+| IV | Fizika, Kimya, Biologiya |
+| V | Qabiliyyət — testi yoxdur |
+| I mərhələ | Ana dili, Riyaziyyat, Xarici dil |
+
+**Bal matrisi.** `subject_group_scores.score` → `max_score`, `decimal(6,2)` (köhnə `decimal(4,2)`
+150 balı saxlaya bilmirdi). Mənası "bir sualın balı"ndan "fənnin qrupdakı maksimal balı"na dəyişdi.
+DİM-in "Tarix" fənni bazada iki fənnə bölündüyü üçün hər ikisinə eyni bal verilir; "Xarici dil"
+mövcud dörd dilə şamil olunur.
+
+**DİM düsturu** (`App\Services\Scoring\DimBachelorStrategy`):
+
+```
+NBq = max(0, Dq − Yq × penalty)
+NBa = Dkod + 2 × Σ(yazılı cavabların şkala qiymətləri)
+NB  = (NBq + NBa) × 100 / (Nq + Nkod + 2 × Nyazılı)      → 0.1-ə yuvarlaqlaşdırılır
+Fənn balı = NB × max_score / 100
+```
+
+`penalty` imtahanın mərhələsinə görədir (`config/scoring.php`): II mərhələ (I–IV qrup) 0.25,
+I mərhələ və buraxılış 0. Unit testlər dörd tam formatda (II mərhələ 22+5+2×3=33, xarici dil
+23+2×7=37, ana dili 20+2×10=40, riyaziyyat 13+5+2×7=32) tam cavabın məhz **100** bal verdiyini
+və qarışıq nümunələri yoxlayır. Qısa sınaq imtahanlarında eyni düstur proporsional işləyir.
+
+**Sual tiplərinin yoxlanması:** `multiple_choice` — variant; `open_coded` — `AnswerNormalizer` ilə
+avtomatik (ədədi müqayisə); `open_written` — admin şkala ilə (`0, 1/3, 1/2, 2/3, 1`) qiymətləndirir.
+Yoxlanmamış yazılı cavab varsa cəhd `pending_review` olur, bal müvəqqətidir; hər qiymətdən sonra bal
+yenidən hesablanır, hamısı yoxlananda cəhd `completed` olur. Şagird nəticədə "açıq suallar yoxlanılır"
+xəbərdarlığını, həm 100 ballıq nisbi balı (NB), həm də çəkili fənn balını (məs. 150-dən) görür.
+
+**Admin qiymətləndirmə növbəsi:** `/admin/grading` — yoxlanmalı cəhdlər, şagirdin cavabı, şkala
+düymələri.
+
+**Düzəldilən səhvlər:**
+- Şagird imtahan səhifəsindəki açıq cavab sahəsi heç nəyə bağlı deyildi — yazılan cavab **ümumiyyətlə
+  saxlanılmırdı**. İndi yazı bitəndən sonra avtomatik yadda saxlanılır.
+- `saveAnswer` sualın həmin imtahana, variantın həmin suala aid olduğunu yoxlamırdı.
+- `attempt()` hər sual üçün ayrıca sorğu göndərirdi (N+1) — cavablar bir dəfə yüklənir.
+- `Exam::$appends['questions_count']` hər serializasiyada sorğu göndərirdi — silindi, `withCount`.
+- İmtahan gedərkən düzgün variantın sızmadığı testlə təmin olundu.
+
+**Data:** bütün test cəhdləri (18 cəhd, 116 cavab) silindi; 6 imtahan, 57 sual və 279 variant
+saxlanıldı və I qrupa bağlandı. Admin hesabı toxunulmadı.
+
+**Testlər:** `DimBachelorStrategyTest` (13), `AttemptScoringTest` (10). Cəmi 139 test / 499 assertion.
+
 ### 2026-09-21 — Alış, ödəniş və imtahana giriş hüququ
 
 **Migration** (`2026_09_21_000002_create_payments_and_exam_accesses_tables`):

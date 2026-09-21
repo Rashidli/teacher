@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Models\Question;
+use App\Models\QuestionOption;
+use App\Models\SubjectGroupScore;
 use App\Models\Subject;
 use App\Models\Group;
-use App\Models\SubjectGroupScore;
 use App\Services\Payment\ExamAccessService;
 use App\Services\Payment\PaymentGatewayFactory;
+use App\Services\Scoring\AttemptScorer;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class StudentExamController extends Controller
@@ -18,6 +22,7 @@ class StudentExamController extends Controller
     public function __construct(
         private readonly ExamAccessService $access,
         private readonly PaymentGatewayFactory $gateways,
+        private readonly AttemptScorer $scorer,
     ) {
     }
 
@@ -149,14 +154,15 @@ class StudentExamController extends Controller
             }
         }
 
+        // Cavablar bir dəfə yüklənir (əvvəl hər sual üçün ayrıca sorğu gedirdi)
+        $answersByQuestion = $attempt->answers->keyBy('question_id');
+
         $questions = $attempt->exam->questions()
             ->with('options')
             ->orderBy('order')
             ->get()
-            ->map(function ($question) use ($attempt) {
-                $answer = $attempt->answers()
-                    ->where('question_id', $question->id)
-                    ->first();
+            ->map(function ($question) use ($answersByQuestion) {
+                $answer = $answersByQuestion->get($question->id);
 
                 return [
                     'id' => $question->id,
@@ -189,11 +195,24 @@ class StudentExamController extends Controller
             abort(403);
         }
 
-        $request->validate([
-            'question_id' => ['required', 'exists:questions,id'],
-            'selected_option_id' => ['nullable', 'exists:question_options,id'],
+        $validated = $request->validate([
+            // Sual mütləq HƏMİN imtahanın sualı olmalıdır
+            'question_id' => [
+                'required',
+                Rule::exists('questions', 'id')->where('exam_id', $attempt->exam_id),
+            ],
+            'selected_option_id' => ['nullable', 'integer'],
             'open_answer' => ['nullable', 'string', 'max:5000'],
         ]);
+
+        // Variant mütləq həmin sualın variantı olmalıdır
+        if (! empty($validated['selected_option_id'])) {
+            $belongsToQuestion = QuestionOption::where('id', $validated['selected_option_id'])
+                ->where('question_id', $validated['question_id'])
+                ->exists();
+
+            abort_unless($belongsToQuestion, 422, 'Variant bu suala aid deyil.');
+        }
 
         $attempt->answers()->updateOrCreate(
             ['question_id' => $request->question_id],
@@ -217,55 +236,34 @@ class StudentExamController extends Controller
         return redirect()->route('student.exams.result', $attempt);
     }
 
+    /** Fənnin bu qrupdakı maksimal balı (nəticə səhifəsində "150-dən" kimi göstərilir) */
+    private function subjectMaxScore(ExamAttempt $attempt): float
+    {
+        $group = $attempt->exam->group?->scoringGroup();
+
+        $score = $group
+            ? SubjectGroupScore::where('subject_id', $attempt->exam->subject_id)
+                ->where('group_id', $group->id)
+                ->value('max_score')
+            : null;
+
+        return (float) ($score ?? config('scoring.default_max_score', 100));
+    }
+
+    /**
+     * Cəhdi bitirir və balı hesablayır. Bütün hesablama məntiqi App\Services\Scoring-dədir:
+     * DİM düsturu, open_coded-in avtomatik yoxlanması, yazılı suallar üçün pending_review.
+     */
     private function finishAttempt(ExamAttempt $attempt): void
     {
-        $exam = $attempt->exam;
-        $group = $attempt->group;
-
-        // Bu fənn-qrup üçün bal
-        $scorePerQuestion = SubjectGroupScore::where('subject_id', $exam->subject_id)
-            ->where('group_id', $group->id)
-            ->first()?->score ?? 1;
-
-        $correctAnswers = 0;
-        $wrongAnswers = 0;
-        $totalScore = 0;
-
-        foreach ($exam->questions as $question) {
-            $answer = $attempt->answers()->where('question_id', $question->id)->first();
-
-            if (!$answer || !$answer->selected_option_id) {
-                continue;
-            }
-
-            $correctOption = $question->correctOption;
-            $isCorrect = $correctOption && $answer->selected_option_id === $correctOption->id;
-
-            $answer->update([
-                'is_correct' => $isCorrect,
-                'score_earned' => $isCorrect ? $scorePerQuestion : 0,
-            ]);
-
-            if ($isCorrect) {
-                $correctAnswers++;
-                $totalScore += $scorePerQuestion;
-            } else {
-                $wrongAnswers++;
-            }
+        if ($attempt->finished_at === null) {
+            $attempt->forceFill([
+                'finished_at' => now(),
+                'time_spent_seconds' => max(0, now()->diffInSeconds($attempt->started_at, absolute: true)),
+            ])->save();
         }
 
-        $totalQuestions = $exam->questions()->count();
-        $answeredQuestions = $attempt->answers()->whereNotNull('selected_option_id')->count();
-
-        $attempt->update([
-            'status' => 'completed',
-            'finished_at' => now(),
-            'time_spent_seconds' => now()->diffInSeconds($attempt->started_at),
-            'total_score' => $totalScore,
-            'correct_answers' => $correctAnswers,
-            'wrong_answers' => $wrongAnswers,
-            'unanswered' => $totalQuestions - $answeredQuestions,
-        ]);
+        $this->scorer->score($attempt);
     }
 
     public function result(ExamAttempt $attempt)
@@ -300,8 +298,16 @@ class StudentExamController extends Controller
                     ]),
                     'correct_option_id' => $correctOption?->id,
                     'selected_option_id' => $answer?->selected_option_id,
-                    'is_correct' => $answer?->is_correct ?? false,
+                    'is_correct' => $answer?->is_correct,
                     'score_earned' => $answer?->score_earned ?? 0,
+                    // Açıq suallar
+                    'open_answer' => $answer?->open_answer,
+                    'accepted_answers' => $question->type === Question::TYPE_OPEN_CODED
+                        ? $question->accepted_answers
+                        : null,
+                    'grade_ratio' => $answer?->grade_ratio,
+                    'awaiting_review' => $question->type === Question::TYPE_OPEN_WRITTEN
+                        && $answer?->grade_ratio === null,
                 ];
             });
 
@@ -309,6 +315,9 @@ class StudentExamController extends Controller
         $attemptData = $attempt->toArray();
         $attemptData['total_questions'] = $totalQuestions;
         $attemptData['score'] = $attempt->total_score;
+        // Yazılı suallar yoxlanana qədər bal müvəqqətidir
+        $attemptData['awaiting_review'] = $attempt->status === ExamAttempt::STATUS_PENDING_REVIEW;
+        $attemptData['max_subject_score'] = $this->subjectMaxScore($attempt);
 
         return Inertia::render('Student/Exams/Result', [
             'attempt' => $attemptData,

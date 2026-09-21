@@ -20,6 +20,7 @@ class TeacherDashboardController extends Controller
 
         $recentExams = $user->exams()
             ->with(['subject', 'group'])
+            ->withCount('questions')
             ->latest()
             ->take(5)
             ->get();

@@ -2,50 +2,94 @@
 
 namespace Database\Seeders;
 
-use App\Models\Subject;
 use App\Models\Group;
+use App\Models\Subject;
 use App\Models\SubjectGroupScore;
 use Illuminate\Database\Seeder;
 
+/**
+ * Fənnin qrupdakı MAKSİMAL balı (bir sualın balı deyil).
+ *
+ * Qeydlər:
+ * - DİM-in "Tarix" fənni bu bazada iki fənnə bölünüb (Azərbaycan tarixi və Ümumi tarix),
+ *   ona görə hər ikisinə eyni bal verilir.
+ * - "Ana dili" → Azərbaycan dili. Rus sektoru əlavə olunanda (P2) Rus dili də ana dili kimi
+ *   hesablanacaq.
+ * - "Xarici dil" → mövcud bütün dillər (İngilis, Rus, Fransız, Alman).
+ * - Ballar baş qrupa bağlanır: altqrupların (RK/Rİ, DT/TC) balları eynidir.
+ */
 class SubjectGroupScoreSeeder extends Seeder
 {
+    private const TARIX = ['azerbaycan-tarixi', 'umumi-tarix'];
+
+    private const XARICI_DIL = ['ingilis-dili', 'rus-dili', 'fransiz-dili', 'alman-dili'];
+
     public function run(): void
     {
-        // Bal matrisi: [subject_slug => [group_number => score]]
-        $scoreMatrix = [
-            'riyaziyyat' => [1 => 4, 2 => 4, 3 => 2, 4 => 2],
-            'fizika' => [1 => 4, 2 => 2, 3 => 2, 4 => 2],
-            'kimya' => [1 => 2, 2 => 4, 3 => 2, 4 => 2],
-            'biologiya' => [1 => 2, 2 => 4, 3 => 2, 4 => 2],
-            'azerbaycan-dili' => [1 => 1, 2 => 1, 3 => 1, 4 => 1],
-            'azerbaycan-tarixi' => [1 => 2, 2 => 2, 3 => 4, 4 => 4],
-            'umumi-tarix' => [1 => 2, 2 => 2, 3 => 4, 4 => 4],
-            'edebiyyat' => [1 => 2, 2 => 2, 3 => 4, 4 => 4],
-            'ingilis-dili' => [1 => 4, 2 => 4, 3 => 8, 4 => 8],
-            'rus-dili' => [1 => 4, 2 => 4, 3 => 8, 4 => 8],
-            'fransiz-dili' => [1 => 4, 2 => 4, 3 => 8, 4 => 8],
-            'alman-dili' => [1 => 4, 2 => 4, 3 => 8, 4 => 8],
-            'cografiya' => [1 => 2, 2 => 2, 3 => 2, 4 => 4],
-            'informatika' => [1 => 4, 2 => 2, 3 => 2, 4 => 2],
+        $matrix = [
+            'I' => [
+                'riyaziyyat' => 150,
+                'fizika' => 150,
+                'kimya' => 100,
+                'informatika' => 100,
+            ],
+            'II' => [
+                'riyaziyyat' => 150,
+                ...array_fill_keys(self::TARIX, 100),
+                'cografiya' => 150,
+            ],
+            'III' => [
+                'azerbaycan-dili' => 150,
+                'edebiyyat' => 100,
+                'cografiya' => 100,
+                ...array_fill_keys(self::TARIX, 150),
+            ],
+            'IV' => [
+                'fizika' => 100,
+                'kimya' => 150,
+                'biologiya' => 150,
+            ],
+            'I-MERHELE' => [
+                'azerbaycan-dili' => 100,
+                'riyaziyyat' => 100,
+                ...array_fill_keys(self::XARICI_DIL, 100),
+            ],
         ];
 
-        $subjects = Subject::all()->keyBy('slug');
-        $groups = Group::all()->keyBy('number');
+        $subjects = Subject::pluck('id', 'slug');
+        $groups = Group::whereIn('code', array_keys($matrix))->pluck('id', 'code');
 
-        foreach ($scoreMatrix as $slug => $groupScores) {
-            $subject = $subjects->get($slug);
-            if (!$subject) continue;
+        foreach ($matrix as $groupCode => $scores) {
+            $groupId = $groups->get($groupCode);
 
-            foreach ($groupScores as $groupNumber => $score) {
-                $group = $groups->get($groupNumber);
-                if (!$group) continue;
-
-                SubjectGroupScore::create([
-                    'subject_id' => $subject->id,
-                    'group_id' => $group->id,
-                    'score' => $score,
-                ]);
+            if (! $groupId) {
+                continue;
             }
+
+            $keep = [];
+
+            foreach ($scores as $slug => $maxScore) {
+                $subjectId = $subjects->get($slug);
+
+                if (! $subjectId) {
+                    continue;
+                }
+
+                SubjectGroupScore::updateOrCreate(
+                    ['subject_id' => $subjectId, 'group_id' => $groupId],
+                    ['max_score' => $maxScore],
+                );
+
+                $keep[] = $subjectId;
+            }
+
+            // Köhnə matrisdən qalan, bu qrupa aid olmayan fənlər silinir
+            SubjectGroupScore::where('group_id', $groupId)
+                ->whereNotIn('subject_id', $keep)
+                ->delete();
         }
+
+        // Matrisdə ümumiyyətlə olmayan qruplar (V, altqruplar) bal saxlamır
+        SubjectGroupScore::whereNotIn('group_id', $groups->values())->delete();
     }
 }

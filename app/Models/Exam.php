@@ -29,8 +29,6 @@ class Exam extends Model
         'created_by_admin' => 'boolean',
     ];
 
-    protected $appends = ['questions_count'];
-
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'teacher_id');
@@ -56,10 +54,6 @@ class Exam extends Model
         return $this->hasMany(ExamAttempt::class);
     }
 
-    public function getQuestionsCountAttribute(): int
-    {
-        return $this->questions()->count();
-    }
 
     public function scopeActive($query)
     {

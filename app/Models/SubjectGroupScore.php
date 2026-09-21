@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SubjectGroupScore extends Model
 {
-    protected $fillable = ['subject_id', 'group_id', 'score'];
+    /** max_score: fənnin həmin qrupdakı MAKSİMAL balı (100/150), bir sualın balı deyil */
+    protected $fillable = ['subject_id', 'group_id', 'max_score'];
 
     protected $casts = [
-        'score' => 'decimal:2',
+        'max_score' => 'decimal:2',
     ];
 
     public function subject(): BelongsTo

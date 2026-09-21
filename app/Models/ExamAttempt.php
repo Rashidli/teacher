@@ -8,15 +8,27 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExamAttempt extends Model
 {
+    public const STATUS_IN_PROGRESS = 'in_progress';
+
+    /** Açıq (yazılı) suallar admin tərəfindən yoxlanmayıb: bal müvəqqətidir */
+    public const STATUS_PENDING_REVIEW = 'pending_review';
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_TIMED_OUT = 'timed_out';
+
     protected $fillable = [
-        'user_id', 'exam_id', 'group_id', 'status', 'started_at', 'finished_at',
-        'time_spent_seconds', 'total_score', 'correct_answers', 'wrong_answers', 'unanswered'
+        'user_id', 'exam_id', 'group_id', 'status', 'started_at', 'finished_at', 'graded_at',
+        'time_spent_seconds', 'total_score', 'relative_score', 'correct_answers',
+        'wrong_answers', 'unanswered',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
+        'graded_at' => 'datetime',
         'total_score' => 'decimal:2',
+        'relative_score' => 'decimal:2',
         'time_spent_seconds' => 'integer',
         'correct_answers' => 'integer',
         'wrong_answers' => 'integer',

@@ -66,26 +66,26 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 
 ## P0: Qruplar və bal sistemi (DİM-ə uyğun)
 
-- [ ] Qrupları düzəlt (migration + seeder yenilə, mövcud datanı qoru):
+- [x] Qrupları düzəlt (migration + seeder yenilə, mövcud datanı qoru):
       - I qrup: RK altqrupu (Riyaziyyat, Fizika, Kimya), Rİ altqrupu (Riyaziyyat, Fizika, İnformatika)
       - II qrup: Riyaziyyat, Tarix, Coğrafiya
       - III qrup: DT altqrupu (Ana dili, Ədəbiyyat, Tarix), TC altqrupu (Ana dili, Coğrafiya, Tarix)
       - IV qrup: Fizika, Kimya, Biologiya
       - V qrup: qabiliyyət (testsiz, yalnız məlumat)
       Altqrup üçün `groups.parent_id` və ya ayrıca `subgroups` cədvəli — hansı sadədirsə.
-- [ ] `subject_group_scores` cədvəlinin mənası "bir sualın balı"dan "fənnin qrupdakı maksimal balı"na
+- [x] `subject_group_scores` cədvəlinin mənası "bir sualın balı"dan "fənnin qrupdakı maksimal balı"na
       dəyişsin:
       - I qrup: Riyaziyyat 150, Fizika 150, Kimya/İnformatika 100
       - II qrup: Riyaziyyat 150, Tarix 100, Coğrafiya 150
       - III qrup: Ana dili 150, Ədəbiyyat/Coğrafiya 100, Tarix 150
       - IV qrup: Fizika 100, Kimya 150, Biologiya 150
       - I mərhələ (ayrıca "qrup"): Ana dili 100, Riyaziyyat 100, Xarici dil 100
-- [ ] Bal hesablamasını `finishAttempt`-dən `App\Services\Scoring\` altına çıxar (Strategy pattern:
+- [x] Bal hesablamasını `finishAttempt`-dən `App\Services\Scoring\` altına çıxar (Strategy pattern:
       `ScoringStrategy` interface, `DimBachelorStrategy`, sonra digərləri).
-- [ ] Dəqiq DİM düsturu (yanlış cavabın cəriməsi, xam balın fənn maksimumuna çevrilməsi, açıq sualların
+- [x] Dəqiq DİM düsturu (yanlış cavabın cəriməsi, xam balın fənn maksimumuna çevrilməsi, açıq sualların
       çəkisi) məlum deyil: `config/scoring.php`-də konfiqurasiya et, dəyərləri `TODO` şərhi ilə qoy.
       **Uydurma rəqəm yazma.**
-- [ ] `open_coded` suallar avtomatik yoxlansın. `open_written` suallar üçün cəhd statusu
+- [x] `open_coded` suallar avtomatik yoxlansın. `open_written` suallar üçün cəhd statusu
       `pending_review` olsun, admin paneldə qiymətləndirmə növbəsi (şkala config-dən, defolt
       `0, 1/3, 1/2, 2/3, 1`), qiymətləndirmədən sonra bal yenidən hesablansın. Tələbə nəticədə
       "açıq suallar yoxlanılır" görsün.
@@ -99,17 +99,23 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
       baxılmalıdır (ayrıca tapşırıq, sınaqdan keçirilməlidir).
 - [ ] `Admin/Exams/Index.vue` filtrləri işləmir: səhifə `subject`/`status` göndərir, controller isə
       `subject_id`/`group_id`/`status` gözləyir; `active`/`inactive` statusları ümumiyyətlə emal olunmur.
-- [ ] `saveAnswer`: `question_id` həmin imtahana, `selected_option_id` həmin suala aid olmalıdır
+- [x] `saveAnswer`: `question_id` həmin imtahana, `selected_option_id` həmin suala aid olmalıdır
       (hazırda yoxlanmır).
-- [ ] `Exam::$appends = ['questions_count']` accessor-u hər serializasiyada sorğu göndərir: sil,
+- [x] `Exam::$appends = ['questions_count']` accessor-u hər serializasiyada sorğu göndərir: sil,
       `withCount` istifadə et.
-- [ ] `attempt()` və `finishAttempt()`-də N+1: cavabları bir dəfə yüklə, `keyBy('question_id')`.
-- [ ] Nəticədə düzgün cavabları yalnız imtahan bitəndən sonra göndər (attempt səhifəsinə `is_correct`
+- [x] `attempt()` və `finishAttempt()`-də N+1: cavabları bir dəfə yüklə, `keyBy('question_id')`.
+- [x] Nəticədə düzgün cavabları yalnız imtahan bitəndən sonra göndər (attempt səhifəsinə `is_correct`
       sızmasın; hazırda sızmır, bunu testlə təmin et).
 - [ ] Feature testlər: pulsuz imtahan axını, pullu imtahan girişsiz bloklanır, giriş verildikdən sonra
       açılır, vaxt bitəndə avtomatik bitir, başqasının cəhdinə giriş 403, bal hesablaması.
 
 ---
+
+## Gələcək qeydlər
+
+- Bal düsturu dəyişsə, mövcud cəhdləri yenidən hesablayan `attempts:rescore` artisan komandası
+  lazım olacaq (`--dry-run` ilə köhnə və yeni balları yan-yana göstərsin). Hazırda bazada cəhd
+  yoxdur, ona görə yazılmayıb.
 
 ## P2: Satışdan sonra (hələ başlanmır)
 

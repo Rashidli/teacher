@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminExamAccessController;
 use App\Http\Controllers\Admin\AdminExamController;
+use App\Http\Controllers\Admin\AdminGradingController;
 use App\Http\Controllers\Admin\AdminGroupController;
 use App\Http\Controllers\Admin\AdminQuestionController;
 use App\Http\Controllers\Admin\AdminQuestionImportController;
@@ -80,6 +81,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/subjects', [AdminSubjectController::class, 'store'])->name('subjects.store');
         Route::put('/subjects/{subject}', [AdminSubjectController::class, 'update'])->name('subjects.update');
         Route::post('/subjects/{subject}/toggle-active', [AdminSubjectController::class, 'toggleActive'])->name('subjects.toggle-active');
+
+        // Yazılı cavabların qiymətləndirmə növbəsi
+        Route::get('/grading', [AdminGradingController::class, 'index'])->name('grading.index');
+        Route::get('/grading/{attempt}', [AdminGradingController::class, 'show'])->name('grading.show');
+        Route::post('/grading/{attempt}/answers/{answer}', [AdminGradingController::class, 'update'])->name('grading.update');
 
         // Groups & Scores
         Route::get('/groups', [AdminGroupController::class, 'index'])->name('groups.index');
