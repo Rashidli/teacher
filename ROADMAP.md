@@ -108,7 +108,7 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 - [x] `attempt()` və `finishAttempt()`-də N+1: cavabları bir dəfə yüklə, `keyBy('question_id')`.
 - [x] Nəticədə düzgün cavabları yalnız imtahan bitəndən sonra göndər (attempt səhifəsinə `is_correct`
       sızmasın; hazırda sızmır, bunu testlə təmin et).
-- [ ] Feature testlər: pulsuz imtahan axını, pullu imtahan girişsiz bloklanır, giriş verildikdən sonra
+- [x] Feature testlər: pulsuz imtahan axını, pullu imtahan girişsiz bloklanır, giriş verildikdən sonra
       açılır, vaxt bitəndə avtomatik bitir, başqasının cəhdinə giriş 403, bal hesablaması.
 
 ---
