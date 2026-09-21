@@ -177,14 +177,26 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 - [x] `ScoringStrategy` çoxfənli imtahanı dəstəkləsin: hər bölmə üzrə ayrıca bal, sonra ümumi bal
       (mövcud düstur fənn səviyyəsində işləyir, dəyişmir).
 - [x] İmtahan interfeysində fənn tabları, nəticədə fənn-fənn bölgü.
-- [ ] `exam_templates`: hansı fənlər, hər fəndən neçə sual, sual növlərinin sayı, müddət,
-      variant sayı, bal strategiyası. İmtahanlar şablondan qurulur (sabit variantlar: A, B, C…).
+      (`exam_templates` Mərhələ 4 ilə birləşdirildi — orada "Bankdan imtahan yarat" forması kimi.)
 
-### Mərhələ 4 — Rüb üzrə mövzu sınağı
+### Mərhələ 4 — Rüb üzrə mövzu sınağı və bankdan imtahan generasiyası
 
-- [ ] Axın: qrup → mövzu sınağı → rüb → imtahan. İmtahan qrupun bütün fənlərindən ibarətdir,
-      suallar yalnız seçilmiş rübün mövzularından düşür (bölmələr üzərində).
-- [ ] Şablonda "kumulyativ rüb" seçimi (2-ci rüb = 1+2, yoxsa yalnız 2).
+**Admin: "Bankdan imtahan yarat" forması**
+
+- [ ] Formada seçilir: kateqoriya (qrup və ya altqrup), rüb (1–4) və kumulyativ olub-olmaması,
+      hər fənn üçün sual sayı, müddət, variant sayı.
+- [ ] Sistem bankdan uyğun mövzuların suallarını təsadüfi seçib bölmələrə yığır
+      (qrupun fənləri → bölmələr, seçilmiş rübün mövzuları → suallar).
+- [ ] Bankda kifayət qədər sual yoxdursa, **hansı fəndə neçə sual çatmadığı** göstərilir və
+      imtahan yaradılmır.
+- [ ] Yaradılan imtahan **qaralamadır**: admin nəticəyə baxır, istədiyi sualı əvəz edir
+      (təsadüfi başqası ilə və ya bankdan seçməklə), yalnız bundan sonra dərc edir.
+- [ ] Dərc olunmuş imtahan **sabit qalır** — suallar hər dəfə yenidən seçilmir.
+- [ ] A/B/C variantları üçün ayrıca məntiq yoxdur: eyni formadan bir neçə imtahan yaradılır.
+
+**Şagird axını**
+
+- [ ] Qrup → mövzu sınağı → rüb → həmin rüb üçün dərc olunmuş imtahanlar.
 - [ ] Mövzu testi (məşq): tək mövzu, taymersiz, bir hissəsi pulsuz.
 
 ### Mərhələ 5 — Rus sektoru

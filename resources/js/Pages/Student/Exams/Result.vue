@@ -65,21 +65,20 @@ const getAnswerStatus = (answer) => {
                             sonra yenilənəcək.
                         </div>
 
+                        <!-- Ümumi bal: maksimumla və faizlə. "NB" yalnız fənn səviyyəsindədir. -->
                         <div class="mt-8">
-                            <div :class="['text-6xl font-bold', getScoreColor]">
-                                {{ attempt.relative_score }}
+                            <div :class="['text-5xl sm:text-6xl font-bold', getScoreColor]">
+                                {{ attempt.score }}
+                                <span class="text-3xl text-gray-400">/ {{ attempt.max_subject_score }}</span>
                             </div>
-                            <p class="text-gray-500 mt-2">nisbi bal (100 ballıq)</p>
-
-                            <p class="mt-3 text-lg text-gray-700">
-                                Fənn balı:
-                                <span class="font-semibold text-gray-900">{{ attempt.score }}</span>
-                                <span class="text-gray-500"> / {{ attempt.max_subject_score }}</span>
+                            <p class="text-gray-500 mt-2">
+                                ümumi bal
+                                <span class="text-gray-400">({{ attempt.relative_score }}%)</span>
                             </p>
                         </div>
 
-                        <!-- Fənn üzrə bölgü (yalnız çoxfənli imtahanda) -->
-                        <div v-if="sections.length > 1" class="mt-8 overflow-x-auto">
+                        <!-- Fənn üzrə bölgü: nisbi bal (NB) burada göstərilir -->
+                        <div v-if="sections.length" class="mt-8 overflow-x-auto">
                             <table class="min-w-full text-sm">
                                 <thead>
                                     <tr class="text-gray-500">
