@@ -2,6 +2,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import MathText from '@/Components/MathText.vue';
+import LineChart from '@/Components/Charts/LineChart.vue';
+import ScoreBar from '@/Components/Charts/ScoreBar.vue';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -9,7 +11,15 @@ const props = defineProps({
     sections: { type: Array, default: () => [] },
     exam: Object,
     answers: Array,
+    // Eyni imtahanın əvvəlki cəhdləri və bu cəhdin mövzu bölgüsü
+    comparison: { type: Object, default: () => ({ history: [], previous: null, change: null }) },
+    topics: { type: Array, default: () => [] },
 });
+
+const historyPoints = computed(() => (props.comparison.history ?? []).map((item) => ({
+    label: item.date ?? '',
+    value: item.relative_score ?? 0,
+})));
 
 const percentage = computed(() => {
     if (!props.attempt.total_questions) return 0;
@@ -134,11 +144,47 @@ const getAnswerStatus = (answer) => {
                             <p class="text-sm text-gray-500 mt-2">{{ percentage }}% düzgün</p>
                         </div>
 
+                        <!-- Əvvəlki cəhdlə müqayisə -->
+                        <div v-if="comparison.previous" class="mx-auto mt-8 max-w-md rounded-lg bg-gray-50 p-4 text-sm">
+                            <p class="text-gray-700">
+                                Əvvəlki cəhd ({{ comparison.previous.date }}):
+                                <span class="font-semibold">{{ comparison.previous.relative_score }}</span> (100-lük)
+                            </p>
+                            <p class="mt-1">
+                                Dəyişmə:
+                                <span
+                                    class="font-semibold"
+                                    :class="comparison.change >= 0 ? 'text-green-600' : 'text-red-600'"
+                                >{{ comparison.change > 0 ? '+' : '' }}{{ comparison.change }}</span>
+                            </p>
+                        </div>
+
+                        <div v-if="historyPoints.length > 1" class="mt-6">
+                            <LineChart :points="historyPoints" :max="100" label="Bu imtahandakı cəhdlərin nisbi balı" />
+                        </div>
+
                         <div class="mt-6 text-sm text-gray-500">
                             <p>Qrup: {{ attempt.group?.name }}</p>
                             <p>Tarix: {{ new Date(attempt.finished_at).toLocaleString('az-AZ') }}</p>
                         </div>
                     </div>
+                </div>
+
+                <!-- Mövzu bölgüsü -->
+                <div v-if="topics.length" class="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
+                    <div class="border-b border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900">Mövzu üzrə bölgü</h3>
+                        <p class="mt-1 text-sm text-gray-500">Ən zəif mövzu yuxarıdadır.</p>
+                    </div>
+                    <ul class="divide-y divide-gray-100 p-6 pt-0">
+                        <li v-for="topic in topics" :key="topic.topic" class="py-3">
+                            <div class="flex justify-between text-sm">
+                                <span class="font-medium text-gray-800">{{ topic.topic }}</span>
+                                <span class="text-gray-500">{{ topic.correct }}/{{ topic.answered }}</span>
+                            </div>
+                            <ScoreBar :value="topic.accuracy" :weak="topic.accuracy < 60" class="mt-1" />
+                        </li>
+                    </ul>
                 </div>
 
                 <!-- Answer Details -->

@@ -13,6 +13,7 @@ use App\Models\Group;
 use App\Services\Payment\ExamAccessService;
 use App\Services\Payment\PaymentGatewayFactory;
 use App\Services\Scoring\AttemptScorer;
+use App\Services\Statistics\StudentStatistics;
 use App\Support\Sector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,7 @@ class StudentExamController extends Controller
         private readonly ExamAccessService $access,
         private readonly PaymentGatewayFactory $gateways,
         private readonly AttemptScorer $scorer,
+        private readonly StudentStatistics $statistics,
     ) {
     }
 
@@ -359,6 +361,9 @@ class StudentExamController extends Controller
             'attempt' => $attemptData,
             'exam' => $attempt->exam,
             'answers' => $questionsWithAnswers,
+            // Eyni imtahanın əvvəlki cəhdləri ilə müqayisə və mövzu bölgüsü (Mərhələ 7)
+            'comparison' => $this->statistics->examComparison(auth('student')->user(), $attempt),
+            'topics' => $this->statistics->attemptTopics($attempt),
             // Fənn-fənn bölgü (hesablama anında dondurulub)
             'sections' => $attempt->sectionResults()->with('subject:id,name')->get()
                 ->map(fn ($section) => [

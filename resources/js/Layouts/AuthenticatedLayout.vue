@@ -129,6 +129,12 @@ const dashboardRoute = computed(() => {
                                     >
                                         Nəticələrim
                                     </NavLink>
+                                    <NavLink
+                                        :href="route('student.statistics')"
+                                        :active="route().current('student.statistics')"
+                                    >
+                                        Statistika
+                                    </NavLink>
                                 </template>
                             </div>
                         </div>
@@ -283,6 +289,12 @@ const dashboardRoute = computed(() => {
                                 :active="route().current('student.results.*')"
                             >
                                 Nəticələrim
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                :href="route('student.statistics')"
+                                :active="route().current('student.statistics')"
+                            >
+                                Statistika
                             </ResponsiveNavLink>
                         </template>
                     </div>

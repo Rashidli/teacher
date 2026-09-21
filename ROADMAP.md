@@ -236,11 +236,16 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 - [ ] Mövzu sınağı seqmentləri (`movzu-sinagi`, `N-ci-rub`) hər iki dildə eynidir — rus variantı
       lazım olarsa ayrıca iş kimi.
 
-### Mərhələ 7 — Şagird statistikası
+### Mərhələ 7 — Şagird statistikası ✅
 
-- [ ] Fənn üzrə irəliləyiş, mövzu üzrə zəif yerlər analitikası.
-- [ ] Əvvəlki cəhdlərlə müqayisə, nəticə səhifəsində qrafik.
-- [ ] İstifadəçi kabineti: alınmış imtahanlar, keçmiş nəticələr.
+- [x] Fənn üzrə irəliləyiş: cəhd sayı, orta/ən yüksək nisbi bal, son iki cəhdin fərqi.
+- [x] Mövzu üzrə zəif yerlər: ən azı 3 cavablanmış mövzu, düzgünlük 60%-dən aşağı olanlar
+      ayrıca göstərilir (yoxlanmamış yazılı cavab sayılmır).
+- [x] Əvvəlki cəhdlərlə müqayisə və nəticə səhifəsində qrafik (kitabxanasız SVG).
+- [x] Nəticə səhifəsində bu cəhdin mövzu bölgüsü.
+- [x] İstifadəçi kabineti: `/student/statistics` — ümumi göstəricilər, cəhd qrafiki,
+      fənn cədvəli, zəif/güclü mövzular və giriş hüququ olan imtahanlar.
+- [ ] Müəllim/admin tərəfində sinif üzrə statistika (tələb olunarsa, P3).
 
 ---
 

@@ -23,6 +23,7 @@ use App\Http\Controllers\Teacher\Auth\TeacherRegisterController;
 use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentExamController;
 use App\Http\Controllers\Student\StudentResultController;
+use App\Http\Controllers\Student\StudentStatisticsController;
 use App\Http\Controllers\Student\Auth\StudentLoginController;
 use App\Http\Controllers\Payments\FakeGatewayController;
 use App\Http\Controllers\Payments\PaymentCallbackController;
@@ -226,8 +227,9 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::post('/attempts/{attempt}/finish', [StudentExamController::class, 'finish'])->name('exams.finish');
         Route::get('/attempts/{attempt}/result', [StudentExamController::class, 'result'])->name('exams.result');
 
-        // Nəticələr
+        // Nəticələr və statistika
         Route::get('/results', [StudentResultController::class, 'index'])->name('results.index');
+        Route::get('/statistics', [StudentStatisticsController::class, 'index'])->name('statistics');
     });
 });
 

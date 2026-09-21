@@ -10,6 +10,28 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Şagird statistikası (P2 Mərhələ 7)
+
+**Migration yoxdur** — bütün rəqəmlər mövcud dondurulmuş nəticələrdən (`attempt_sections`,
+`attempt_answers`) hesablanır, ona görə sual bankı sonradan dəyişsə də köhnə statistika dəyişmir.
+
+**Yeni səhifə: `/student/statistics`** (menyuda "Statistika"):
+
+- Ümumi göstəricilər: tamamlanmış cəhd sayı, orta və ən yüksək nisbi bal, imtahanda keçən vaxt.
+- Cəhdlərin zaman qrafiki (kitabxanasız SVG — yeni asılılıq əlavə olunmadı).
+- Fənn üzrə cədvəl: cəhd sayı, orta, ən yüksək, son nəticə və son iki cəhdin fərqi.
+- Zəif mövzular: ən azı 3 sual cavablandırılmış və düzgünlüyü 60%-dən aşağı olan mövzular;
+  yanında ən güclü 5 mövzu.
+- Giriş hüququ olan imtahanlar: mənbə (ödəniş/admin/pulsuz), tarix və status.
+
+**Nəticə səhifəsi.** Eyni imtahanın əvvəlki cəhdi ilə müqayisə (fərq müsbət/mənfi göstərilir),
+cəhdlərin qrafiki və bu cəhdin mövzu üzrə bölgüsü əlavə olundu.
+
+**Qeyd:** yoxlanmamış yazılı cavab (`grade_ratio` boş) nə düz, nə səhv sayılır — admin
+yoxlayandan sonra statistikaya avtomatik düşür.
+
+**Testlər:** 329 test / 1573 assertion (yeni `StudentStatisticsTest`: 14 test).
+
 ### 2026-09-21 — SEO: rusca ünvanlar, JSON-LD və sitemap (P2 Mərhələ 6)
 
 **Migration:** `categories.ru_path` (unikal, boş ola bilər).
