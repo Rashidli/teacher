@@ -63,7 +63,9 @@ class AdminQuestionTest extends TestCase
         $question = Question::firstOrFail();
 
         $this->assertSame(Question::TYPE_MULTIPLE_CHOICE, $question->type);
-        $this->assertSame(1, $question->order);
+        // Sıra artıq sualda yox, imtahanla əlaqədədir
+        $this->assertSame(1, $this->exam->questions()->first()->pivot->order);
+        $this->assertSame($this->exam->subject_id, $question->subject_id);
         $this->assertCount(5, $question->options);
         $this->assertSame('C', $question->options->firstWhere('is_correct', true)->option_letter);
         // Variantlı sualda qısa cavab sahəsi saxlanılmır
@@ -213,7 +215,8 @@ class AdminQuestionTest extends TestCase
         $this->assertSame(['7'], $question->accepted_answers);
     }
 
-    public function test_admin_can_delete_a_question_and_the_order_is_closed_up(): void
+    /** İmtahandan ayırma sualı bankdan silmir, qalan sualların sırası bağlanır. */
+    public function test_detaching_a_question_keeps_it_in_the_bank_and_closes_the_order(): void
     {
         $first = $this->createQuestion('Birinci');
         $second = $this->createQuestion('İkinci');
@@ -223,9 +226,43 @@ class AdminQuestionTest extends TestCase
             ->delete(route('admin.exams.questions.destroy', [$this->exam, $second]))
             ->assertRedirect(route('admin.exams.show', $this->exam));
 
-        $this->assertNull(Question::find($second->id));
-        $this->assertSame(1, $first->refresh()->order);
-        $this->assertSame(2, $third->refresh()->order);
+        // Sual bankda qalır, yalnız imtahandan ayrılır
+        $this->assertNotNull(Question::find($second->id));
+        $this->assertSame(2, $this->exam->questions()->count());
+
+        $this->assertSame(1, $this->pivotOrder($first));
+        $this->assertSame(2, $this->pivotOrder($third));
+    }
+
+    /** Bankdakı mövcud sual başqa imtahana da bağlana bilər. */
+    public function test_an_existing_bank_question_can_be_attached_to_the_exam(): void
+    {
+        $question = Question::factory()->openWritten()->create(['subject_id' => $this->exam->subject_id]);
+
+        $this->actingAs($this->admin, 'admin')
+            ->post(route('admin.exams.questions.attach', $this->exam), ['question_id' => $question->id])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, $this->exam->questions()->count());
+        $this->assertSame(1, $this->pivotOrder($question));
+    }
+
+    /** Eyni sual iki dəfə bağlanmır. */
+    public function test_attaching_the_same_question_twice_is_ignored(): void
+    {
+        $question = Question::factory()->openWritten()->create(['subject_id' => $this->exam->subject_id]);
+
+        foreach (range(1, 2) as $ignored) {
+            $this->actingAs($this->admin, 'admin')
+                ->post(route('admin.exams.questions.attach', $this->exam), ['question_id' => $question->id]);
+        }
+
+        $this->assertSame(1, $this->exam->questions()->count());
+    }
+
+    private function pivotOrder(Question $question): int
+    {
+        return (int) $this->exam->questions()->where('questions.id', $question->id)->firstOrFail()->pivot->order;
     }
 
     public function test_admin_can_move_a_question_up_and_down(): void
@@ -236,14 +273,14 @@ class AdminQuestionTest extends TestCase
         $this->actingAs($this->admin, 'admin')
             ->post(route('admin.exams.questions.move', [$this->exam, $second, 'up']));
 
-        $this->assertSame(1, $second->refresh()->order);
-        $this->assertSame(2, $first->refresh()->order);
+        $this->assertSame(1, $this->pivotOrder($second));
+        $this->assertSame(2, $this->pivotOrder($first));
 
         $this->actingAs($this->admin, 'admin')
             ->post(route('admin.exams.questions.move', [$this->exam, $second, 'down']));
 
-        $this->assertSame(2, $second->refresh()->order);
-        $this->assertSame(1, $first->refresh()->order);
+        $this->assertSame(2, $this->pivotOrder($second));
+        $this->assertSame(1, $this->pivotOrder($first));
     }
 
     public function test_moving_the_first_question_up_changes_nothing(): void
@@ -254,8 +291,8 @@ class AdminQuestionTest extends TestCase
         $this->actingAs($this->admin, 'admin')
             ->post(route('admin.exams.questions.move', [$this->exam, $first, 'up']));
 
-        $this->assertSame(1, $first->refresh()->order);
-        $this->assertSame(2, $second->refresh()->order);
+        $this->assertSame(1, $this->pivotOrder($first));
+        $this->assertSame(2, $this->pivotOrder($second));
     }
 
     /** URL-dəki sual başqa imtahana aiddirsə 404 qaytarılmalıdır. */
@@ -287,6 +324,6 @@ class AdminQuestionTest extends TestCase
             'type' => Question::TYPE_OPEN_WRITTEN,
         ])->assertSessionHasNoErrors();
 
-        return Question::where('exam_id', $exam->id)->orderByDesc('id')->firstOrFail();
+        return $exam->questions()->reorder('questions.id', 'desc')->firstOrFail();
     }
 }

@@ -7,10 +7,13 @@ use App\Models\Question;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
- * Sual yazma məntiqi bir yerdə: admin və müəllim controller-ləri eyni servisi çağırır.
- * Şəkillər "public" diskinə yazılır (public/storage simvolik linki quraşdırılıb).
+ * Sual bankı ilə iş: sual yaradılır, imtahanlara bağlanır və sıralanır.
+ *
+ * Sual imtahana yox, fənnə aiddir. İmtahanla əlaqə `exam_question` pivotundadır və sıra da
+ * ordadır — eyni sual iki imtahanda fərqli yerdə dura bilər.
  */
 class QuestionService
 {
@@ -18,17 +21,29 @@ class QuestionService
 
     private const OPTION_IMAGE_DIR = 'question-options';
 
+    /** Bankda yeni sual yaradır və imtahana bağlayır. */
     public function create(Exam $exam, array $data): Question
     {
         return DB::transaction(function () use ($exam, $data) {
+            $question = $this->createInBank($data + ['subject_id' => $exam->subject_id]);
+
+            $this->attach($exam, $question);
+
+            return $question;
+        });
+    }
+
+    /** Yalnız bankda sual yaradır (imtahana bağlamadan). */
+    public function createInBank(array $data): Question
+    {
+        return DB::transaction(function () use ($data) {
             $attributes = $this->questionAttributes($data);
-            $attributes['order'] = ($exam->questions()->max('order') ?? 0) + 1;
 
             if (($data['question_image'] ?? null) instanceof UploadedFile) {
                 $attributes['question_image'] = $data['question_image']->store(self::QUESTION_IMAGE_DIR, 'public');
             }
 
-            $question = $exam->questions()->create($attributes);
+            $question = Question::create($attributes);
 
             $this->syncOptions($question, $data);
 
@@ -39,7 +54,7 @@ class QuestionService
     public function update(Question $question, array $data): Question
     {
         return DB::transaction(function () use ($question, $data) {
-            $attributes = $this->questionAttributes($data);
+            $attributes = $this->questionAttributes($data, $question);
 
             if (($data['question_image'] ?? null) instanceof UploadedFile) {
                 $this->deleteFile($question->question_image);
@@ -57,61 +72,138 @@ class QuestionService
         });
     }
 
-    public function delete(Question $question): void
+    /**
+     * Sualın kopyasını yaradır və imtahanda onunla əvəzləyir.
+     * Cəhdlərdə işlənmiş sualı dəyişmək əvəzinə istifadə olunur: köhnə nəticələr toxunulmaz qalır.
+     */
+    public function duplicateInto(Exam $exam, Question $question): Question
     {
-        DB::transaction(function () use ($question) {
-            $this->deleteFile($question->question_image);
-            $this->deleteOptionImages($question);
+        return DB::transaction(function () use ($exam, $question) {
+            $copy = Question::create($question->only([
+                'subject_id', 'topic_id', 'question_text', 'question_image', 'type',
+                'difficulty', 'accepted_answers', 'explanation', 'source', 'is_active',
+            ]));
 
-            $question->delete();
+            foreach ($question->options as $option) {
+                $copy->options()->create($option->only([
+                    'option_letter', 'option_text', 'option_image', 'is_correct', 'order',
+                ]));
+            }
+
+            // Kopya köhnə sualın yerini tutur
+            $order = $exam->questions()->where('questions.id', $question->id)->first()?->pivot?->order;
+
+            $exam->questions()->detach($question->id);
+            $exam->questions()->attach($copy->id, ['order' => $order ?? $this->nextOrder($exam)]);
+
+            return $copy;
         });
     }
 
     /**
-     * Sualı bir mövqe yuxarı/aşağı sürüşdürür: qonşu sualla "order" dəyərlərini dəyişir.
+     * Sualı bankdan tamamilə silir.
+     * Cəhdlərdə işlənmiş sual silinmir — o, yalnız imtahandan ayrıla bilər.
      */
-    public function move(Question $question, string $direction): void
+    public function delete(Question $question): void
     {
-        DB::transaction(function () use ($question, $direction) {
-            $neighbour = $question->exam->questions()
-                ->when($direction === 'up',
-                    fn ($query) => $query->where('order', '<', $question->order)->orderByDesc('order'),
-                    fn ($query) => $query->where('order', '>', $question->order)->orderBy('order'))
-                ->first();
+        if ($question->attemptUsageCount() > 0) {
+            throw new RuntimeException(
+                'Bu sual şagird cəhdlərində istifadə olunub və silinə bilməz. '
+                .'Onu imtahandan ayıra bilərsiniz — bank qeydi və köhnə nəticələr qalır.'
+            );
+        }
+
+        DB::transaction(function () use ($question) {
+            $this->deleteFile($question->question_image);
+            $this->deleteOptionImages($question);
+
+            $question->exams()->detach();
+            $question->delete();
+        });
+    }
+
+    /** Mövcud bank sualını imtahana bağlayır. */
+    public function attach(Exam $exam, Question $question): void
+    {
+        if ($exam->questions()->where('questions.id', $question->id)->exists()) {
+            return;
+        }
+
+        $exam->questions()->attach($question->id, ['order' => $this->nextOrder($exam)]);
+    }
+
+    /** Sualı imtahandan ayırır — bankdan silmir. */
+    public function detach(Exam $exam, Question $question): void
+    {
+        DB::transaction(function () use ($exam, $question) {
+            $exam->questions()->detach($question->id);
+            $this->resequence($exam);
+        });
+    }
+
+    /** Sualı imtahanda bir mövqe yuxarı/aşağı sürüşdürür. */
+    public function move(Exam $exam, Question $question, string $direction): void
+    {
+        DB::transaction(function () use ($exam, $question, $direction) {
+            $current = $exam->questions()->where('questions.id', $question->id)->first();
+
+            if (! $current) {
+                return;
+            }
+
+            /*
+             * reorder(): əlaqədə sabit `orderBy('exam_question.order')` var, əks halda buradakı
+             * sıralama ikinci dərəcəli qalır və qonşu səhv seçilir.
+             * when() istifadə olunmur: reorder() əlaqəni sorğu obyektinə çevirir və nəticə itir.
+             */
+            $query = $exam->questions();
+
+            $neighbour = $direction === 'up'
+                ? $query->wherePivot('order', '<', $current->pivot->order)
+                    ->reorder('exam_question.order', 'desc')->first()
+                : $query->wherePivot('order', '>', $current->pivot->order)
+                    ->reorder('exam_question.order', 'asc')->first();
 
             if (! $neighbour) {
                 return;
             }
 
-            $questionOrder = $question->order;
-
-            $question->update(['order' => $neighbour->order]);
-            $neighbour->update(['order' => $questionOrder]);
+            $exam->questions()->updateExistingPivot($question->id, ['order' => $neighbour->pivot->order]);
+            $exam->questions()->updateExistingPivot($neighbour->id, ['order' => $current->pivot->order]);
         });
     }
 
-    /**
-     * Sıra nömrələrini 1-dən başlayaraq boşluqsuz yenidən yazır (silinmədən sonra).
-     */
+    /** Sıra nömrələrini 1-dən başlayaraq boşluqsuz yenidən yazır. */
     public function resequence(Exam $exam): void
     {
         DB::transaction(function () use ($exam) {
-            $exam->questions()->orderBy('order')->get()
-                ->each(fn (Question $question, int $index) => $question->update(['order' => $index + 1]));
+            $exam->questions()->get()->each(
+                fn (Question $question, int $index) => $exam->questions()
+                    ->updateExistingPivot($question->id, ['order' => $index + 1])
+            );
         });
+    }
+
+    private function nextOrder(Exam $exam): int
+    {
+        return (int) (DB::table('exam_question')->where('exam_id', $exam->id)->max('order') ?? 0) + 1;
     }
 
     /**
      * Tipə uyğun olmayan sahələr təmizlənir: variantlı sualda accepted_answers,
      * açıq sualda isə variantlar saxlanılmır.
      */
-    private function questionAttributes(array $data): array
+    private function questionAttributes(array $data, ?Question $question = null): array
     {
         $type = $data['type'];
 
         return [
+            'subject_id' => $data['subject_id'] ?? $question?->subject_id,
+            'topic_id' => array_key_exists('topic_id', $data) ? $data['topic_id'] : $question?->topic_id,
             'question_text' => $data['question_text'],
             'type' => $type,
+            'difficulty' => $data['difficulty'] ?? $question?->difficulty ?? Question::DIFFICULTY_MEDIUM,
+            'source' => $data['source'] ?? $question?->source,
             'explanation' => $data['explanation'] ?? null,
             'accepted_answers' => $type === Question::TYPE_OPEN_CODED
                 ? array_values($data['accepted_answers'] ?? [])

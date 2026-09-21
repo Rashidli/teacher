@@ -189,7 +189,7 @@ class AdminExamController extends Controller
 
     public function show(Exam $exam)
     {
-        $exam->load(['teacher', 'subject', 'group', 'questions.options']);
+        $exam->load(['teacher', 'subject', 'group', 'category', 'questions.options', 'questions.topic']);
 
         return Inertia::render('Admin/Exams/Show', [
             'exam' => $exam,

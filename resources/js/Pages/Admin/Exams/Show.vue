@@ -19,8 +19,9 @@ const moveQuestion = (question, direction) => {
     });
 };
 
-const deleteQuestion = (question) => {
-    if (confirm('Sual silinsin? Bu əməliyyat geri qaytarılmır.')) {
+// Sual bankdan silinmir, yalnız bu imtahandan ayrılır
+const detachQuestion = (question) => {
+    if (confirm('Sual bu imtahandan ayrılsın? Bankda qalacaq və digər imtahanlara təsir etməyəcək.')) {
         router.delete(route('admin.exams.questions.destroy', [props.exam.id, question.id]));
     }
 };
@@ -149,6 +150,12 @@ const toggleActive = () => {
                                 </h3>
                                 <div class="flex items-center gap-2">
                                     <Link
+                                        :href="route('admin.questions.index', { subject_id: exam.subject_id, exam_id: exam.id })"
+                                        class="px-4 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200"
+                                    >
+                                        Bankdan sual əlavə et
+                                    </Link>
+                                    <Link
                                         :href="route('admin.exams.access.index', exam.id)"
                                         class="px-4 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200"
                                     >
@@ -181,8 +188,13 @@ const toggleActive = () => {
                                         <div class="flex-1">
                                             <div class="flex items-start justify-between gap-3">
                                                 <MathText :text="question.question_text" class="text-gray-900 font-medium" />
-                                                <span class="flex-shrink-0 px-2 py-0.5 bg-gray-200 text-gray-700 text-xs rounded">
-                                                    {{ QUESTION_TYPE_LABELS[question.type] ?? question.type }}
+                                                <span class="flex-shrink-0 text-right">
+                                                    <span class="px-2 py-0.5 bg-gray-200 text-gray-700 text-xs rounded">
+                                                        {{ QUESTION_TYPE_LABELS[question.type] ?? question.type }}
+                                                    </span>
+                                                    <span v-if="question.topic" class="block mt-1 text-xs text-gray-500">
+                                                        {{ question.topic.name }}
+                                                    </span>
                                                 </span>
                                             </div>
 
@@ -244,9 +256,10 @@ const toggleActive = () => {
                                             >Redaktə</Link>
                                             <button
                                                 type="button"
-                                                @click="deleteQuestion(question)"
+                                                @click="detachQuestion(question)"
                                                 class="px-2 py-1 text-sm text-red-600 hover:text-red-800"
-                                            >Sil</button>
+                                                title="Bankdan silinmir, yalnız bu imtahandan ayrılır"
+                                            >Ayır</button>
                                         </div>
                                     </div>
                                 </div>

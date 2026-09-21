@@ -63,27 +63,34 @@ class AttemptScoringTest extends TestCase
         $this->closedOne = $this->closedQuestion(1);
         $this->closedTwo = $this->closedQuestion(2);
 
-        $this->coded = $this->exam->questions()->create([
+        $this->coded = $this->addQuestion([
             'question_text' => 'Kəsri onluq şəkildə yazın',
             'type' => Question::TYPE_OPEN_CODED,
             'accepted_answers' => ['0,5'],
-            'order' => 3,
-        ]);
+        ], 3);
 
-        $this->written = $this->exam->questions()->create([
+        $this->written = $this->addQuestion([
             'question_text' => 'Həlli izah edin',
             'type' => Question::TYPE_OPEN_WRITTEN,
-            'order' => 4,
-        ]);
+        ], 4);
+    }
+
+    /** Sual bankda yaradılır və imtahana verilmiş sıra ilə bağlanır */
+    private function addQuestion(array $attributes, int $order): Question
+    {
+        $question = Question::create($attributes + ['subject_id' => $this->exam->subject_id]);
+
+        $this->exam->questions()->attach($question->id, ['order' => $order]);
+
+        return $question;
     }
 
     private function closedQuestion(int $order): Question
     {
-        $question = $this->exam->questions()->create([
+        $question = $this->addQuestion([
             'question_text' => "Test sualı {$order}",
             'type' => Question::TYPE_MULTIPLE_CHOICE,
-            'order' => $order,
-        ]);
+        ], $order);
 
         foreach (['A', 'B', 'C', 'D'] as $index => $letter) {
             $question->options()->create([
@@ -219,11 +226,12 @@ class AttemptScoringTest extends TestCase
         $attempt = $this->startAttempt();
 
         $otherExam = Exam::factory()->create();
-        $foreign = $otherExam->questions()->create([
+        $foreign = Question::create([
+            'subject_id' => $otherExam->subject_id,
             'question_text' => 'Başqa imtahanın sualı',
             'type' => Question::TYPE_OPEN_WRITTEN,
-            'order' => 1,
         ]);
+        $otherExam->questions()->attach($foreign->id, ['order' => 1]);
 
         $this->actingAs($this->student, 'student')
             ->postJson(route('student.exams.save-answer', $attempt), [

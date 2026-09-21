@@ -61,8 +61,7 @@ class TeacherQuestionController extends Controller
     {
         $this->authorize('update', $exam);
 
-        $this->questions->delete($question);
-        $this->questions->resequence($exam);
+        $this->questions->detach($exam, $question);
 
         return redirect()->route('teacher.exams.show', $exam)
             ->with('success', 'Sual uğurla silindi.');

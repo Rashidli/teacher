@@ -17,6 +17,9 @@ import { computed, ref, watch } from 'vue';
 const props = defineProps({
     form: { type: Object, required: true },
     exam: { type: Object, required: true },
+    topics: { type: Array, default: () => [] },
+    // Sual neçə cəhddə işlənib: redaktə köhnə nəticələrə təsir edə bilər
+    attemptUsage: { type: Number, default: 0 },
     submitLabel: { type: String, default: 'Yadda saxla' },
     cancelHref: { type: String, required: true },
     // Redaktə zamanı mövcud şəklin ünvanı
@@ -167,6 +170,16 @@ const visibleExistingImage = computed(
 
         <div class="bg-white overflow-hidden shadow-sm rounded-lg">
             <form @submit.prevent="emit('submit')" class="p-6 space-y-6">
+                <div
+                    v-if="attemptUsage > 0"
+                    class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+                >
+                    Bu sual <strong>{{ attemptUsage }}</strong> şagird cəhdində istifadə olunub.
+                    Mətni dəyişsəniz, həmin cəhdlərin nəticə səhifələrində də yeni mətn görünəcək
+                    (ballar yenidən hesablanmır). Tarixçəni toxunulmaz saxlamaq üçün "Kopyala və
+                    əvəzlə" seçimindən istifadə edin.
+                </div>
+
                 <!-- Sual növü -->
                 <div>
                     <InputLabel value="Sual Növü" />
@@ -334,6 +347,45 @@ const visibleExistingImage = computed(
 
                 <div v-if="form.type === 'open_written'" class="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
                     Bu sual avtomatik yoxlanmır: şagird həllini yazır, siz admin paneldən qiymətləndirirsiniz.
+                </div>
+
+                <!-- Bank məlumatları -->
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <div>
+                        <InputLabel for="topic_id" value="Mövzu (istəyə bağlı)" />
+                        <select
+                            id="topic_id"
+                            v-model="form.topic_id"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                        >
+                            <option :value="null">— seçilməyib —</option>
+                            <option v-for="topic in topics" :key="topic.id" :value="topic.id">
+                                {{ topic.name }}<template v-if="topic.quarter"> ({{ topic.quarter }}-ci rüb)</template>
+                            </option>
+                        </select>
+                        <InputError :message="form.errors.topic_id" class="mt-2" />
+                    </div>
+
+                    <div>
+                        <InputLabel for="difficulty" value="Çətinlik" />
+                        <select
+                            id="difficulty"
+                            v-model="form.difficulty"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                        >
+                            <option value="easy">Sadə</option>
+                            <option value="medium">Orta</option>
+                            <option value="hard">Mürəkkəb</option>
+                        </select>
+                        <InputError :message="form.errors.difficulty" class="mt-2" />
+                    </div>
+
+                    <div>
+                        <InputLabel for="source" value="Mənbə (istəyə bağlı)" />
+                        <TextInput id="source" v-model="form.source" type="text" class="mt-1 block w-full"
+                            placeholder="Məs: DİM 2024" />
+                        <InputError :message="form.errors.source" class="mt-2" />
+                    </div>
                 </div>
 
                 <!-- İzah -->

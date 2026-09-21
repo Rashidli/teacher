@@ -148,19 +148,21 @@ Mövcud URL slug-ları (`mekteb`, `miq`, `suruculuk-imtahani`) saxlanılır.
       placeholder səhifələr real kataloqa çevrilir.
 - [x] Admin: kateqoriya CRUD (ağac görünüşü, sıra, aktiv/deaktiv).
 
-### Mərhələ 2 — Sual bankı (struktur dəyişikliyi)
+### Mərhələ 2 — Sual bankı (struktur dəyişikliyi) ✅ (21.09.2026)
 
 Suallar hazırda birbaşa imtahana bağlıdır (`questions.exam_id`), ona görə təkrar istifadə oluna
 bilmir. Çoxfənli imtahanlar və mövzu sınağı bunun üzərində qurulacaq, ona görə **əvvəl bu gəlir**.
 
-- [ ] `topics`: `subject_id`, `name`, `slug`, `quarter` (1–4), `order`.
-- [ ] `questions`-a: `subject_id`, `topic_id`, `difficulty` (sadə/orta/mürəkkəb), `source`.
-- [ ] `exam_question` pivotu (`exam_id`, `question_id`, `order`); `questions.exam_id` silinir.
-- [ ] Mövcud 57 sualın köçürülməsi: hər sual öz imtahanının fənninə bağlanır, pivot doldurulur.
+- [x] `topics`: `subject_id`, `name`, `slug`, `quarter` (1–4), `order`.
+- [x] `questions`-a: `subject_id`, `topic_id`, `difficulty` (sadə/orta/mürəkkəb), `source`.
+- [x] `exam_question` pivotu (`exam_id`, `question_id`, `order`); `questions.exam_id` silinir.
+- [x] Mövcud 57 sualın köçürülməsi: hər sual öz imtahanının fənninə bağlanır, pivot doldurulur.
       Migration geri qaytarıla bilən olmalıdır.
-- [ ] Admin: sual bankı səhifəsi (fənn/mövzu/çətinlik/tip üzrə filtr), imtahana mövcud sual əlavə
-      etmə, mövzu CRUD (sürücülük mövzuları da buradan).
-- [ ] Excel importu mövzu və çətinlik sütunlarını da qəbul etsin.
+- [x] Admin: sual bankı səhifəsi (fənn/mövzu/çətinlik/tip üzrə filtr, axtarış), imtahana mövcud
+      sual əlavə etmə, mövzu CRUD (sürücülük mövzuları da buradan).
+- [x] Cəhdin sual siyahısı dondurulur (`attempt_questions`): imtahandan sual ayrılsa və ya kopya
+      ilə əvəzlənsə belə köhnə nəticə səhifəsi dəyişmir. Cəhddə işlənmiş sual bankdan silinmir.
+- [x] Excel importu mövzu və çətinlik sütunlarını da qəbul etsin.
 
 ### Mərhələ 3 — Çoxfənli imtahanlar (exam_sections)
 

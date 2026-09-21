@@ -38,11 +38,13 @@ class AttemptLifecycleTest extends TestCase
             'options_per_question' => 4,
         ]);
 
-        $this->question = $this->exam->questions()->create([
+        $this->question = Question::create([
+            'subject_id' => $this->exam->subject_id,
             'question_text' => 'Test sualı',
             'type' => Question::TYPE_MULTIPLE_CHOICE,
-            'order' => 1,
         ]);
+
+        $this->exam->questions()->attach($this->question->id, ['order' => 1]);
 
         foreach (['A', 'B', 'C', 'D'] as $index => $letter) {
             $this->question->options()->create([

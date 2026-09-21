@@ -54,7 +54,7 @@ class QuestionTemplateSheet implements Export, FromArray, WithHeadings, WithTitl
                 fn (string $letter) => 'variant_'.mb_strtolower($letter),
                 array_slice(QuestionImportService::LETTERS, 0, $this->exam->options_per_question)
             ),
-            ['duzgun', 'izah'],
+            ['duzgun', 'movzu', 'cetinlik', 'izah'],
         );
     }
 
@@ -65,19 +65,19 @@ class QuestionTemplateSheet implements Export, FromArray, WithHeadings, WithTitl
         $testRow = array_merge(
             ['$2 + 2 = ?$ ifadəsinin qiyməti neçədir?', 'test'],
             array_map(fn (int $index) => (string) ($index + 2), range(0, $count - 1)),
-            ['C', 'Sadə toplama'],
+            ['C', '', 'sade', 'Sadə toplama'],
         );
 
         $shortRow = array_merge(
             ['$\frac{1}{2}$ kəsrini onluq şəkildə yazın', 'qisa'],
             array_fill(0, $count, ''),
-            ['0,5', 'Rəqəm cavab: 0.5 və 1/2 də qəbul olunur'],
+            ['0,5', '', 'orta', 'Rəqəm cavab: 0.5 və 1/2 də qəbul olunur'],
         );
 
         $writtenRow = array_merge(
             ['Tənliyin həllini addım-addım izah edin', 'aciq'],
             array_fill(0, $count, ''),
-            ['', 'Əl ilə qiymətləndirilir'],
+            ['', '', 'murekkeb', 'Əl ilə qiymətləndirilir'],
         );
 
         return [$testRow, $shortRow, $writtenRow];
@@ -112,6 +112,8 @@ class QuestionTemplateHelpSheet implements Export, FromArray, WithHeadings, With
             ['tip', 'test — variantlı sual | qisa — qısa/rəqəm cavab | aciq — həll yazılır, əl ilə yoxlanır'],
             ['variant_a ...', "Yalnız \"test\" sətirlərində doldurulur. Bu imtahanda {$count} variant tələb olunur: {$letters}"],
             ['duzgun', "test üçün düzgün variantın hərfi ({$letters}). qisa üçün düzgün cavab; alternativlər | işarəsi ilə ayrılır, məs: 0,5|yarım"],
+            ['movzu', 'İstəyə bağlı. Fənnin mövzularından birinin ADI (admin paneldəki "Mövzular" siyahısı). Boş buraxıla bilər.'],
+            ['cetinlik', 'sade / orta / murekkeb. Boş buraxılsa "orta" sayılır.'],
             ['izah', 'İstəyə bağlı. Nəticə səhifəsində şagirdə göstərilir.'],
             ['', ''],
             ['Qeyd', 'Rəqəm cavabları ədəd kimi müqayisə olunur: 0,5 yazsanız 0.5, .5 və 1/2 də qəbul olunur.'],

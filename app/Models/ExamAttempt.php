@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExamAttempt extends Model
@@ -50,6 +51,18 @@ class ExamAttempt extends Model
     public function group(): BelongsTo
     {
         return $this->belongsTo(Group::class);
+    }
+
+    /**
+     * Cəhd başlayanda dondurulmuş sual siyahısı. İmtahanın sual dəsti sonradan dəyişsə də
+     * bu cəhdin nəticəsi dəyişmir.
+     */
+    public function questions(): BelongsToMany
+    {
+        return $this->belongsToMany(Question::class, 'attempt_questions', 'attempt_id', 'question_id')
+            ->withPivot('order')
+            ->withTimestamps()
+            ->orderBy('attempt_questions.order');
     }
 
     public function answers(): HasMany

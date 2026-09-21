@@ -2,13 +2,18 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Question extends Model
 {
+    use HasFactory;
+
     /** Variantlı test: variant sayı imtahan səviyyəsində (exams.options_per_question) */
     public const TYPE_MULTIPLE_CHOICE = 'multiple_choice';
 
@@ -24,20 +29,44 @@ class Question extends Model
         self::TYPE_OPEN_WRITTEN,
     ];
 
+    public const DIFFICULTY_EASY = 'easy';
+
+    public const DIFFICULTY_MEDIUM = 'medium';
+
+    public const DIFFICULTY_HARD = 'hard';
+
+    public const DIFFICULTIES = [self::DIFFICULTY_EASY, self::DIFFICULTY_MEDIUM, self::DIFFICULTY_HARD];
+
     protected $fillable = [
-        'exam_id', 'question_text', 'question_image', 'type', 'accepted_answers',
-        'explanation', 'order', 'is_active',
+        'subject_id', 'topic_id', 'question_text', 'question_image', 'type', 'difficulty',
+        'accepted_answers', 'explanation', 'source', 'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'order' => 'integer',
         'accepted_answers' => 'array',
     ];
 
-    public function exam(): BelongsTo
+    public function subject(): BelongsTo
     {
-        return $this->belongsTo(Exam::class);
+        return $this->belongsTo(Subject::class);
+    }
+
+    public function topic(): BelongsTo
+    {
+        return $this->belongsTo(Topic::class);
+    }
+
+    /** Sual bir neçə imtahanda işlənə bilər; sıra pivotdadır */
+    public function exams(): BelongsToMany
+    {
+        return $this->belongsToMany(Exam::class)->withPivot('order')->withTimestamps();
+    }
+
+    /** Cəhdlərdə istifadə olunubmu (silmə qadağası və redaktə xəbərdarlığı üçün) */
+    public function attemptUsageCount(): int
+    {
+        return DB::table('attempt_questions')->where('question_id', $this->id)->count();
     }
 
     public function options(): HasMany

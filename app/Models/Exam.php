@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Exam extends Model
@@ -49,9 +50,13 @@ class Exam extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function questions(): HasMany
+    /** İmtahanın sualları bankdan gəlir; sıra pivotdadır */
+    public function questions(): BelongsToMany
     {
-        return $this->hasMany(Question::class)->orderBy('order');
+        return $this->belongsToMany(Question::class)
+            ->withPivot('order')
+            ->withTimestamps()
+            ->orderBy('exam_question.order');
     }
 
     public function attempts(): HasMany

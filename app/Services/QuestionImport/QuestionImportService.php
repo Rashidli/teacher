@@ -4,6 +4,7 @@ namespace App\Services\QuestionImport;
 
 use App\Models\Exam;
 use App\Models\Question;
+use App\Models\Topic;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -29,6 +30,15 @@ class QuestionImportService
 
     /** Qısa cavabdakı alternativlər bu işarə ilə ayrılır */
     private const ANSWER_SEPARATOR = '|';
+
+    /** Fayldakı çətinlik adları → bazadakı dəyərlər */
+    public const DIFFICULTY_ALIASES = [
+        'sade' => Question::DIFFICULTY_EASY,
+        'sadə' => Question::DIFFICULTY_EASY,
+        'orta' => Question::DIFFICULTY_MEDIUM,
+        'murekkeb' => Question::DIFFICULTY_HARD,
+        'mürəkkəb' => Question::DIFFICULTY_HARD,
+    ];
 
     /**
      * Faylı oxuyur və hər sətri yoxlayır. Baza dəyişmir.
@@ -72,18 +82,23 @@ class QuestionImportService
         }
 
         return DB::transaction(function () use ($exam, $rows) {
-            $order = (int) ($exam->questions()->max('order') ?? 0);
+            $order = (int) (DB::table('exam_question')->where('exam_id', $exam->id)->max('order') ?? 0);
 
             foreach ($rows as $row) {
-                $question = $exam->questions()->create([
+                // Sual banka yazılır (imtahanın fənninə), sonra imtahana bağlanır
+                $question = Question::create([
+                    'subject_id' => $exam->subject_id,
+                    'topic_id' => $row->topicId,
+                    'difficulty' => $row->difficulty,
                     'question_text' => $row->questionText,
                     'type' => $row->type,
                     'accepted_answers' => $row->type === Question::TYPE_OPEN_CODED
                         ? $row->acceptedAnswers
                         : null,
                     'explanation' => $row->explanation,
-                    'order' => ++$order,
                 ]);
+
+                $exam->questions()->attach($question->id, ['order' => ++$order]);
 
                 foreach ($row->options as $index => $option) {
                     $question->options()->create([
@@ -138,6 +153,30 @@ class QuestionImportService
             }
         }
 
+        // Mövzu: fayldakı ad imtahanın fənnindəki mövzularla tutuşdurulur
+        $topicName = (string) ($row['movzu'] ?? '');
+        $topicId = null;
+
+        if ($topicName !== '') {
+            $topicId = Topic::where('subject_id', $exam->subject_id)
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($topicName, 'UTF-8')])
+                ->value('id');
+
+            if ($topicId === null) {
+                $errors[] = "Mövzu tapılmadı: \"{$topicName}\" (bu fənnin mövzuları arasında yoxdur).";
+            }
+        }
+
+        $rawDifficulty = mb_strtolower((string) ($row['cetinlik'] ?? ''), 'UTF-8');
+        $difficulty = $rawDifficulty === ''
+            ? Question::DIFFICULTY_MEDIUM
+            : (self::DIFFICULTY_ALIASES[$rawDifficulty] ?? null);
+
+        if ($difficulty === null) {
+            $errors[] = "Çətinlik tanınmadı: \"{$rawDifficulty}\" (sade / orta / murekkeb).";
+            $difficulty = Question::DIFFICULTY_MEDIUM;
+        }
+
         return new ImportedQuestionRow(
             number: $number,
             questionText: $questionText,
@@ -146,6 +185,9 @@ class QuestionImportService
             acceptedAnswers: $acceptedAnswers,
             explanation: ($row['izah'] ?? '') !== '' ? (string) $row['izah'] : null,
             errors: $errors,
+            topicId: $topicId,
+            difficulty: $difficulty,
+            topicName: $topicName !== '' ? $topicName : null,
         );
     }
 

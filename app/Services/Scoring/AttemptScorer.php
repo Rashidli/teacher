@@ -27,7 +27,12 @@ class AttemptScorer
     public function score(ExamAttempt $attempt): ExamAttempt
     {
         return DB::transaction(function () use ($attempt) {
-            $exam = $attempt->exam()->with(['questions.options'])->firstOrFail();
+            /*
+             * Suallar imtahanın CARİ dəstindən yox, cəhd başlayanda dondurulmuş siyahıdan
+             * götürülür: imtahandan sual ayrılsa və ya kopyası ilə əvəzlənsə belə, bu cəhdin
+             * nəticəsi dəyişmir.
+             */
+            $questions = $attempt->questions()->with('options')->get();
 
             // N+1 olmasın: bütün cavablar bir sorğu ilə
             $answers = $attempt->answers()->get()->keyBy('question_id');
@@ -41,7 +46,7 @@ class AttemptScorer
             /** @var array<int, array{answer: AttemptAnswer, is_correct: ?bool, raw: float}> */
             $outcomes = [];
 
-            foreach ($exam->questions as $question) {
+            foreach ($questions as $question) {
                 $answer = $answers->get($question->id);
 
                 match ($question->type) {
@@ -84,7 +89,7 @@ class AttemptScorer
                 codedCorrect: $codedCorrect,
                 writtenTotal: $writtenTotal,
                 writtenRatios: $writtenRatios,
-                maxScore: $this->maxScore($exam->subject_id, $group),
+                maxScore: $this->maxScore($attempt->exam->subject_id, $group),
                 stage: $group?->stage ?? 'second_stage',
             ));
 
@@ -101,7 +106,7 @@ class AttemptScorer
                 'relative_score' => $result->relativeScore,
                 'correct_answers' => $closedCorrect + $codedCorrect,
                 'wrong_answers' => $closedWrong,
-                'unanswered' => max(0, $exam->questions->count() - $answered),
+                'unanswered' => max(0, $questions->count() - $answered),
             ]);
 
             return $attempt;

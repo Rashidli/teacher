@@ -48,6 +48,13 @@ class StoreQuestionRequest extends FormRequest
             'question_image' => ['nullable', 'image', 'max:2048'],
             'remove_image' => ['boolean'],
             'type' => ['required', Rule::in(Question::TYPES)],
+            'difficulty' => ['nullable', Rule::in(Question::DIFFICULTIES)],
+            // Mövzu imtahanın fənninə aid olmalıdır
+            'topic_id' => [
+                'nullable',
+                Rule::exists('topics', 'id')->where('subject_id', $this->exam()->subject_id),
+            ],
+            'source' => ['nullable', 'string', 'max:255'],
             'explanation' => ['nullable', 'string', 'max:1000'],
 
             // Variantlı test: variant sayı imtahandakı ilə eyni olmalıdır
@@ -106,6 +113,7 @@ class StoreQuestionRequest extends FormRequest
             'type.in' => 'Belə sual tipi yoxdur.',
             'options.required' => 'Test sualı üçün variantlar mütləqdir.',
             'options.size' => "Bu imtahanda hər sualda {$optionCount} variant olmalıdır.",
+            'topic_id.exists' => 'Seçilmiş mövzu bu imtahanın fənninə aid deyil.',
             'accepted_answers.required' => 'Qısa cavablı sual üçün ən azı bir düzgün cavab yazılmalıdır.',
             'accepted_answers.min' => 'Ən azı bir düzgün cavab yazılmalıdır.',
         ];

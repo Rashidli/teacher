@@ -10,6 +10,43 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Sual bankı (P2 Mərhələ 2)
+
+**Migration (3 fayl):** `topics` cədvəli; `questions`-a `subject_id`, `topic_id`, `difficulty`,
+`source`; `exam_question` pivotu; `attempt_questions` (cəhdin dondurulmuş sual siyahısı).
+`questions.exam_id` və `questions.order` silindi.
+
+**Struktur dəyişikliyi.** Əvvəl sual bir imtahana aid idi və təkrar istifadə oluna bilmirdi. İndi
+sual fənnə (və istəyə bağlı mövzuya) aiddir, imtahanla əlaqə pivotdadır, sıra da orada saxlanılır.
+Mövcud 57 sual köçürüldü: hər sual öz imtahanının fənnini aldı, 57 pivot bağlantısı quruldu,
+279 variant toxunulmadı. Migration geri qaytarıla bilir (bir sual bir neçə imtahandadırsa, geri
+qaytarmada yalnız birinci bağlantı qalır — fayl şərhində yazılıb).
+
+**Davranış dəyişikliyi:** imtahan silinəndə sualları artıq silinmir, yalnız bağlantı kəsilir.
+İmtahan səhifəsindəki "Sil" düyməsi "Ayır"a çevrildi.
+
+**Cəhdin sual siyahısı dondurulur.** Suallar paylaşıldığı üçün imtahanın dəsti sonradan dəyişə
+bilər. Cəhd başlayanda həmin andakı suallar `attempt_questions`-a yazılır; cəhd səhifəsi, bal
+hesablaması, cavabsız sayı və nəticə səhifəsi imtahanın cari suallarından yox, bu siyahıdan işləyir.
+`saveAnswer` da sualın bu siyahıda olduğunu yoxlayır.
+
+**Cəhdlərdə işlənmiş sual:**
+- bankdan **silinmir** (aydın mesajla dayandırılır), yalnız imtahandan ayrıla bilər;
+- redaktə formasında "bu sual N cəhddə istifadə olunub" xəbərdarlığı görünür;
+- "Kopyala və imtahanda əvəzlə" düyməsi sualın kopyasını yaradır və imtahanda onunla əvəzləyir —
+  köhnə nəticələr orijinala istinad etməkdə davam edir.
+
+**Admin:** sual bankı səhifəsi (fənn, mövzu, tip, çətinlik üzrə filtr, mətn axtarışı, hər sualın
+neçə imtahanda və neçə cəhddə işləndiyi), imtahan səhifəsindən "Bankdan sual əlavə et" axını,
+mövzu CRUD (rüb 1–4, sürücülük kimi fənlərdə boş qalır). Sual formasına mövzu, çətinlik və mənbə
+sahələri əlavə olundu.
+
+**Import:** şablona `movzu` və `cetinlik` sütunları əlavə edildi; mövzu adı fənnin mövzuları ilə
+tutuşdurulur, tapılmasa sətir xəta verir.
+
+**Testlər:** `QuestionBankTest` (12 — dondurulma zəmanətləri daxil), `AdminQuestionBankTest` (8).
+Cəmi 224 test / 937 assertion.
+
 ### 2026-09-21 — Kateqoriya iyerarxiyası (P2 Mərhələ 1)
 
 **Migration:** `categories` (parent_id, group_id, slug, path, SEO sahələri, translations),

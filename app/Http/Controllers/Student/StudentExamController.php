@@ -14,6 +14,7 @@ use App\Services\Payment\ExamAccessService;
 use App\Services\Payment\PaymentGatewayFactory;
 use App\Services\Scoring\AttemptScorer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -115,13 +116,29 @@ class StudentExamController extends Controller
         }
 
         // Yeni cəhd yarat - imtahanın öz qrupunu istifadə et
-        $attempt = ExamAttempt::create([
-            'user_id' => auth('student')->id(),
-            'exam_id' => $exam->id,
-            'group_id' => $exam->group_id,
-            'status' => 'in_progress',
-            'started_at' => now(),
-        ]);
+        $attempt = DB::transaction(function () use ($exam) {
+            $attempt = ExamAttempt::create([
+                'user_id' => auth('student')->id(),
+                'exam_id' => $exam->id,
+                'group_id' => $exam->group_id,
+                'status' => ExamAttempt::STATUS_IN_PROGRESS,
+                'started_at' => now(),
+            ]);
+
+            /*
+             * Sual siyahısı DONDURULUR: suallar bankda paylaşıldığı üçün imtahanın dəsti sonradan
+             * dəyişə bilər. Bu cəhdin səhifəsi, balı və nəticəsi həmişə bu siyahıdan işləyir.
+             */
+            $snapshot = $exam->questions()->get()
+                ->mapWithKeys(fn ($question, $index) => [
+                    $question->id => ['order' => $question->pivot->order ?: $index + 1],
+                ])
+                ->all();
+
+            $attempt->questions()->attach($snapshot);
+
+            return $attempt;
+        });
 
         return redirect()->route('student.exams.attempt', $attempt);
     }
@@ -157,9 +174,8 @@ class StudentExamController extends Controller
         // Cavablar bir dəfə yüklənir (əvvəl hər sual üçün ayrıca sorğu gedirdi)
         $answersByQuestion = $attempt->answers->keyBy('question_id');
 
-        $questions = $attempt->exam->questions()
+        $questions = $attempt->questions()
             ->with('options')
-            ->orderBy('order')
             ->get()
             ->map(function ($question) use ($answersByQuestion) {
                 $answer = $answersByQuestion->get($question->id);
@@ -196,10 +212,10 @@ class StudentExamController extends Controller
         }
 
         $validated = $request->validate([
-            // Sual mütləq HƏMİN imtahanın sualı olmalıdır
+            // Sual mütləq bu cəhdin dondurulmuş siyahısında olmalıdır
             'question_id' => [
                 'required',
-                Rule::exists('questions', 'id')->where('exam_id', $attempt->exam_id),
+                Rule::exists('attempt_questions', 'question_id')->where('attempt_id', $attempt->id),
             ],
             'selected_option_id' => ['nullable', 'integer'],
             'open_answer' => ['nullable', 'string', 'max:5000'],
@@ -274,12 +290,11 @@ class StudentExamController extends Controller
 
         $attempt->load(['exam.subject', 'exam.teacher', 'group', 'answers.question.options', 'answers.selectedOption']);
 
-        $totalQuestions = $attempt->exam->questions()->count();
+        // Nəticə cəhdin dondurulmuş sual siyahısından qurulur, imtahanın cari dəstindən yox
+        $totalQuestions = $attempt->questions()->count();
 
-        // Sualları cavablarla birlikdə hazırla
-        $questionsWithAnswers = $attempt->exam->questions()
+        $questionsWithAnswers = $attempt->questions()
             ->with(['options', 'correctOption'])
-            ->orderBy('order')
             ->get()
             ->map(function ($question) use ($attempt) {
                 $answer = $attempt->answers->where('question_id', $question->id)->first();

@@ -5,6 +5,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     exam: { type: Object, required: true },
+    topics: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -15,6 +16,9 @@ const form = useForm({
     options: [],
     accepted_answers: [''],
     explanation: '',
+    topic_id: null,
+    difficulty: 'medium',
+    source: '',
 });
 
 const submit = () => {
@@ -43,6 +47,7 @@ const submit = () => {
                 <QuestionForm
                     :form="form"
                     :exam="exam"
+                    :topics="topics"
                     submit-label="Sual əlavə et"
                     :cancel-href="route('admin.exams.show', exam.id)"
                     @submit="submit"

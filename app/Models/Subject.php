@@ -37,6 +37,16 @@ class Subject extends Model
         return $this->hasMany(Exam::class);
     }
 
+    public function topics(): HasMany
+    {
+        return $this->hasMany(Topic::class)->orderBy('order')->orderBy('name');
+    }
+
+    public function questions(): HasMany
+    {
+        return $this->hasMany(Question::class);
+    }
+
     public function groupScores(): HasMany
     {
         return $this->hasMany(SubjectGroupScore::class);

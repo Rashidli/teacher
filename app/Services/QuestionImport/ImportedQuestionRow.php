@@ -21,6 +21,9 @@ class ImportedQuestionRow
         public readonly array $acceptedAnswers,
         public readonly ?string $explanation,
         public readonly array $errors,
+        public readonly ?int $topicId = null,
+        public readonly string $difficulty = 'medium',
+        public readonly ?string $topicName = null,
     ) {
     }
 
@@ -39,6 +42,8 @@ class ImportedQuestionRow
             'options' => $this->options,
             'accepted_answers' => $this->acceptedAnswers,
             'explanation' => $this->explanation,
+            'topic' => $this->topicName,
+            'difficulty' => $this->difficulty,
             'errors' => $this->errors,
         ];
     }

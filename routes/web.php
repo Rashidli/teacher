@@ -6,9 +6,11 @@ use App\Http\Controllers\Admin\AdminExamAccessController;
 use App\Http\Controllers\Admin\AdminExamController;
 use App\Http\Controllers\Admin\AdminGradingController;
 use App\Http\Controllers\Admin\AdminGroupController;
+use App\Http\Controllers\Admin\AdminQuestionBankController;
 use App\Http\Controllers\Admin\AdminQuestionController;
 use App\Http\Controllers\Admin\AdminQuestionImportController;
 use App\Http\Controllers\Admin\AdminSubjectController;
+use App\Http\Controllers\Admin\AdminTopicController;
 use App\Http\Controllers\Admin\AdminTeacherController;
 use App\Http\Controllers\Admin\Auth\AdminLoginController;
 use App\Http\Controllers\Teacher\TeacherDashboardController;
@@ -76,6 +78,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Categories (kateqoriya ağacı)
         Route::resource('categories', AdminCategoryController::class)->except(['show']);
 
+        // Sual bankı
+        Route::get('/questions', [AdminQuestionBankController::class, 'index'])->name('questions.index');
+        Route::delete('/questions/{question}', [AdminQuestionBankController::class, 'destroy'])->name('questions.destroy');
+
+        // Topics (fənn mövzuları)
+        Route::get('/topics', [AdminTopicController::class, 'index'])->name('topics.index');
+        Route::post('/topics', [AdminTopicController::class, 'store'])->name('topics.store');
+        Route::put('/topics/{topic}', [AdminTopicController::class, 'update'])->name('topics.update');
+        Route::delete('/topics/{topic}', [AdminTopicController::class, 'destroy'])->name('topics.destroy');
+
         // Subjects
         Route::get('/subjects', [AdminSubjectController::class, 'index'])->name('subjects.index');
         Route::post('/subjects', [AdminSubjectController::class, 'store'])->name('subjects.store');
@@ -123,6 +135,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/questions/{question}', [AdminQuestionController::class, 'update'])->name('questions.update');
             Route::delete('/questions/{question}', [AdminQuestionController::class, 'destroy'])->name('questions.destroy');
             Route::post('/questions/{question}/move/{direction}', [AdminQuestionController::class, 'move'])->name('questions.move');
+            // Bankdan mövcud sual əlavə etmə və cəhdlərdə işlənmiş sualın kopyası
+            Route::post('/questions/attach', [AdminQuestionController::class, 'attach'])->name('questions.attach');
+            Route::post('/questions/{question}/duplicate', [AdminQuestionController::class, 'duplicate'])->name('questions.duplicate');
         });
     });
 });

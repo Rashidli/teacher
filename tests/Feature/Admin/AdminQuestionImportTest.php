@@ -124,23 +124,24 @@ class AdminQuestionImportTest extends TestCase
 
         $this->assertSame(2, Question::count());
 
-        $first = Question::where('order', 1)->firstOrFail();
+        $first = $this->exam->questions()->wherePivot('order', 1)->firstOrFail();
         $this->assertSame(Question::TYPE_MULTIPLE_CHOICE, $first->type);
         $this->assertCount(4, $first->options);
         $this->assertSame('B', $first->options->firstWhere('is_correct', true)->option_letter);
 
-        $second = Question::where('order', 2)->firstOrFail();
+        $second = $this->exam->questions()->wherePivot('order', 2)->firstOrFail();
         $this->assertSame(['0,5', 'yarım'], $second->accepted_answers);
     }
 
     /** Mövcud suallar varsa, import onların ardınca sıralanmalıdır. */
     public function test_imported_questions_continue_the_existing_order(): void
     {
-        $this->exam->questions()->create([
+        $existing = Question::create([
+            'subject_id' => $this->exam->subject_id,
             'question_text' => 'Əvvəlki sual',
             'type' => Question::TYPE_OPEN_WRITTEN,
-            'order' => 1,
         ]);
+        $this->exam->questions()->attach($existing->id, ['order' => 1]);
 
         $file = $this->csv([['Yeni sual', 'aciq', '', '', '', '', '', '']]);
         $token = $this->preview($file)->viewData('page')['props']['token'];
@@ -148,7 +149,8 @@ class AdminQuestionImportTest extends TestCase
         $this->actingAs($this->admin, 'admin')
             ->post(route('admin.exams.questions.import.store', $this->exam), ['token' => $token]);
 
-        $this->assertSame(2, Question::where('question_text', 'Yeni sual')->value('order'));
+        $new = Question::where('question_text', 'Yeni sual')->firstOrFail();
+        $this->assertSame(2, (int) $this->exam->questions()->where('questions.id', $new->id)->firstOrFail()->pivot->order);
     }
 
     /** Bir sətir xətalıdırsa heç nə yazılmamalıdır. */
