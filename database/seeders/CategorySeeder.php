@@ -56,23 +56,34 @@ class CategorySeeder extends Seeder
                 'short' => 'Bakalavr qəbulu: I mərhələ və I–V qruplar',
                 'translations' => ['ru' => ['name' => 'Абитуриент', 'short' => 'Вступительный экзамен, группы I–V']],
                 'children' => [
-                    ['slug' => '1-ci-merhele', 'name' => 'I mərhələ', 'group' => 'I-MERHELE'],
+                    ['slug' => '1-ci-merhele', 'name' => 'I mərhələ', 'group' => 'I-MERHELE',
+                        // Xarici dil imtahanı hər dil üçün ayrıca yaradılır (generasiyada tək seçim)
+                        'subjects' => ['azerbaycan-dili' => [], 'riyaziyyat' => [],
+                            'ingilis-dili' => [], 'rus-dili' => [], 'fransiz-dili' => [], 'alman-dili' => []]],
                     [
                         'slug' => '1-ci-qrup', 'name' => 'I qrup', 'group' => 'I',
+                        'subjects' => ['riyaziyyat' => [], 'fizika' => [], 'kimya' => [], 'informatika' => []],
                         'children' => [
-                            ['slug' => 'rk', 'name' => 'RK altqrupu', 'group' => 'I-RK'],
-                            ['slug' => 'ri', 'name' => 'Rİ altqrupu', 'group' => 'I-RI'],
+                            ['slug' => 'rk', 'name' => 'RK altqrupu', 'group' => 'I-RK',
+                                'subjects' => ['riyaziyyat' => [], 'fizika' => [], 'kimya' => []]],
+                            ['slug' => 'ri', 'name' => 'Rİ altqrupu', 'group' => 'I-RI',
+                                'subjects' => ['riyaziyyat' => [], 'fizika' => [], 'informatika' => []]],
                         ],
                     ],
-                    ['slug' => '2-ci-qrup', 'name' => 'II qrup', 'group' => 'II'],
+                    ['slug' => '2-ci-qrup', 'name' => 'II qrup', 'group' => 'II',
+                        'subjects' => ['riyaziyyat' => [], 'tarix' => [], 'cografiya' => []]],
                     [
                         'slug' => '3-cu-qrup', 'name' => 'III qrup', 'group' => 'III',
+                        'subjects' => ['azerbaycan-dili' => [], 'edebiyyat' => [], 'cografiya' => [], 'tarix' => []],
                         'children' => [
-                            ['slug' => 'dt', 'name' => 'DT altqrupu', 'group' => 'III-DT'],
-                            ['slug' => 'tc', 'name' => 'TC altqrupu', 'group' => 'III-TC'],
+                            ['slug' => 'dt', 'name' => 'DT altqrupu', 'group' => 'III-DT',
+                                'subjects' => ['azerbaycan-dili' => [], 'edebiyyat' => [], 'tarix' => []]],
+                            ['slug' => 'tc', 'name' => 'TC altqrupu', 'group' => 'III-TC',
+                                'subjects' => ['azerbaycan-dili' => [], 'cografiya' => [], 'tarix' => []]],
                         ],
                     ],
-                    ['slug' => '4-cu-qrup', 'name' => 'IV qrup', 'group' => 'IV'],
+                    ['slug' => '4-cu-qrup', 'name' => 'IV qrup', 'group' => 'IV',
+                        'subjects' => ['fizika' => [], 'kimya' => [], 'biologiya' => []]],
                     [
                         'slug' => '5-ci-qrup', 'name' => 'V qrup', 'group' => 'V',
                         'has_exams' => false,

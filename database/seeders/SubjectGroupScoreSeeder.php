@@ -11,8 +11,7 @@ use Illuminate\Database\Seeder;
  * Fənnin qrupdakı MAKSİMAL balı (bir sualın balı deyil).
  *
  * Qeydlər:
- * - DİM-in "Tarix" fənni bu bazada iki fənnə bölünüb (Azərbaycan tarixi və Ümumi tarix),
- *   ona görə hər ikisinə eyni bal verilir.
+ * - "Tarix" bir fənndir; "Azərbaycan tarixi" və "Ümumi tarix" onun mövzu qruplarıdır.
  * - "Ana dili" → Azərbaycan dili. Rus sektoru əlavə olunanda (P2) Rus dili də ana dili kimi
  *   hesablanacaq.
  * - "Xarici dil" → mövcud bütün dillər (İngilis, Rus, Fransız, Alman).
@@ -20,7 +19,8 @@ use Illuminate\Database\Seeder;
  */
 class SubjectGroupScoreSeeder extends Seeder
 {
-    private const TARIX = ['azerbaycan-tarixi', 'umumi-tarix'];
+    /** DİM-də "Tarix" bir fəndir (bax: 2026_09_21_000012 migration) */
+    private const TARIX = ['tarix'];
 
     private const XARICI_DIL = ['ingilis-dili', 'rus-dili', 'fransiz-dili', 'alman-dili'];
 

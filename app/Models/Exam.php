@@ -13,8 +13,24 @@ class Exam extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /** Tam model sınaq imtahanı */
+    public const KIND_GENERAL = 'general';
+
+    /** Rüb üzrə mövzu sınağı */
+    public const KIND_TOPIC_TRIAL = 'topic_trial';
+
+    /** Tək fənn üzrə sınaq */
+    public const KIND_SUBJECT = 'subject';
+
+    /** Məşq testi (taymersiz) */
+    public const KIND_PRACTICE = 'practice';
+
+    public const KINDS = [self::KIND_GENERAL, self::KIND_TOPIC_TRIAL, self::KIND_SUBJECT, self::KIND_PRACTICE];
+
+
     protected $fillable = [
-        'teacher_id', 'subject_id', 'group_id', 'category_id', 'title', 'description',
+        'teacher_id', 'subject_id', 'group_id', 'category_id', 'kind', 'quarter', 'is_cumulative',
+        'title', 'description',
         'duration_minutes', 'options_per_question', 'price', 'is_free', 'is_active', 'is_published',
         'published_at', 'created_by_admin'
     ];
@@ -28,6 +44,8 @@ class Exam extends Model
         'duration_minutes' => 'integer',
         'options_per_question' => 'integer',
         'created_by_admin' => 'boolean',
+        'quarter' => 'integer',
+        'is_cumulative' => 'boolean',
     ];
 
     public function teacher(): BelongsTo

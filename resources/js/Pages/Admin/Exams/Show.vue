@@ -39,6 +39,13 @@ const moveQuestion = (question, direction) => {
 };
 
 // Sual bankdan silinmir, yalnız bu imtahandan ayrılır
+// Generasiyadan sonra bəyənilməyən sualı eyni hovuzdan başqası ilə əvəz etmək
+const replaceQuestion = (question) => {
+    router.post(route('admin.exams.questions.replace', [props.exam.id, question.id]), {}, {
+        preserveScroll: true,
+    });
+};
+
 const detachQuestion = (question) => {
     if (confirm('Sual bu imtahandan ayrılsın? Bankda qalacaq və digər imtahanlara təsir etməyəcək.')) {
         router.delete(route('admin.exams.questions.destroy', [props.exam.id, question.id]));
@@ -295,6 +302,10 @@ const toggleActive = () => {
                                                     :disabled="index === section.questions.length - 1"
                                                     class="px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-30 hover:bg-white"
                                                     title="Aşağı">↓</button>
+                                                <button v-if="!exam.is_published" type="button"
+                                                    @click="replaceQuestion(question)"
+                                                    class="px-2 py-1 text-sm text-gray-600 hover:text-gray-900"
+                                                    title="Bankdan başqa təsadüfi sualla əvəz et">Əvəz et</button>
                                                 <Link :href="route('admin.exams.questions.edit', [exam.id, question.id])"
                                                     class="px-2 py-1 text-sm text-indigo-600 hover:text-indigo-800">Redaktə</Link>
                                                 <button type="button" @click="detachQuestion(question)"

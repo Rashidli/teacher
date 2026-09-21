@@ -12,11 +12,12 @@ class Subject extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'slug', 'category', 'icon', 'is_active', 'order'
+        'name', 'slug', 'category', 'is_language', 'icon', 'is_active', 'order'
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_language' => 'boolean',
         'order' => 'integer',
     ];
 

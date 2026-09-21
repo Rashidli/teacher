@@ -242,6 +242,49 @@ class QuestionService
         ]);
     }
 
+    /**
+     * Sualı eyni hovuzdan başqa TƏSADÜFİ sualla əvəz edir (generasiyadan sonra admin
+     * bəyənmədiyi sualı dəyişə bilsin). İmtahanda artıq olan suallar seçilmir.
+     */
+    public function replaceWithRandom(Exam $exam, Question $question): ?Question
+    {
+        $pivot = $exam->questions()->where('questions.id', $question->id)->first()?->pivot;
+
+        if (! $pivot) {
+            return null;
+        }
+
+        $used = $exam->questions()->pluck('questions.id');
+
+        $replacement = Question::query()
+            ->where('subject_id', $question->subject_id)
+            ->where('is_active', true)
+            ->whereNotIn('id', $used)
+            // Rüb sınağıdırsa eyni rübün mövzularından seçilir
+            ->when($exam->quarter !== null, fn ($query) => $query->whereHas(
+                'topic',
+                fn ($topic) => $exam->is_cumulative
+                    ? $topic->where('quarter', '<=', $exam->quarter)
+                    : $topic->where('quarter', $exam->quarter)
+            ))
+            ->inRandomOrder()
+            ->first();
+
+        if (! $replacement) {
+            return null;
+        }
+
+        DB::transaction(function () use ($exam, $question, $replacement, $pivot) {
+            $exam->questions()->detach($question->id);
+            $exam->questions()->attach($replacement->id, [
+                'section_id' => $pivot->section_id,
+                'order' => $pivot->order,
+            ]);
+        });
+
+        return $replacement;
+    }
+
     /** Sualı imtahandan ayırır — bankdan silmir. */
     public function detach(Exam $exam, Question $question): void
     {

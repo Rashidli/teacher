@@ -10,6 +10,45 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Bankdan imtahan generasiyası və rüb üzrə mövzu sınağı (P2 Mərhələ 4)
+
+**Migration:** `topics.parent_id` (mövzu qrupları), `subjects.is_language`,
+`exams.kind/quarter/is_cumulative`; ayrıca "Tarix" birləşdirmə migration-ı.
+
+**Tarix bir fəndir.** DİM-də "Tarix" tək fəndir, bazada isə iki ayrı fənn vardı. İndi "Tarix"
+fənni var, "Azərbaycan tarixi" və "Ümumi tarix" onun **mövzu qruplarıdır** (`topics.parent_id`).
+25 sual, bal matrisi, imtahan və bölmə istinadları köçürüldü; geri qaytarma mümkündür
+(hər sual mövzu qrupuna görə köhnə fənninə qayıdır). Nəticədə imtahanda bir "Tarix" bölməsi və
+bir maksimal bal olur.
+
+**Bankdan imtahan yarat.** Admin kateqoriyanı (qrup/altqrup), rübü (kumulyativ və ya yox) və hər
+fənn üçün sual sayını seçir; sistem bankdan uyğun mövzuların suallarını təsadüfi seçib bölmələrə
+yığır.
+
+- **Variantlar arasında suallar təkrarlanmır:** 3 variant × 12 sual üçün bankda 36 unikal sual
+  olmalıdır. Şagird A və B variantlarını alsa, eyni sualı görməz.
+- **Bank çatmırsa heç nə yaradılmır:** hansı fəndə neçə sual çatmadığı göstərilir
+  ("Riyaziyyat: 6 sual istənilib, bankda 4 var — 2 çatmır").
+- **Xarici dil tək seçimdir** (radio): bir imtahana yalnız bir dil düşür, hər dil üçün ayrıca
+  imtahan yaradılır.
+- Nəticə **qaralamadır**: admin hər sualı "Əvəz et" ilə eyni hovuzdan başqası ilə dəyişə bilər,
+  sonra dərc edir. **Dərc olunmuş imtahanın sualları dəyişdirilmir.**
+
+**Şagird axını:** qrup → mövzu sınağı → rüb. Rüblər üçün ayrıca kateqoriya sətri yaradılmır —
+`CategoryController` yolun sonundakı `/movzu-sinagi` və `/movzu-sinagi/{n}-ci-rub` seqmentlərini
+özü emal edir. Hər iki dil dəstəklənir.
+
+**Düzəldilən səhv:** kateqoriya səhifələrində **canonical və hreflang itmişdi** — Mərhələ 1-də
+controller `seo` adlı prop göndərirdi və paylaşılan canonical prop-unu üzərinə yazırdı. Prop
+`meta`-ya adlandırıldı, regres testi əlavə olundu. (Canlıda yoxlanıldı: `/abituriyent` indi
+canonical və hər iki hreflang ilə gəlir.)
+
+**Nəticə səhifəsi:** ümumi göstərici artıq "nisbi bal" adlanmır — `225.00 / 400 (56.3%)`.
+NB yalnız fənn cədvəlində qalır.
+
+**Testlər:** `ExamGenerationTest` (11), `TopicTrialFlowTest` (9), canonical regresi.
+Cəmi 269 test / 1235 assertion.
+
 ### 2026-09-21 — Çoxfənli imtahanlar (P2 Mərhələ 3, bölmələr)
 
 **Migration:** `exam_sections` (exam, fənn, başlıq, sual sayı, maksimal bal, sıra),

@@ -119,6 +119,28 @@ class AdminQuestionController extends Controller
             ->with('success', 'Sualın kopyası yaradıldı və imtahanda əvəzləndi.');
     }
 
+    /** Sualı eyni hovuzdan başqa təsadüfi sualla əvəz edir (generasiyadan sonra). */
+    public function replace(Exam $exam, Question $question): RedirectResponse
+    {
+        $this->ensureBelongsToExam($exam, $question);
+
+        if ($exam->is_published) {
+            return back()->withErrors([
+                'question' => 'Dərc olunmuş imtahanın sualları dəyişdirilmir. '
+                    .'Əvvəlcə imtahanı dərcdən çıxarın.',
+            ]);
+        }
+
+        $replacement = $this->questions->replaceWithRandom($exam, $question);
+
+        return back()->with(
+            $replacement ? 'success' : 'error',
+            $replacement
+                ? 'Sual başqası ilə əvəz edildi.'
+                : 'Bankda uyğun başqa sual tapılmadı.'
+        );
+    }
+
     /** Sualı bir mövqe yuxarı və ya aşağı sürüşdürür. */
     public function move(Exam $exam, Question $question, string $direction): RedirectResponse
     {

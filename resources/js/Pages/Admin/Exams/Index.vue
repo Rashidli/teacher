@@ -102,6 +102,16 @@ const toggleActive = (exam) => {
                                 Filtrləri sıfırla
                             </button>
                         </div>
+                        <div class="mt-4 flex gap-2">
+                            <Link :href="route('admin.exams.create')"
+                                class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">
+                                + Yeni imtahan
+                            </Link>
+                            <Link :href="route('admin.exams.generate')"
+                                class="px-4 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200">
+                                Bankdan imtahan yarat
+                            </Link>
+                        </div>
                     </div>
 
                     <!-- Table -->

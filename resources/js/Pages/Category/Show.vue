@@ -11,14 +11,20 @@ defineProps({
     children: { type: Array, default: () => [] },
     subjects: { type: Array, default: () => [] },
     exams: { type: Array, default: () => [] },
-    seo: { type: Object, default: () => ({}) },
+    meta: { type: Object, default: () => ({}) },
+    // 'topic_trial' → rüb seçimi / rüb imtahanları səhifəsi
+    view: { type: String, default: null },
+    quarter: { type: Number, default: null },
+    quarters: { type: Array, default: () => [] },
+    topicTrialUrl: { type: String, default: null },
+    hasTopicTrials: { type: Boolean, default: false },
 });
 
 const { lroute } = useLocale();
 </script>
 
 <template>
-    <SeoHead :title="seo.title" :description="seo.description" />
+    <SeoHead :title="meta.title" :description="meta.description" />
 
     <div class="site">
         <SiteHeader />
@@ -38,8 +44,29 @@ const { lroute } = useLocale();
             <p v-if="category.intro" class="intro">{{ category.intro }}</p>
             <p v-else-if="category.description" class="intro">{{ category.description }}</p>
 
+            <!-- Mövzu sınağı girişi -->
+            <section v-if="!view && hasTopicTrials" class="block" aria-labelledby="trial-title">
+                <h2 id="trial-title" class="block-title">{{ $t('category_page.topic_trial') }}</h2>
+                <p class="lead">{{ $t('category_page.topic_trial_hint') }}</p>
+                <Link :href="topicTrialUrl" class="button">{{ $t('category_page.topic_trial_open') }}</Link>
+            </section>
+
+            <!-- Rüb seçimi -->
+            <section v-if="view === 'topic_trial' && !quarter" class="block" aria-labelledby="quarters-title">
+                <h2 id="quarters-title" class="block-title">{{ $t('category_page.choose_quarter') }}</h2>
+                <ul v-if="quarters.length" class="cards">
+                    <li v-for="item in quarters" :key="item.quarter">
+                        <Link :href="item.url" class="card">
+                            <span class="card-name">{{ item.quarter }}-ci rüb</span>
+                            <span class="card-short">{{ item.exams }} {{ $t('category_page.exams_count') }}</span>
+                        </Link>
+                    </li>
+                </ul>
+                <p v-else class="empty">{{ $t('category_page.no_quarters') }}</p>
+            </section>
+
             <!-- Alt kateqoriyalar -->
-            <section v-if="children.length" class="block" aria-labelledby="children-title">
+            <section v-if="!view && children.length" class="block" aria-labelledby="children-title">
                 <h2 id="children-title" class="block-title">{{ $t('category_page.sections') }}</h2>
                 <ul class="cards">
                     <li v-for="child in children" :key="child.url">
@@ -52,7 +79,7 @@ const { lroute } = useLocale();
             </section>
 
             <!-- Fənlər və bal -->
-            <section v-if="subjects.length" class="block" aria-labelledby="subjects-title">
+            <section v-if="!view && subjects.length" class="block" aria-labelledby="subjects-title">
                 <h2 id="subjects-title" class="block-title">{{ $t('category_page.subjects') }}</h2>
                 <ul class="subjects">
                     <li v-for="subject in subjects" :key="subject.name">

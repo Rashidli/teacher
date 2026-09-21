@@ -179,25 +179,26 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 - [x] İmtahan interfeysində fənn tabları, nəticədə fənn-fənn bölgü.
       (`exam_templates` Mərhələ 4 ilə birləşdirildi — orada "Bankdan imtahan yarat" forması kimi.)
 
-### Mərhələ 4 — Rüb üzrə mövzu sınağı və bankdan imtahan generasiyası
+### Mərhələ 4 — Rüb üzrə mövzu sınağı və bankdan imtahan generasiyası ✅ (21.09.2026)
 
 **Admin: "Bankdan imtahan yarat" forması**
 
-- [ ] Formada seçilir: kateqoriya (qrup və ya altqrup), rüb (1–4) və kumulyativ olub-olmaması,
+- [x] Formada seçilir: kateqoriya (qrup və ya altqrup), rüb (1–4) və kumulyativ olub-olmaması,
       hər fənn üçün sual sayı, müddət, variant sayı.
-- [ ] Sistem bankdan uyğun mövzuların suallarını təsadüfi seçib bölmələrə yığır
+- [x] Sistem bankdan uyğun mövzuların suallarını təsadüfi seçib bölmələrə yığır
       (qrupun fənləri → bölmələr, seçilmiş rübün mövzuları → suallar).
-- [ ] Bankda kifayət qədər sual yoxdursa, **hansı fəndə neçə sual çatmadığı** göstərilir və
+- [x] Bankda kifayət qədər sual yoxdursa, **hansı fəndə neçə sual çatmadığı** göstərilir və
       imtahan yaradılmır.
-- [ ] Yaradılan imtahan **qaralamadır**: admin nəticəyə baxır, istədiyi sualı əvəz edir
+- [x] Yaradılan imtahan **qaralamadır**: admin nəticəyə baxır, istədiyi sualı əvəz edir
       (təsadüfi başqası ilə və ya bankdan seçməklə), yalnız bundan sonra dərc edir.
-- [ ] Dərc olunmuş imtahan **sabit qalır** — suallar hər dəfə yenidən seçilmir.
-- [ ] A/B/C variantları üçün ayrıca məntiq yoxdur: eyni formadan bir neçə imtahan yaradılır.
+- [x] Dərc olunmuş imtahan **sabit qalır** — suallar hər dəfə yenidən seçilmir.
+- [x] A/B/C variantları üçün ayrıca məntiq yoxdur: eyni formadan bir neçə imtahan yaradılır.
 
 **Şagird axını**
 
-- [ ] Qrup → mövzu sınağı → rüb → həmin rüb üçün dərc olunmuş imtahanlar.
-- [ ] Mövzu testi (məşq): tək mövzu, taymersiz, bir hissəsi pulsuz.
+- [x] Qrup → mövzu sınağı → rüb → həmin rüb üçün dərc olunmuş imtahanlar.
+- [ ] Mövzu testi (məşq): tək mövzu, taymersiz, bir hissəsi pulsuz — **P3-ə keçirildi**
+      (`exams.kind = practice` sahəsi hazırdır, UI və pulsuz məzmun sonra).
 
 ### Mərhələ 5 — Rus sektoru
 

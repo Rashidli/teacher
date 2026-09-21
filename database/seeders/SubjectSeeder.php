@@ -13,13 +13,13 @@ class SubjectSeeder extends Seeder
         $subjects = [
             // Humanitarian
             ['name' => 'Azərbaycan dili', 'category' => 'humanitarian', 'order' => 1],
-            ['name' => 'Azərbaycan tarixi', 'category' => 'humanitarian', 'order' => 2],
-            ['name' => 'Ümumi tarix', 'category' => 'humanitarian', 'order' => 3],
+            // DİM-də "Tarix" bir fəndir; "Azərbaycan tarixi" və "Ümumi tarix" onun mövzu qruplarıdır
+            ['name' => 'Tarix', 'category' => 'humanitarian', 'order' => 2],
             ['name' => 'Ədəbiyyat', 'category' => 'humanitarian', 'order' => 4],
-            ['name' => 'İngilis dili', 'category' => 'humanitarian', 'order' => 5],
-            ['name' => 'Rus dili', 'category' => 'humanitarian', 'order' => 6],
-            ['name' => 'Fransız dili', 'category' => 'humanitarian', 'order' => 7],
-            ['name' => 'Alman dili', 'category' => 'humanitarian', 'order' => 8],
+            ['name' => 'İngilis dili', 'category' => 'humanitarian', 'is_language' => true, 'order' => 5],
+            ['name' => 'Rus dili', 'category' => 'humanitarian', 'is_language' => true, 'order' => 6],
+            ['name' => 'Fransız dili', 'category' => 'humanitarian', 'is_language' => true, 'order' => 7],
+            ['name' => 'Alman dili', 'category' => 'humanitarian', 'is_language' => true, 'order' => 8],
             // Technical
             ['name' => 'Riyaziyyat', 'category' => 'technical', 'order' => 9],
             ['name' => 'Fizika', 'category' => 'technical', 'order' => 10],
@@ -40,6 +40,8 @@ class SubjectSeeder extends Seeder
             $model->fill([
                 'name' => $subject['name'],
                 'category' => $subject['category'],
+                // Xarici dillər generasiya formasında tək seçim kimi göstərilir
+                'is_language' => $subject['is_language'] ?? false,
                 'order' => $subject['order'],
             ]);
 

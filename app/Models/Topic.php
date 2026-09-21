@@ -16,7 +16,7 @@ class Topic extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['subject_id', 'name', 'slug', 'quarter', 'order', 'is_active'];
+    protected $fillable = ['subject_id', 'parent_id', 'name', 'slug', 'quarter', 'order', 'is_active'];
 
     protected $casts = [
         'quarter' => 'integer',
@@ -27,6 +27,17 @@ class Topic extends Model
     public function subject(): BelongsTo
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    /** Mövzu qrupu (məsələn Tarix fənnində "Azərbaycan tarixi") */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Topic::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(Topic::class, 'parent_id')->orderBy('order')->orderBy('name');
     }
 
     public function questions(): HasMany

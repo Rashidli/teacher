@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminExamAccessController;
 use App\Http\Controllers\Admin\AdminExamController;
+use App\Http\Controllers\Admin\AdminExamGenerationController;
 use App\Http\Controllers\Admin\AdminExamSectionController;
 use App\Http\Controllers\Admin\AdminGradingController;
 use App\Http\Controllers\Admin\AdminGroupController;
@@ -112,6 +113,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/teachers/{teacher}/unverify', [AdminTeacherController::class, 'unverify'])->name('teachers.unverify');
         }
 
+        // Bankdan imtahan generasiyası (resource route-lardan ƏVVƏL: /exams/generate)
+        Route::get('/exams/generate', [AdminExamGenerationController::class, 'create'])->name('exams.generate');
+        Route::post('/exams/generate', [AdminExamGenerationController::class, 'store'])->name('exams.generate.store');
+
         // Exams
         Route::resource('exams', AdminExamController::class);
         Route::post('/exams/{exam}/toggle-active', [AdminExamController::class, 'toggleActive'])->name('exams.toggle-active');
@@ -144,6 +149,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Bankdan mövcud sual əlavə etmə və cəhdlərdə işlənmiş sualın kopyası
             Route::post('/questions/attach', [AdminQuestionController::class, 'attach'])->name('questions.attach');
             Route::post('/questions/{question}/duplicate', [AdminQuestionController::class, 'duplicate'])->name('questions.duplicate');
+            Route::post('/questions/{question}/replace', [AdminQuestionController::class, 'replace'])->name('questions.replace');
         });
     });
 });

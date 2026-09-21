@@ -326,4 +326,20 @@ class CategoryTest extends TestCase
             ->get(route('admin.categories.index'))
             ->assertRedirect(route('admin.login'));
     }
+
+    /**
+     * Kateqoriya səhifələrində canonical və hreflang olmalıdır.
+     * Prop adı "seo" olsaydı, paylaşılan canonical prop-unu üzərinə yazardı.
+     */
+    public function test_a_category_page_keeps_its_canonical_and_hreflang(): void
+    {
+        $this->seedTree();
+
+        $this->get('/abituriyent')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('seo.canonical', url('abituriyent'))
+                ->where('seo.alternates.ru', url('ru/abituriyent'))
+                ->where('meta.title', 'Abituriyent'));
+    }
 }

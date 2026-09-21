@@ -15,4 +15,10 @@ return [
     'minutes' => 'dəq',
     'max_score' => 'maksimal bal',
     'free' => 'Pulsuz',
+    'topic_trial' => 'Mövzu sınağı',
+    'topic_trial_hint' => 'Rüb üzrə mövzulardan hazırlanmış sınaq imtahanları.',
+    'topic_trial_open' => 'Rübü seç',
+    'choose_quarter' => 'Rübü seçin',
+    'exams_count' => 'imtahan',
+    'no_quarters' => 'Bu bölmə üzrə hələ rüb sınağı dərc olunmayıb.',
 ];
