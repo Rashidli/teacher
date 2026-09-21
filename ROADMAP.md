@@ -254,21 +254,30 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 Hazırda bütün işlər birbaşa produksiya qovluğunda görülür: testlər, migration-lar və
 `npm run build` canlı saytın üzərində işləyir. Satışa çıxmazdan əvvəl bu ayrılmalıdır.
 
+**Hazırlanıb (kod tərəfi, 21.09.2026):**
+
+- [x] `php artisan db:backup` — nüsxə `public_html`-dən kənarda, yalnız son 3 saxlanılır,
+      parol əmr sətrində görünmür. Deploy addımlarında migration-dan əvvəl çağırılır.
+- [x] `php artisan staging:anonymize` — surət alınmış bazada şagird/müəllim məlumatlarını
+      təmizləyir; **produksiyada işləmir**, admin hesablarına toxunmur.
+- [x] `APP_ENV != production` olanda hər cavaba `X-Robots-Tag: noindex, nofollow`
+      (`PreventIndexingOutsideProduction`) — staging təsadüfən indeksləşməsin.
+- [x] `DEPLOY.md`: deploy ardıcıllığı, yoxlama və geri qaytarma addımları.
+
+**Server tərəfi — istifadəçinin təsdiqini gözləyir:**
+
 - [ ] Ayrıca qovluq: `/home/websites/web/staging.teacher.cvhazirla.az/public_html`.
-- [ ] Ayrıca subdomen: `staging.teacher.cvhazirla.az` (axtarış sistemlərindən bağlı —
-      `noindex` + `robots.txt`, mümkünsə parol qorunması).
-- [ ] Ayrıca baza: `websites_teacher_exam_staging` (produksiyadan surət, şagird məlumatları
-      anonimləşdirilmiş).
-- [ ] Ayrıca `.env`: `APP_ENV=staging`, `PAYMENT_DRIVER=fake` (staging-də sınaq ödənişi işləyir),
-      `MAIL_MAILER=log`.
-- [ ] İş qaydası: bütün dəyişikliklər staging-də edilir və orada yoxlanılır; produksiyaya
+- [ ] Ayrıca subdomen və DNS: `staging.teacher.cvhazirla.az` + SSL sertifikatı;
+      əlavə olaraq HTTP basic auth (parol qorunması) və `robots.txt` → `Disallow: /`.
+- [ ] Ayrıca baza və istifadəçi: `websites_teacher_exam_staging` (produksiyadan surət,
+      sonra `staging:anonymize`).
+- [ ] Ayrıca `.env`: `APP_ENV=staging`, `APP_DEBUG=false`, `PAYMENT_DRIVER=fake`,
+      `MAIL_MAILER=log`, ayrıca `APP_KEY`.
+- [ ] İş qaydası: dəyişikliklər staging-də edilir və orada yoxlanılır; produksiyaya
       **yalnız `git pull`** ilə çıxarılır (kod redaktəsi produksiyada aparılmır).
-- [ ] Deploy addımları sənədləşdirilir: `git pull` → `composer install --no-dev
-      --optimize-autoloader` → `php artisan migrate --force` → `npm ci && npm run build` →
-      `php artisan config:cache route:cache view:cache`.
-- [ ] Produksiyada `composer install --no-dev`: dev paketləri (phpunit, mockery, pint, sail)
-      silinir — testlər staging-də işləyəcək.
-- [ ] Deploydan əvvəl avtomatik baza backup-ı (hazırda əl ilə alınır).
+- [ ] Produksiyada `composer install --no-dev --optimize-autoloader`: dev paketləri
+      (phpunit, mockery, pint, sail) silinir — testlər staging-də işləyəcək.
+- [ ] Deploydan əvvəl backup-ın avtomatlaşdırılması (cron və ya deploy skripti).
 
 ## P3: Vizyondan qalan, sonraya saxlanılan
 

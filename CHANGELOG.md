@@ -10,6 +10,21 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Deploy alətləri və staging hazırlığı (P2.5, kod tərəfi)
+
+- **`php artisan db:backup`**: bazanın nüsxəsi `public_html`-dən kənarda saxlanılır, yalnız son
+  3 nüsxə qalır, fayl icazəsi 600-dür və parol əmr sətrində görünmür (`MYSQL_PWD`).
+- **`php artisan staging:anonymize`**: staging surətində şagird/müəllim adı, emaili, telefonu və
+  parolu dəyişdirilir. Produksiyada işləmir, admin hesablarına toxunmur.
+- **Staging indeksləşmir**: `APP_ENV` produksiya olmayanda hər cavab
+  `X-Robots-Tag: noindex, nofollow` alır.
+- **`DEPLOY.md`**: deploy ardıcıllığı (nüsxə → pull → composer → migrate → build → keş),
+  deploydan sonra yoxlama və geri qaytarma addımları.
+
+Subdomen, DNS, ayrıca baza və `.env` kimi server səviyyəli addımlar təsdiq gözləyir.
+
+**Testlər:** 333 test / 1584 assertion (yeni `DeploymentToolsTest`: 4 test).
+
 ### 2026-09-21 — Şagird statistikası (P2 Mərhələ 7)
 
 **Migration yoxdur** — bütün rəqəmlər mövcud dondurulmuş nəticələrdən (`attempt_sections`,

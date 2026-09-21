@@ -11,6 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Staging/lokal nüsxə axtarış sistemlərinə düşməsin (produksiyada təsiri yoxdur)
+        $middleware->append(\App\Http\Middleware\PreventIndexingOutsideProduction::class);
+
         $middleware->web(append: [
             // Dil HandleInertiaRequests-dən əvvəl müəyyən olunmalıdır (paylaşılan props dilə bağlıdır)
             \App\Http\Middleware\SetLocale::class,
