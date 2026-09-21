@@ -10,6 +10,43 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Rus sektoru (P2 Mərhələ 5)
+
+**Migration:** `users.sector`, `questions.language` + `translation_group_id`, `exams.sector`,
+`categories.ru_enabled`, `category_subject.sector` (unikal açar `category_id + subject_id +
+sector` oldu). Migration addım-addım şərtlidir: yarımçıq qalmış icra təkrar işlədilə bilər.
+
+**Sektor interfeys dilindən ayrıdır.** Rus sektorunda oxuyan şagird interfeysi Azərbaycanca
+saxlaya bilər. Kimin nə görməsi:
+
+- **Qonaq:** URL dili defoltdur (`/ru/...` → rus sektoru), kataloqdakı keçidlə dəyişir, seçim
+  sessiyada qalır və qeydiyyat formasında öncədən seçilmiş gəlir.
+- **Daxil olmuş istifadəçi:** yalnız `users.sector` (URL dili təsir etmir). Sektor profildən
+  dəyişir; alınmış imtahanlara giriş dəyişmir, çünki giriş konkret imtahana bağlıdır.
+
+**İmtahanın sektoru ilə sualın dili uyğun olmalıdır.** Rus sektoru imtahanına Azərbaycan dilində
+sual bağlamaq — əl ilə də, bankdan da — validasiya ilə bloklanır. İmtahanda yaradılan sual
+avtomatik imtahanın dilində yaranır, import və generasiya da yalnız həmin dildən götürür.
+Sual bağlandıqdan sonra imtahanın sektoru dəyişdirilmir.
+
+**Ana dili sektora görə dəyişir.** `category_subject.sector` sayəsində I mərhələdə az sektorunda
+Azərbaycan dili, ru sektorunda Rus dili ana dili fənnidir (pivotda `sector = null` olan fənn hər
+iki sektora aiddir). Orta məktəb altındakı "Azərbaycan dili (dövlət dili kimi)" aktivləşdirildi.
+
+**Kataloq.** `categories.ru_enabled` bayrağı ağacda aşağı ötürülür; məzmun hazır olmayan
+bölmədə (məs. sürücülük) ru keçidi göstərilmir. Kataloq və şagird kabineti yalnız cari sektorun
+imtahanlarını siyahılayır, başqa sektorun imtahanı 404 qaytarır.
+
+**Admin.** Sual bankında dil sütunu və filtri (imtahandan gələndə siyahı imtahanın dilinə
+bərkidilir), imtahan yaratma/redaktə formasında və "bankdan imtahan yarat" səhifəsində sektor
+seçimi; generasiyada fənn siyahısı seçilmiş sektora görə dəyişir.
+
+**Açıq qalan:** III qrup üçün ru sektorunun ana dili (Rus dili) maksimal balı DİM sənədindən
+təsdiqlənməyib, ona görə rəqəm əlavə edilmədi — hazırda III qrupun fənn siyahısı hər iki sektorda
+eynidir (ROADMAP-da qeyd olunub).
+
+**Testlər:** 297 test / 1382 assertion (yeni `SectorTest`: 19 test).
+
 ### 2026-09-21 — Bankdan imtahan generasiyası və rüb üzrə mövzu sınağı (P2 Mərhələ 4)
 
 **Migration:** `topics.parent_id` (mövzu qrupları), `subjects.is_language`,

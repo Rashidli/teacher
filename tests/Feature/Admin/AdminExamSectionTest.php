@@ -35,6 +35,7 @@ class AdminExamSectionTest extends TestCase
             'group_id' => \App\Models\Group::factory()->create()->id,
             'title' => 'Yeni imtahan',
             'duration_minutes' => 60,
+            'sector' => 'az',
             'is_free' => true,
         ])->assertSessionHasNoErrors();
 

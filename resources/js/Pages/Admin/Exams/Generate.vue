@@ -13,6 +13,8 @@ const props = defineProps({
 
 const form = useForm({
     category_id: '',
+    // Sektor həm fənn siyahısını, həm də sual hovuzunun dilini təyin edir
+    sector: 'az',
     quarter: '',
     is_cumulative: false,
     variants: 1,
@@ -25,12 +27,12 @@ const form = useForm({
 });
 
 const category = computed(() => props.categories.find((item) => item.id === form.category_id) ?? null);
-const subjects = computed(() => category.value?.subjects ?? []);
+const subjects = computed(() => category.value?.subjects?.[form.sector] ?? []);
 const languageSubjects = computed(() => subjects.value.filter((subject) => subject.is_language));
 const plainSubjects = computed(() => subjects.value.filter((subject) => !subject.is_language));
 
-// Kateqoriya dəyişəndə sual sayları sıfırlanır
-watch(() => form.category_id, () => {
+// Kateqoriya və ya sektor dəyişəndə fənn siyahısı dəyişir: saylar sıfırlanır
+watch([() => form.category_id, () => form.sector], () => {
     form.counts = {};
     form.language_subject_id = '';
 });
@@ -83,6 +85,19 @@ const totalQuestions = computed(() => Object.entries(form.counts)
                             <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.label }}</option>
                         </select>
                         <InputError :message="form.errors.category_id" class="mt-2" />
+                    </div>
+
+                    <div>
+                        <InputLabel for="sector" value="Tədris sektoru" />
+                        <select id="sector" v-model="form.sector" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                            <option value="az">Azərbaycan sektoru</option>
+                            <option value="ru">Rus sektoru</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Suallar yalnız bu dildəki bankdan seçilir, yaradılan imtahan da bu sektora aid olur.
+                        </p>
+                        <InputError :message="form.errors.sector" class="mt-2" />
                     </div>
 
                     <div v-if="category" class="grid gap-4 sm:grid-cols-3">

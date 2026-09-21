@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Auth;
 
 use App\Models\User;
+use App\Support\Sector;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 
 class RegisterRequest extends FormRequest
@@ -60,6 +62,8 @@ class RegisterRequest extends FormRequest
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'phone' => ['required', 'string', 'regex:'.static::PHONE_REGEX, 'unique:'.User::class.',phone'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            // Tədris sektoru: hansı dildə oxuduğu (interfeys dilindən ayrıdır)
+            'sector' => ['required', Rule::in(Sector::ALL)],
             'terms' => ['accepted'],
         ];
     }
@@ -69,6 +73,8 @@ class RegisterRequest extends FormRequest
         return [
             'phone.regex' => __('auth_pages.register.phone_invalid'),
             'phone.unique' => __('auth_pages.register.phone_taken'),
+            'sector.required' => __('auth_pages.register.sector_required'),
+            'sector.in' => __('auth_pages.register.sector_required'),
             'terms.accepted' => __('auth_pages.register.terms_required'),
         ];
     }

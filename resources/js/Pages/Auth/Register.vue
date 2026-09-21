@@ -6,6 +6,7 @@ import TextField from '@/Components/Form/TextField.vue';
 import PasswordField from '@/Components/Form/PasswordField.vue';
 import PhoneField from '@/Components/Form/PhoneField.vue';
 import CheckboxField from '@/Components/Form/CheckboxField.vue';
+import RadioGroupField from '@/Components/Form/RadioGroupField.vue';
 import SubmitButton from '@/Components/Form/SubmitButton.vue';
 import FormAlert from '@/Components/Form/FormAlert.vue';
 import { useLocale } from '@/Composables/useLocale';
@@ -13,6 +14,8 @@ import { useLocale } from '@/Composables/useLocale';
 // Şagird qeydiyyatı: bütün yeni hesablar "student" rolunu alır (RegisteredUserController).
 const props = defineProps({
     operatorCodes: { type: Array, default: () => ['10', '50', '51', '55', '60', '70', '77', '99'] },
+    // Interfeys dilinə (və ya kataloqdakı seçimə) görə öncədən seçilir, dəyişdirilə bilər
+    defaultSector: { type: String, default: 'az' },
 });
 
 const { lroute } = useLocale();
@@ -24,6 +27,7 @@ const form = useForm({
     phone: '', // 9 rəqəm; göndəriləndə +994 əlavə olunur
     password: '',
     password_confirmation: '',
+    sector: props.defaultSector,
     terms: false,
 });
 
@@ -120,6 +124,18 @@ const submit = () => {
                 autocomplete="new-password"
                 :error="form.errors.password_confirmation"
                 required
+            />
+
+            <RadioGroupField
+                id="sector"
+                v-model="form.sector"
+                :legend="$t('auth_pages.register.sector_label')"
+                :hint="$t('auth_pages.register.sector_hint')"
+                :options="[
+                    { value: 'az', label: $t('auth_pages.register.sector_az') },
+                    { value: 'ru', label: $t('auth_pages.register.sector_ru') },
+                ]"
+                :error="form.errors.sector"
             />
 
             <CheckboxField id="terms" v-model="form.terms" :error="form.errors.terms" required>

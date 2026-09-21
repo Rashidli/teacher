@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
+use App\Support\Sector;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -22,6 +23,8 @@ class RegisteredUserController extends Controller
     {
         return Inertia::render('Auth/Register', [
             'operatorCodes' => RegisterRequest::OPERATOR_CODES,
+            // Defolt sektor: qonağın seçimi, yoxdursa interfeys dilinə görə
+            'defaultSector' => Sector::current(),
         ]);
     }
 
@@ -34,6 +37,7 @@ class RegisteredUserController extends Controller
             'last_name' => $data['last_name'],
             'email' => $data['email'],
             'phone' => $data['phone'],
+            'sector' => $data['sector'],
             'password' => Hash::make($data['password']),
             // Qeydiyyat hansı dildə olubsa, email-lər də o dildə gedəcək
             'locale' => app()->getLocale(),

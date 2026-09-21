@@ -90,6 +90,8 @@ class QuestionImportService
                 // Sual banka yazılır (imtahanın fənninə), sonra imtahana bağlanır
                 $question = Question::create([
                     'subject_id' => $section->subject_id,
+                    // İmport imtahanın sektorunun dilindədir
+                    'language' => $exam->sector,
                     'topic_id' => $row->topicId,
                     'difficulty' => $row->difficulty,
                     'question_text' => $row->questionText,

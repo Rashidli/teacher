@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Exam;
 use App\Models\ExamSection;
 use App\Models\Question;
+use App\Support\Sector;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -29,7 +30,11 @@ class QuestionService
         return DB::transaction(function () use ($exam, $data) {
             $section = $this->resolveSection($exam, $data['section_id'] ?? null);
 
-            $question = $this->createInBank($data + ['subject_id' => $section->subject_id]);
+            // Yeni sual həmişə imtahanın sektorunun dilində yaranır
+            $question = $this->createInBank($data + [
+                'subject_id' => $section->subject_id,
+                'language' => $exam->sector,
+            ]);
 
             $this->attach($exam, $question, $section);
 
@@ -181,8 +186,8 @@ class QuestionService
     {
         return DB::transaction(function () use ($exam, $question) {
             $copy = Question::create($question->only([
-                'subject_id', 'topic_id', 'question_text', 'question_image', 'type',
-                'difficulty', 'accepted_answers', 'explanation', 'source', 'is_active',
+                'subject_id', 'topic_id', 'question_text', 'question_image', 'type', 'language',
+                'translation_group_id', 'difficulty', 'accepted_answers', 'explanation', 'source', 'is_active',
             ]));
 
             foreach ($question->options as $option) {
@@ -230,6 +235,8 @@ class QuestionService
     /** Mövcud bank sualını imtahanın bölməsinə bağlayır. */
     public function attach(Exam $exam, Question $question, ?ExamSection $section = null): void
     {
+        $this->guardLanguageMatchesSector($exam, $question);
+
         if ($exam->questions()->where('questions.id', $question->id)->exists()) {
             return;
         }
@@ -258,6 +265,8 @@ class QuestionService
 
         $replacement = Question::query()
             ->where('subject_id', $question->subject_id)
+            // Əvəzləyən sual da imtahanın sektorunun dilində olmalıdır
+            ->where('language', $exam->sector)
             ->where('is_active', true)
             ->whereNotIn('id', $used)
             // Rüb sınağıdırsa eyni rübün mövzularından seçilir
@@ -283,6 +292,27 @@ class QuestionService
         });
 
         return $replacement;
+    }
+
+    /**
+     * İmtahanın sektoru ilə sualın dili uyğun gəlməlidir: rus sektoru imtahanına Azərbaycan
+     * dilində sual bağlanmamalıdır (şagird başa düşməyəcəyi sualı görməsin).
+     */
+    private function guardLanguageMatchesSector(Exam $exam, Question $question): void
+    {
+        if ($question->language === $exam->sector) {
+            return;
+        }
+
+        $names = [Sector::AZ => 'Azərbaycan', Sector::RU => 'rus'];
+
+        throw ValidationException::withMessages([
+            'question_id' => sprintf(
+                'Bu imtahan %s sektorundadır, sual isə %s dilindədir. Sektorlar uyğun gəlmir.',
+                $names[$exam->sector] ?? $exam->sector,
+                $names[$question->language] ?? $question->language,
+            ),
+        ]);
     }
 
     /** Sualı imtahandan ayırır — bankdan silmir. */
@@ -362,6 +392,7 @@ class QuestionService
 
         return [
             'subject_id' => $data['subject_id'] ?? $question?->subject_id,
+            'language' => $data['language'] ?? $question?->language ?? Sector::AZ,
             'topic_id' => array_key_exists('topic_id', $data) ? $data['topic_id'] : $question?->topic_id,
             'question_text' => $data['question_text'],
             'type' => $type,

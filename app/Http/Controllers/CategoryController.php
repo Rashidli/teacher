@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Subject;
 use App\Support\Localization;
+use App\Support\Sector;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,6 +30,8 @@ class CategoryController extends Controller
         $category = Category::active()
             ->where('path', $categoryPath)
             ->firstOr(fn () => abort(404));
+
+        $sector = Sector::current();
 
         $category->load([
             'children' => fn ($query) => $query->where('is_active', true),
@@ -58,7 +61,11 @@ class CategoryController extends Controller
                 'short' => $child->localized('short'),
                 'url' => Localization::categoryUrl($child->path),
             ]),
-            'subjects' => $category->subjects->map(fn (Subject $subject) => [
+            // Sektor: daxil olmuş istifadəçidə profildən, qonaqda sessiya/URL dilindən
+            'sector' => $sector,
+            'canSwitchSector' => Sector::guestCanSwitch(),
+            'ruEnabled' => $category->ru_enabled,
+            'subjects' => $category->subjectsForSector($sector)->map(fn (Subject $subject) => [
                 'name' => $subject->name,
                 'question_count' => $subject->pivot->question_count,
                 'max_score' => $category->maxScoreFor($subject),
@@ -66,10 +73,10 @@ class CategoryController extends Controller
             'view' => $view,
             'quarter' => $quarter,
             // Mövzu sınağı səhifəsində hansı rüblərdə imtahan var
-            'quarters' => $view === 'topic_trial' ? $this->availableQuarters($category) : [],
+            'quarters' => $view === 'topic_trial' ? $this->availableQuarters($category, $sector) : [],
             'topicTrialUrl' => Localization::categoryUrl($category->path.'/'.self::TOPIC_TRIAL_SEGMENT),
-            'hasTopicTrials' => $this->topicTrialQuery($category)->exists(),
-            'exams' => $this->exams($category, $view, $quarter),
+            'hasTopicTrials' => $this->topicTrialQuery($category, $sector)->exists(),
+            'exams' => $this->exams($category, $view, $quarter, $sector),
             /*
              * DİQQƏT: "seo" adı istifadə edilmir — o, HandleInertiaRequests-in paylaşdığı
              * canonical/hreflang prop-udur. Üzərinə yazılsa, kateqoriya səhifələrində
@@ -116,9 +123,9 @@ class CategoryController extends Controller
     }
 
     /** @return array<int, array{quarter: int, url: string, exams: int}> */
-    private function availableQuarters(Category $category): array
+    private function availableQuarters(Category $category, string $sector): array
     {
-        return $this->topicTrialQuery($category)
+        return $this->topicTrialQuery($category, $sector)
             ->whereNotNull('quarter')
             ->selectRaw('quarter, count(*) as exams')
             ->groupBy('quarter')
@@ -134,17 +141,18 @@ class CategoryController extends Controller
             ->all();
     }
 
-    private function topicTrialQuery(Category $category)
+    private function topicTrialQuery(Category $category, string $sector)
     {
         return Exam::query()
             ->whereIn('category_id', $category->subtreeIds())
+            ->where('sector', $sector)
             ->where('kind', Exam::KIND_TOPIC_TRIAL)
             ->where('is_published', true)
             ->where('is_active', true);
     }
 
     /** Kateqoriyanın özünün və bütün alt düyünlərinin satışdakı imtahanları */
-    private function exams(Category $category, ?string $view = null, ?int $quarter = null)
+    private function exams(Category $category, ?string $view = null, ?int $quarter = null, string $sector = Sector::AZ)
     {
         // Rüb seçimi səhifəsində imtahan siyahısı göstərilmir
         if ($view === 'topic_trial' && $quarter === null) {
@@ -155,6 +163,8 @@ class CategoryController extends Controller
             ->with(['subject:id,name', 'category:id,name,path'])
             ->withCount('questions')
             ->whereIn('category_id', $category->subtreeIds())
+            // Şagird yalnız öz sektorunun imtahanlarını görür
+            ->where('sector', $sector)
             ->where('is_published', true)
             ->where('is_active', true)
             ->when($view === 'topic_trial', fn ($query) => $query

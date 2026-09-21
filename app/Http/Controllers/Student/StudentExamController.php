@@ -13,6 +13,7 @@ use App\Models\Group;
 use App\Services\Payment\ExamAccessService;
 use App\Services\Payment\PaymentGatewayFactory;
 use App\Services\Scoring\AttemptScorer;
+use App\Support\Sector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -29,8 +30,12 @@ class StudentExamController extends Controller
 
     public function index(Request $request)
     {
+        $student = auth('student')->user();
+
         $query = Exam::with(['subject', 'teacher', 'group'])
             ->withCount('questions')
+            // Şagird yalnız öz sektorunun imtahanlarını görür
+            ->where('sector', $student->sector ?? Sector::AZ)
             ->published()
             ->active();
 
@@ -45,7 +50,6 @@ class StudentExamController extends Controller
         $exams = $query->latest()->paginate(12);
 
         // Kataloqda "Alınıb" / "Pulsuz" / "Al" statusu üçün
-        $student = auth('student')->user();
         $exams->getCollection()->transform(function (Exam $exam) use ($student) {
             $exam->setAttribute('has_access', $this->access->allows($student, $exam));
 
@@ -63,6 +67,9 @@ class StudentExamController extends Controller
 
     public function show(Exam $exam)
     {
+        // Başqa sektorun imtahanı açıla bilməz
+        abort_unless($exam->sector === (auth('student')->user()->sector ?? Sector::AZ), 404);
+
         $exam->load(['subject', 'teacher', 'group']);
         $exam->loadCount('questions');
 

@@ -24,13 +24,14 @@ class Category extends Model
 
     protected $fillable = [
         'parent_id', 'group_id', 'slug', 'path', 'name', 'short', 'description',
-        'is_active', 'has_exams', 'order', 'seo_title', 'seo_description', 'h1', 'intro',
+        'is_active', 'has_exams', 'ru_enabled', 'order', 'seo_title', 'seo_description', 'h1', 'intro',
         'translations',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'has_exams' => 'boolean',
+        'ru_enabled' => 'boolean',
         'order' => 'integer',
         'translations' => 'array',
     ];
@@ -92,9 +93,22 @@ class Category extends Model
     public function subjects(): BelongsToMany
     {
         return $this->belongsToMany(Subject::class)
-            ->withPivot(['question_count', 'options_per_question', 'max_score', 'order'])
+            ->withPivot(['sector', 'question_count', 'options_per_question', 'max_score', 'order'])
             ->withTimestamps()
             ->orderBy('category_subject.order');
+    }
+
+    /**
+     * Sektora aid fənlər. Pivotda `sector` null olan sətirlər hər iki sektora aiddir;
+     * ana dili kimi fənlər isə sektora görə ayrı-ayrı bağlanır.
+     */
+    public function subjectsForSector(string $sector): Collection
+    {
+        return $this->subjects()
+            ->where(fn ($query) => $query
+                ->whereNull('category_subject.sector')
+                ->orWhere('category_subject.sector', $sector))
+            ->get();
     }
 
     public function exams(): HasMany

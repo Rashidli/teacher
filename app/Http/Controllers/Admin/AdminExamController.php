@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\Group;
 use App\Models\Subject;
 use App\Models\User;
+use App\Support\Sector;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -32,6 +33,10 @@ class AdminExamController extends Controller
             $query->where('teacher_id', $request->teacher_id);
         }
 
+        if (Sector::isValid($request->sector)) {
+            $query->where('sector', $request->sector);
+        }
+
         // Status filtri: səhifədəki dörd seçimin hamısı emal olunur
         match ($request->status) {
             'published' => $query->where('is_published', true),
@@ -49,7 +54,7 @@ class AdminExamController extends Controller
             'subjects' => Subject::active()->get(),
             'groups' => Group::active()->get(),
             'teachers' => config('features.teachers') ? User::verifiedTeachers()->get() : [],
-            'filters' => $request->only(['subject_id', 'group_id', 'teacher_id', 'status']),
+            'filters' => $request->only(['subject_id', 'group_id', 'teacher_id', 'status', 'sector']),
         ]);
     }
 
@@ -63,6 +68,7 @@ class AdminExamController extends Controller
             'categories' => $this->categoryOptions(),
             // Forma doldurulmamışdan əvvəl xəbərdarlıq göstərilsin
             'ownerConfigured' => $this->examOwnerId() !== null,
+            'sectors' => Sector::ALL,
         ]);
     }
 
@@ -158,6 +164,8 @@ class AdminExamController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'duration_minutes' => ['required', 'integer', 'min:10', 'max:180'],
+            // Tədris sektoru: imtahan yalnız bu dildə suallar qəbul edir
+            'sector' => ['required', Rule::in(Sector::ALL)],
             'is_free' => ['boolean'],
             'price' => $this->priceRules($request),
         ], $this->priceMessages());
@@ -239,6 +247,9 @@ class AdminExamController extends Controller
             'teachers' => config('features.teachers') ? User::verifiedTeachers()->with('subjects')->get() : [],
             'subjects' => Subject::active()->get(),
             'groups' => Group::active()->orderBy('number')->get(),
+            'sectors' => Sector::ALL,
+            // Sual bağlandıqdan sonra sektor dəyişmir (suallar başqa dildə qalardı)
+            'sectorLocked' => $exam->questions()->exists(),
         ]);
     }
 
@@ -252,7 +263,16 @@ class AdminExamController extends Controller
             'price' => $this->priceRules($request),
             'is_active' => ['boolean'],
             'category_id' => ['nullable', Rule::exists('categories', 'id')],
+            'sector' => ['nullable', Rule::in(Sector::ALL)],
         ], $this->priceMessages());
+
+        // Sual bağlanmış imtahanın sektorunu dəyişmək sualların dilini imtahandan ayırardı
+        if (isset($validated['sector']) && $validated['sector'] !== $exam->sector && $exam->questions()->exists()) {
+            throw ValidationException::withMessages([
+                'sector' => 'Sual bağlanmış imtahanın tədris sektoru dəyişdirilmir. '
+                    .'Əvvəlcə sualları ayırın və ya yeni imtahan yaradın.',
+            ]);
+        }
 
         $exam->update($this->normalisePrice($this->applyCategoryGroup($validated)));
 

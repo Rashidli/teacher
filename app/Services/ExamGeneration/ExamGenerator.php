@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Models\Subject;
+use App\Support\Sector;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -35,6 +36,7 @@ class ExamGenerator
         int $variants,
         array $attributes,
     ): GenerationResult {
+        $sector = $attributes['sector'] ?? Sector::AZ;
         $counts = array_filter($counts, fn ($count) => (int) $count > 0);
 
         if ($counts === []) {
@@ -52,7 +54,7 @@ class ExamGenerator
 
         foreach ($counts as $subjectId => $count) {
             $required = (int) $count * $variants;
-            $pool = $this->pool((int) $subjectId, $quarter, $cumulative);
+            $pool = $this->pool((int) $subjectId, $quarter, $cumulative, $sector);
 
             if ($pool->count() < $required) {
                 $shortfalls[] = [
@@ -74,15 +76,19 @@ class ExamGenerator
         }
 
         return new GenerationResult(
-            DB::transaction(fn () => $this->createExams($category, $counts, $pools, $quarter, $cumulative, $variants, $attributes))
+            DB::transaction(fn () => $this->createExams(
+                $category, $counts, $pools, $quarter, $cumulative, $variants, $attributes
+            ))
         );
     }
 
     /** Seçilmiş fənn və rübə uyğun aktiv sualların ID-ləri */
-    private function pool(int $subjectId, ?int $quarter, bool $cumulative): Collection
+    private function pool(int $subjectId, ?int $quarter, bool $cumulative, string $sector): Collection
     {
         return Question::query()
             ->where('subject_id', $subjectId)
+            // Yalnız imtahanın sektorunun dilindəki suallar
+            ->where('language', $sector)
             ->where('is_active', true)
             ->when($quarter !== null, fn ($query) => $query->whereHas(
                 'topic',
@@ -116,6 +122,7 @@ class ExamGenerator
                 'group_id' => $category->group_id ?? $attributes['group_id'] ?? null,
                 'category_id' => $category->id,
                 'kind' => $quarter !== null ? Exam::KIND_TOPIC_TRIAL : Exam::KIND_GENERAL,
+                'sector' => $attributes['sector'] ?? Sector::AZ,
                 'quarter' => $quarter,
                 'is_cumulative' => $cumulative,
                 'title' => $this->title($attributes['title'], $variant, $variants),

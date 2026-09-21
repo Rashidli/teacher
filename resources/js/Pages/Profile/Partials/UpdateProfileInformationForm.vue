@@ -3,7 +3,9 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
+import RadioGroupField from '@/Components/Form/RadioGroupField.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 defineProps({
     mustVerifyEmail: {
@@ -14,11 +16,17 @@ defineProps({
     },
 });
 
-const user = usePage().props.auth.user;
+const page = usePage();
+const user = page.props.auth.user;
+
+// Tədris sektoru yalnız şagirdə aiddir: imtahanların dilini müəyyən edir.
+// Dəyişdirmək artıq alınmış imtahanlara girişi pozmur — giriş konkret imtahana bağlıdır.
+const isStudent = computed(() => page.props.auth.guard === 'student');
 
 const form = useForm({
     name: user.name,
     email: user.email,
+    sector: user.sector ?? 'az',
 });
 </script>
 
@@ -67,6 +75,20 @@ const form = useForm({
                 />
 
                 <InputError class="mt-2" :message="form.errors.email" />
+            </div>
+
+            <div v-if="isStudent">
+                <RadioGroupField
+                    id="sector"
+                    v-model="form.sector"
+                    :legend="$t('auth_pages.register.sector_label')"
+                    :hint="$t('auth_pages.register.sector_hint')"
+                    :options="[
+                        { value: 'az', label: $t('auth_pages.register.sector_az') },
+                        { value: 'ru', label: $t('auth_pages.register.sector_ru') },
+                    ]"
+                    :error="form.errors.sector"
+                />
             </div>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">

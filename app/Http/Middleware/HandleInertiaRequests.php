@@ -75,6 +75,8 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'email' => $user->email,
                     'full_name' => $user->full_name,
+                    // Tədris sektoru (interfeys dilindən ayrıdır) — profil formasında lazımdır
+                    'sector' => $user->sector,
                     'roles' => $user->roles->pluck('name'),
                 ] : null,
                 'guard' => $guard,

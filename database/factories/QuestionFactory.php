@@ -21,6 +21,7 @@ class QuestionFactory extends Factory
             'question_text' => 'Sual '.fake()->unique()->numberBetween(1, 99999),
             'type' => Question::TYPE_MULTIPLE_CHOICE,
             'difficulty' => Question::DIFFICULTY_MEDIUM,
+            'language' => 'az',
             'is_active' => true,
         ];
     }
@@ -38,6 +39,12 @@ class QuestionFactory extends Factory
                 ]);
             }
         });
+    }
+
+    /** Rus sektoru sualı (ru imtahanlarına yalnız bunlar bağlana bilər). */
+    public function russian(): static
+    {
+        return $this->state(fn () => ['language' => 'ru']);
     }
 
     /** @param  array<int, string>  $accepted */

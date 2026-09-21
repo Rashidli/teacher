@@ -45,6 +45,11 @@ return [
         'submit' => 'Qeydiyyatdan keç',
         'have_account' => 'Hesabın var?',
         'login_link' => 'Daxil ol',
+        'sector_label' => 'Tədris dili',
+        'sector_az' => 'Azərbaycan sektoru',
+        'sector_ru' => 'Rus sektoru',
+        'sector_required' => 'Tədris dilini seçin.',
+        'sector_hint' => 'İmtahanların dili. İnterfeys dilindən asılı deyil, sonra dəyişdirə bilərsiniz.',
     ],
 
     'forgot' => [

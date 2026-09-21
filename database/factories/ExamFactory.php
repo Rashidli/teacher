@@ -21,6 +21,7 @@ class ExamFactory extends Factory
             'title' => 'Sınaq imtahanı '.fake()->unique()->numberBetween(1, 9999),
             'description' => fake()->sentence(),
             'duration_minutes' => 60,
+            'sector' => 'az',
             'price' => 0,
             'is_free' => true,
             'is_active' => false,
@@ -45,6 +46,12 @@ class ExamFactory extends Factory
     public function paid(float $price = 10.00): static
     {
         return $this->state(fn () => ['is_free' => false, 'price' => $price]);
+    }
+
+    /** Rus sektoru imtahanı: yalnız ru dilində suallar qəbul edir. */
+    public function russian(): static
+    {
+        return $this->state(fn () => ['sector' => 'ru']);
     }
 
     /** Şagirdin görə biləcəyi imtahan: həm aktiv, həm yayımlanmış. */

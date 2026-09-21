@@ -37,6 +37,7 @@ class AdminExamTest extends TestCase
             'title' => 'Riyaziyyat sınaq imtahanı',
             'description' => 'Qısa təsvir',
             'duration_minutes' => 90,
+            'sector' => 'az',
             'is_free' => true,
             'price' => 0,
         ], $overrides);

@@ -10,6 +10,8 @@ import { watch } from 'vue';
 const props = defineProps({
     exam: { type: Object, required: true },
     categories: { type: Array, default: () => [] },
+    // Sual bağlanıbsa sektor dəyişmir: suallar başqa dildə qalardı
+    sectorLocked: { type: Boolean, default: false },
 });
 
 /*
@@ -21,6 +23,7 @@ const form = useForm({
     title: props.exam.title,
     description: props.exam.description ?? '',
     duration_minutes: props.exam.duration_minutes,
+    sector: props.exam.sector ?? 'az',
     is_free: Boolean(props.exam.is_free),
     price: Number(props.exam.price ?? 0),
     is_active: Boolean(props.exam.is_active),
@@ -113,6 +116,22 @@ const submit = () => {
                                 </option>
                             </select>
                             <InputError :message="form.errors.category_id" class="mt-2" />
+                        </div>
+
+
+                        <div>
+                            <InputLabel for="sector" value="Tədris sektoru" />
+                            <select
+                                id="sector"
+                                v-model="form.sector"
+                                :disabled="sectorLocked"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100"
+                            >
+                                <option value="az">Azərbaycan sektoru</option>
+                                <option value="ru">Rus sektoru</option>
+                            </select>
+                            <p class="mt-1 text-sm text-gray-500">{{ sectorLocked ? 'Sual bağlanıb: sektor dəyişdirilmir.' : 'İmtahana yalnız bu dildə suallar bağlana bilər.' }}</p>
+                            <InputError :message="form.errors.sector" class="mt-2" />
                         </div>
 
                         <div>

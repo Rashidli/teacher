@@ -26,6 +26,7 @@ class RegistrationTest extends TestCase
             'phone' => '+994551234567',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'sector' => 'az',
             'terms' => true,
         ]);
 
@@ -49,6 +50,7 @@ class RegistrationTest extends TestCase
             'phone' => '(055) 123-45-67',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'sector' => 'az',
             'terms' => true,
         ])->assertSessionHasNoErrors()->assertRedirect(route('student.dashboard', absolute: false));
 
@@ -81,6 +83,7 @@ class RegistrationTest extends TestCase
             'phone' => '+994551234567',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'sector' => 'az',
             'terms' => true,
         ]);
 

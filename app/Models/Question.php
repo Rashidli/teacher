@@ -39,7 +39,7 @@ class Question extends Model
 
     protected $fillable = [
         'subject_id', 'topic_id', 'question_text', 'question_image', 'type', 'difficulty',
-        'accepted_answers', 'explanation', 'source', 'is_active',
+        'language', 'translation_group_id', 'accepted_answers', 'explanation', 'source', 'is_active',
     ];
 
     protected $casts = [
@@ -77,6 +77,19 @@ class Question extends Model
     public function correctOption(): HasOne
     {
         return $this->hasOne(QuestionOption::class)->where('is_correct', true);
+    }
+
+    /** Eyni sualın digər dildəki versiyaları */
+    public function translations()
+    {
+        return $this->translation_group_id
+            ? static::where('translation_group_id', $this->translation_group_id)->whereKeyNot($this->id)
+            : static::whereRaw('1 = 0');
+    }
+
+    public function scopeLanguage($query, string $language)
+    {
+        return $query->where('language', $language);
     }
 
     public function scopeActive($query)

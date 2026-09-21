@@ -1,11 +1,11 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 import SiteFooter from '@/Components/Site/SiteFooter.vue';
 import SeoHead from '@/Components/Site/SeoHead.vue';
 import { useLocale } from '@/Composables/useLocale';
 
-defineProps({
+const props = defineProps({
     category: { type: Object, required: true },
     breadcrumb: { type: Array, default: () => [] },
     children: { type: Array, default: () => [] },
@@ -18,9 +18,22 @@ defineProps({
     quarters: { type: Array, default: () => [] },
     topicTrialUrl: { type: String, default: null },
     hasTopicTrials: { type: Boolean, default: false },
+    // Tədris sektoru: qonaq üçün seçilə bilər, daxil olmuş istifadəçidə profildən gəlir
+    sector: { type: String, default: 'az' },
+    canSwitchSector: { type: Boolean, default: false },
+    ruEnabled: { type: Boolean, default: false },
 });
 
 const { lroute } = useLocale();
+
+// Seçim sessiyada saxlanılır və qeydiyyat formasında defolt olur (SectorController).
+const switchSector = (value) => {
+    if (value === props.sector) {
+        return;
+    }
+
+    router.post(route('sector.update'), { sector: value }, { preserveScroll: true });
+};
 </script>
 
 <template>
@@ -38,6 +51,24 @@ const { lroute } = useLocale();
                     <span v-else class="current">{{ item.name }}</span>
                 </template>
             </nav>
+
+            <div v-if="canSwitchSector && ruEnabled" class="sector" role="group" :aria-label="$t('category_page.sector_switch')">
+                <span class="sector-label">{{ $t('category_page.sector_switch') }}:</span>
+                <button
+                    type="button"
+                    class="sector-option"
+                    :class="{ 'sector-option--on': sector === 'az' }"
+                    :aria-pressed="sector === 'az'"
+                    @click="switchSector('az')"
+                >{{ $t('category_page.sector_az') }}</button>
+                <button
+                    type="button"
+                    class="sector-option"
+                    :class="{ 'sector-option--on': sector === 'ru' }"
+                    :aria-pressed="sector === 'ru'"
+                    @click="switchSector('ru')"
+                >{{ $t('category_page.sector_ru') }}</button>
+            </div>
 
             <h1 class="title">{{ category.h1 }}</h1>
             <p v-if="category.short" class="lead">{{ category.short }}</p>
@@ -148,6 +179,34 @@ const { lroute } = useLocale();
 
 .crumb .current {
     opacity: 0.7;
+}
+
+.sector {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 0.95rem;
+}
+
+.sector-label {
+    opacity: 0.75;
+}
+
+.sector-option {
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid rgba(22, 19, 14, 0.25);
+    border-radius: 999px;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+.sector-option--on {
+    border-color: rgba(22, 19, 14, 0.7);
+    font-weight: 600;
 }
 
 .title {

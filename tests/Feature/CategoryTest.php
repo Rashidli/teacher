@@ -309,6 +309,7 @@ class CategoryTest extends TestCase
             'category_id' => $category->id,
             'title' => 'IV qrup sınağı',
             'duration_minutes' => 60,
+            'sector' => 'az',
             'is_free' => true,
         ])->assertSessionHasNoErrors();
 

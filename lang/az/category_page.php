@@ -21,4 +21,7 @@ return [
     'choose_quarter' => 'Rübü seçin',
     'exams_count' => 'imtahan',
     'no_quarters' => 'Bu bölmə üzrə hələ rüb sınağı dərc olunmayıb.',
+    'sector_switch' => 'Tədris dili',
+    'sector_az' => 'Azərbaycan',
+    'sector_ru' => 'Rus',
 ];

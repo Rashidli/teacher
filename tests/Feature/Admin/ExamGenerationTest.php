@@ -68,6 +68,7 @@ class ExamGenerationTest extends TestCase
     {
         return $this->actingAs($this->admin, 'admin')->post(route('admin.exams.generate.store'), array_merge([
             'category_id' => $this->category->id,
+            'sector' => 'az',
             'variants' => 1,
             'title' => 'I qrup RK sınağı',
             'duration_minutes' => 180,

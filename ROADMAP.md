@@ -200,16 +200,22 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 - [ ] Mövzu testi (məşq): tək mövzu, taymersiz, bir hissəsi pulsuz — **P3-ə keçirildi**
       (`exams.kind = practice` sahəsi hazırdır, UI və pulsuz məzmun sonra).
 
-### Mərhələ 5 — Rus sektoru
+### Mərhələ 5 — Rus sektoru ✅
 
-- [ ] `users.sector` (az/ru) — qeydiyyat və profildə; imtahan seçimində dəyişdirilə bilsin.
-- [ ] `questions.language` (az/ru) + `translation_group_id` (eyni sualın iki dil versiyası).
-- [ ] `category_subject.sector`: ana dili fənni sektora görə (az → Azərbaycan dili,
-      ru → Rus dili) — I mərhələ, 9/11-ci sinif buraxılış, III qrup.
-- [ ] Orta məktəb altında "Azərbaycan dili (dövlət dili kimi)" — yalnız ru sektorunda görünür.
-- [ ] Kateqoriyada "ru sektoru aktivdir" bayrağı; məzmun hazır olmayanda ru seçimi gizlənir.
-- [ ] İmtahan və məhsullar sektora bağlıdır (az alan ru-ya giriş almır).
-- [ ] Admin: sual filtri sektora görə. `config/scoring.php`-də sektor üzrə override imkanı.
+- [x] `users.sector` (az/ru) — qeydiyyat (interfeys dilinə görə öncədən seçilir) və profildə dəyişilir.
+- [x] `questions.language` (az/ru) + `translation_group_id` (eyni sualın iki dil versiyası).
+- [x] `exams.sector`: imtahan yalnız öz sektorunun dilində suallar qəbul edir (validasiya + test).
+- [x] `category_subject.sector`: ana dili fənni sektora görə (az → Azərbaycan dili,
+      ru → Rus dili) — I mərhələdə tətbiq olunub.
+- [x] Orta məktəb altında "Azərbaycan dili (dövlət dili kimi)" aktivləşdi (ru sektoru fənni).
+- [x] Kateqoriyada `ru_enabled` bayrağı; məzmun hazır olmayanda kataloqda ru seçimi gizlənir.
+- [x] Kataloq sektoru: qonaqda sessiyadan (URL dili defolt), daxil olmuş istifadəçidə profildən.
+- [x] Şagird kabineti yalnız öz sektorunun imtahanlarını göstərir (başqa sektor → 404).
+- [x] Admin: sual bankında dil filtri və sütunu; imtahan formasında və generasiyada sektor seçimi.
+- [ ] III qrup üçün ru sektorunun ana dili (Rus dili) maksimal balı DİM sənədindən təsdiqlənməli
+      və `subject_group_scores`-a əlavə olunmalıdır — rəqəm uydurulmadı, hazırda III qrupun
+      fənn siyahısı hər iki sektorda eynidir.
+- [ ] `config/scoring.php`-də sektor üzrə override imkanı (yalnız fərq çıxarsa lazımdır).
 
 ### Mərhələ 6 — SEO və sitemap
 

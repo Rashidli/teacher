@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\User;
+use App\Support\Sector;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,6 +18,8 @@ class ProfileUpdateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            // Sektor dəyişə bilər; alınmış imtahanlara giriş dəyişmir (giriş imtahana bağlıdır)
+            'sector' => ['nullable', Rule::in(Sector::ALL)],
             'email' => [
                 'required',
                 'string',

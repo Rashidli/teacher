@@ -26,6 +26,13 @@ class AdminQuestionBankController extends Controller
 
     public function index(Request $request): Response
     {
+        // İmtahan səhifəsindən gəliblərsə, hər sətirdə "bu imtahana əlavə et" düyməsi görünür
+        $exam = $request->exam_id ? Exam::find($request->exam_id) : null;
+
+        // İmtahana yalnız öz sektorunun dilində sual bağlana bilər (QuestionService::attach),
+        // ona görə hədəf imtahan varsa siyahı həmin dillə məhdudlaşır.
+        $language = $exam ? $exam->sector : $request->language;
+
         $questions = Question::query()
             ->with(['subject:id,name', 'topic:id,name'])
             ->withCount('exams')
@@ -33,6 +40,7 @@ class AdminQuestionBankController extends Controller
             ->when($request->topic_id, fn ($query, $id) => $query->where('topic_id', $id))
             ->when($request->type, fn ($query, $type) => $query->where('type', $type))
             ->when($request->difficulty, fn ($query, $value) => $query->where('difficulty', $value))
+            ->when($language, fn ($query, $value) => $query->where('language', $value))
             ->when($request->search, fn ($query, $text) => $query->where('question_text', 'like', '%'.$text.'%'))
             ->latest('id')
             ->paginate(20)
@@ -41,6 +49,7 @@ class AdminQuestionBankController extends Controller
                 'id' => $question->id,
                 'question_text' => $question->question_text,
                 'type' => $question->type,
+                'language' => $question->language,
                 'difficulty' => $question->difficulty,
                 'subject' => $question->subject?->name,
                 'topic' => $question->topic?->name,
@@ -48,21 +57,21 @@ class AdminQuestionBankController extends Controller
                 'attempt_usage' => $question->attemptUsageCount(),
             ]);
 
-        // İmtahan səhifəsindən gəliblərsə, hər sətirdə "bu imtahana əlavə et" düyməsi görünür
-        $exam = $request->exam_id ? Exam::find($request->exam_id) : null;
-
         return Inertia::render('Admin/QuestionBank/Index', [
             'questions' => $questions,
             'targetExam' => $exam ? [
                 'id' => $exam->id,
                 'title' => $exam->title,
+                'sector' => $exam->sector,
                 'question_ids' => $exam->questions()->pluck('questions.id'),
             ] : null,
             'subjects' => Subject::active()->orderBy('order')->get(['id', 'name']),
             'topics' => Topic::active()
                 ->when($request->subject_id, fn ($query, $id) => $query->where('subject_id', $id))
                 ->orderBy('name')->get(['id', 'name', 'subject_id']),
-            'filters' => $request->only(['subject_id', 'topic_id', 'type', 'difficulty', 'search', 'exam_id', 'section_id']),
+            'filters' => ['language' => $language] + $request->only([
+                'subject_id', 'topic_id', 'type', 'difficulty', 'search', 'exam_id', 'section_id',
+            ]),
         ]);
     }
 

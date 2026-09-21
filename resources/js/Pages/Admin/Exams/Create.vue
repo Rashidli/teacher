@@ -25,6 +25,8 @@ const form = useForm({
     title: '',
     description: '',
     duration_minutes: 60,
+    // İmtahan yalnız öz sektorunun dilində suallar qəbul edir
+    sector: 'az',
     is_free: true,
     price: 0,
 });
@@ -170,6 +172,21 @@ const submit = () => {
                                 Kateqoriyanın bal qrupu varsa, imtahanın qrupu ondan götürülür.
                             </p>
                             <InputError :message="form.errors.category_id" class="mt-2" />
+                        </div>
+
+
+                        <div>
+                            <InputLabel for="sector" value="Tədris sektoru" />
+                            <select
+                                id="sector"
+                                v-model="form.sector"
+                                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100"
+                            >
+                                <option value="az">Azərbaycan sektoru</option>
+                                <option value="ru">Rus sektoru</option>
+                            </select>
+                            <p class="mt-1 text-sm text-gray-500">İmtahana yalnız bu dildə suallar bağlana bilər. Sonradan dəyişmək üçün suallar ayrılmalıdır.</p>
+                            <InputError :message="form.errors.sector" class="mt-2" />
                         </div>
 
                         <div>

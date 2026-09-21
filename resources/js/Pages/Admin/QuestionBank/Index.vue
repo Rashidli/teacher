@@ -22,11 +22,15 @@ const TYPE_LABELS = {
 
 const DIFFICULTY_LABELS = { easy: 'Sadə', medium: 'Orta', hard: 'Mürəkkəb' };
 
+const LANGUAGE_LABELS = { az: 'Az', ru: 'Ru' };
+
 const subjectId = ref(props.filters.subject_id ?? '');
 const topicId = ref(props.filters.topic_id ?? '');
 const type = ref(props.filters.type ?? '');
 const difficulty = ref(props.filters.difficulty ?? '');
 const search = ref(props.filters.search ?? '');
+// Sual dili = tədris sektoru. Hədəf imtahan varsa dil onun sektoruna bərkidilir.
+const language = ref(props.filters.language ?? '');
 
 // Fənn seçiləndə yalnız onun mövzuları göstərilir
 const visibleTopics = computed(() => (subjectId.value
@@ -40,6 +44,7 @@ const apply = () => {
             topic_id: topicId.value,
             type: type.value,
             difficulty: difficulty.value,
+            language: language.value,
             search: search.value,
             exam_id: props.targetExam?.id ?? '',
         }).filter(([, value]) => value !== '' && value !== null)
@@ -107,6 +112,17 @@ const remove = (question) => {
                         <option value="hard">Mürəkkəb</option>
                     </select>
 
+                    <select v-if="!targetExam" v-model="language" @change="apply"
+                        class="rounded-md border-gray-300 shadow-sm text-sm">
+                        <option value="">Hər iki dil</option>
+                        <option value="az">Azərbaycan dilində</option>
+                        <option value="ru">Rus dilində</option>
+                    </select>
+                    <span v-else class="text-xs text-gray-500">
+                        Yalnız {{ LANGUAGE_LABELS[targetExam.sector] }} dilində suallar
+                        (imtahan sektoru: {{ LANGUAGE_LABELS[targetExam.sector] }})
+                    </span>
+
                     <form @submit.prevent="apply" class="flex items-center gap-2">
                         <TextInput v-model="search" type="search" placeholder="Sual mətnində axtar" class="text-sm" />
                     </form>
@@ -121,6 +137,7 @@ const remove = (question) => {
                                 <th class="px-4 py-2 text-left font-medium text-gray-500">Sual</th>
                                 <th class="px-4 py-2 text-left font-medium text-gray-500">Fənn / mövzu</th>
                                 <th class="px-4 py-2 text-left font-medium text-gray-500">Tip</th>
+                                <th class="px-4 py-2 text-left font-medium text-gray-500">Dil</th>
                                 <th class="px-4 py-2 text-left font-medium text-gray-500">İmtahan</th>
                                 <th class="px-4 py-2 text-left font-medium text-gray-500">Cəhd</th>
                                 <th class="px-4 py-2"></th>
@@ -139,6 +156,7 @@ const remove = (question) => {
                                     {{ TYPE_LABELS[question.type] ?? question.type }}
                                     <div class="text-xs text-gray-500">{{ DIFFICULTY_LABELS[question.difficulty] }}</div>
                                 </td>
+                                <td class="px-4 py-2">{{ LANGUAGE_LABELS[question.language] ?? question.language }}</td>
                                 <td class="px-4 py-2">{{ question.exams_count }}</td>
                                 <td class="px-4 py-2">{{ question.attempt_usage }}</td>
                                 <td class="px-4 py-2 text-right whitespace-nowrap">

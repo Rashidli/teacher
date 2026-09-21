@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Subject;
 use App\Services\ExamGeneration\ExamGenerator;
+use App\Support\Sector;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -28,6 +29,7 @@ class AdminExamGenerationController extends Controller
     public function create(): Response
     {
         return Inertia::render('Admin/Exams/Generate', [
+            // Fənn siyahısı sektora görə fərqlənir (ana dili): hər sektor ayrıca göndərilir
             'categories' => Category::active()
                 ->where('has_exams', true)
                 ->with('subjects:id,name,is_language')
@@ -37,11 +39,18 @@ class AdminExamGenerationController extends Controller
                 ->map(fn (Category $category) => [
                     'id' => $category->id,
                     'label' => $category->path.' — '.$category->name,
-                    'subjects' => $category->subjects->map(fn (Subject $subject) => [
-                        'id' => $subject->id,
-                        'name' => $subject->name,
-                        'is_language' => $subject->is_language,
-                    ])->values(),
+                    // Pivotda sector = null olan fənn hər iki sektora aiddir
+                    'subjects' => collect(Sector::ALL)
+                        ->mapWithKeys(fn (string $sector) => [
+                            $sector => $category->subjects
+                                ->filter(fn (Subject $subject) => $subject->pivot->sector === null
+                                    || $subject->pivot->sector === $sector)
+                                ->map(fn (Subject $subject) => [
+                                    'id' => $subject->id,
+                                    'name' => $subject->name,
+                                    'is_language' => $subject->is_language,
+                                ])->values(),
+                        ]),
                 ]),
         ]);
     }
@@ -50,6 +59,8 @@ class AdminExamGenerationController extends Controller
     {
         $validated = $request->validate([
             'category_id' => ['required', Rule::exists('categories', 'id')],
+            // Sektor həm sual hovuzunu (questions.language), həm də yaradılan imtahanı təyin edir
+            'sector' => ['required', Rule::in(Sector::ALL)],
             'quarter' => ['nullable', 'integer', 'min:1', 'max:4'],
             'is_cumulative' => ['boolean'],
             'variants' => ['required', 'integer', 'min:1', 'max:10'],
@@ -63,7 +74,7 @@ class AdminExamGenerationController extends Controller
         ]);
 
         $category = Category::with('subjects')->findOrFail($validated['category_id']);
-        $counts = $this->countsForCategory($category, $validated['counts']);
+        $counts = $this->countsForCategory($category, $validated['counts'], $validated['sector']);
 
         $result = $this->generator->generate(
             category: $category,
@@ -76,6 +87,7 @@ class AdminExamGenerationController extends Controller
                 'title' => $validated['title'],
                 'duration_minutes' => (int) $validated['duration_minutes'],
                 'options_per_question' => (int) $validated['options_per_question'],
+                'sector' => $validated['sector'],
                 'is_free' => true,
             ],
         );
@@ -99,14 +111,15 @@ class AdminExamGenerationController extends Controller
     }
 
     /**
-     * Yalnız kateqoriyanın fənləri qəbul olunur və xarici dillərdən yalnız biri seçilə bilər.
+     * Yalnız kateqoriyanın həmin sektordakı fənləri qəbul olunur və xarici dillərdən
+     * yalnız biri seçilə bilər.
      *
      * @param  array<int|string, mixed>  $counts
      * @return array<int, int>
      */
-    private function countsForCategory(Category $category, array $counts): array
+    private function countsForCategory(Category $category, array $counts, string $sector): array
     {
-        $allowed = $category->subjects->keyBy('id');
+        $allowed = $category->subjectsForSector($sector)->keyBy('id');
         $result = [];
         $languages = [];
 
@@ -120,7 +133,7 @@ class AdminExamGenerationController extends Controller
 
             if (! $allowed->has($subjectId)) {
                 throw ValidationException::withMessages([
-                    'counts' => 'Seçilmiş fənn bu kateqoriyaya aid deyil.',
+                    'counts' => 'Seçilmiş fənn bu kateqoriyanın seçilmiş sektoruna aid deyil.',
                 ]);
             }
 

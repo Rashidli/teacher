@@ -29,7 +29,7 @@ class Exam extends Model
 
 
     protected $fillable = [
-        'teacher_id', 'subject_id', 'group_id', 'category_id', 'kind', 'quarter', 'is_cumulative',
+        'teacher_id', 'subject_id', 'group_id', 'category_id', 'kind', 'sector', 'quarter', 'is_cumulative',
         'title', 'description',
         'duration_minutes', 'options_per_question', 'price', 'is_free', 'is_active', 'is_published',
         'published_at', 'created_by_admin'
@@ -93,6 +93,11 @@ class Exam extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeForSector($query, string $sector)
+    {
+        return $query->where('sector', $sector);
     }
 
     public function scopePublished($query)

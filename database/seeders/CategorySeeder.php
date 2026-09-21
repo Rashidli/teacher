@@ -5,7 +5,9 @@ namespace Database\Seeders;
 use App\Models\Category;
 use App\Models\Group;
 use App\Models\Subject;
+use App\Support\Sector;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * İmtahan kateqoriyalarının ağacı. `path` üzrə idempotent upsert — təkrar işlədilə bilər.
@@ -17,6 +19,8 @@ use Illuminate\Database\Seeder;
  *   bal hesablaması orada qalır, burada təkrarlanmır.
  * - `subjects` açarı kateqoriya ↔ fənn pivotunu doldurur. `max_score` yalnız qrupa bağlı
  *   OLMAYAN kateqoriyalarda göstərilir (qrupdakılar `subject_group_scores`-dan gəlir).
+ *   Ana dili sektora görə dəyişdikdə açar sektorla verilir: ['az' => [...], 'ru' => [...]].
+ * - `ru_enabled` rus sektoru keçidini göstərir; övladlar valideyndən miras alır.
  */
 class CategorySeeder extends Seeder
 {
@@ -31,6 +35,7 @@ class CategorySeeder extends Seeder
             [
                 'slug' => 'mekteb', 'name' => 'Orta məktəb',
                 'short' => '9 və 11-ci sinif buraxılış imtahanları',
+                'ru_enabled' => true,
                 'translations' => ['ru' => ['name' => 'Школьник', 'short' => '9 и 11 классы, выпускные']],
                 'children' => [
                     ['slug' => '9-cu-sinif-buraxilis', 'name' => '9-cu sinif buraxılış'],
@@ -43,23 +48,31 @@ class CategorySeeder extends Seeder
                         ],
                     ],
                     [
-                        // Yalnız rus sektoru üçün — sektor bayrağı Mərhələ 5-də əlavə olunacaq
+                        // Rus sektorunun fənni: imtahanları yalnız ru sektorunda olur
                         'slug' => 'azerbaycan-dili-dovlet-dili',
                         'name' => 'Azərbaycan dili (dövlət dili kimi)',
-                        'is_active' => false,
-                        'description' => 'Rus sektoru üçün. Sektor dəstəyi əlavə olunanda aktivləşəcək.',
+                        'is_active' => true,
+                        'translations' => ['ru' => ['name' => 'Азербайджанский язык (как государственный)']],
+                        'description' => 'Rus sektoru üçün. İmtahanlar ru sektorunda açılır.',
+                        'subjects' => ['ru' => ['azerbaycan-dili' => []]],
                     ],
                 ],
             ],
             [
                 'slug' => 'abituriyent', 'name' => 'Abituriyent',
                 'short' => 'Bakalavr qəbulu: I mərhələ və I–V qruplar',
+                'ru_enabled' => true,
                 'translations' => ['ru' => ['name' => 'Абитуриент', 'short' => 'Вступительный экзамен, группы I–V']],
                 'children' => [
                     ['slug' => '1-ci-merhele', 'name' => 'I mərhələ', 'group' => 'I-MERHELE',
-                        // Xarici dil imtahanı hər dil üçün ayrıca yaradılır (generasiyada tək seçim)
-                        'subjects' => ['azerbaycan-dili' => [], 'riyaziyyat' => [],
-                            'ingilis-dili' => [], 'rus-dili' => [], 'fransiz-dili' => [], 'alman-dili' => []]],
+                        // Ana dili sektora görə dəyişir; xarici dil imtahanı hər dil üçün
+                        // ayrıca yaradılır (generasiyada tək seçim).
+                        'subjects' => [
+                            'az' => ['azerbaycan-dili' => [], 'riyaziyyat' => [],
+                                'ingilis-dili' => [], 'rus-dili' => [], 'fransiz-dili' => [], 'alman-dili' => []],
+                            'ru' => ['rus-dili' => [], 'riyaziyyat' => [], 'azerbaycan-dili' => [],
+                                'ingilis-dili' => [], 'fransiz-dili' => [], 'alman-dili' => []],
+                        ]],
                     [
                         'slug' => '1-ci-qrup', 'name' => 'I qrup', 'group' => 'I',
                         'subjects' => ['riyaziyyat' => [], 'fizika' => [], 'kimya' => [], 'informatika' => []],
@@ -181,17 +194,20 @@ class CategorySeeder extends Seeder
         ];
     }
 
-    private function createTree(array $nodes, ?Category $parent = null): void
+    private function createTree(array $nodes, ?Category $parent = null, bool $ruEnabled = false): void
     {
         foreach ($nodes as $index => $node) {
             $children = $node['children'] ?? [];
             $subjects = $node['subjects'] ?? [];
             unset($node['children'], $node['subjects']);
 
+            // Rus sektoru bayrağı ağacda aşağı ötürülür: kök açıqdırsa, alt düyünlər də açıqdır
+            $node['ru_enabled'] = $node['ru_enabled'] ?? $ruEnabled;
+
             $category = $this->upsert($node, $parent, $index);
 
             $this->syncSubjects($category, $subjects);
-            $this->createTree($children, $category);
+            $this->createTree($children, $category, $category->ru_enabled);
         }
     }
 
@@ -227,23 +243,59 @@ class CategorySeeder extends Seeder
         return $category;
     }
 
-    /** @param  array<string, array<string, int|float>>  $subjects  slug => pivot dəyərləri */
+    /**
+     * Kateqoriya ↔ fənn pivotu. İki forma qəbul edir:
+     *  - düz siyahı: slug => dəyərlər (hər iki sektor üçün, pivotda sector = null)
+     *  - sektora görə: ['az' => [slug => ...], 'ru' => [...]] (ana dili sektora görə dəyişəndə)
+     *
+     * `sync()` işlədilmir: eyni fənn iki sektorda ayrı sətir olur, həm də unikal indeksdə
+     * NULL sektor upsert-lə uyğunlaşmır. Ona görə sətirlər silinib yenidən yazılır.
+     *
+     * @param  array<string, mixed>  $subjects
+     */
     private function syncSubjects(Category $category, array $subjects): void
     {
         if ($subjects === []) {
             return;
         }
 
-        $ids = Subject::whereIn('slug', array_keys($subjects))->pluck('id', 'slug');
-        $pivot = [];
-        $order = 0;
+        $bySector = $this->isSectorKeyed($subjects) ? $subjects : ['' => $subjects];
+        $now = now();
+        $rows = [];
 
-        foreach ($subjects as $slug => $values) {
-            if ($ids->has($slug)) {
-                $pivot[$ids->get($slug)] = $values + ['order' => ++$order];
+        foreach ($bySector as $sector => $list) {
+            $ids = Subject::whereIn('slug', array_keys($list))->pluck('id', 'slug');
+            $order = 0;
+
+            foreach ($list as $slug => $values) {
+                if (! $ids->has($slug)) {
+                    continue;
+                }
+
+                $rows[] = $values + [
+                    'category_id' => $category->id,
+                    'subject_id' => $ids->get($slug),
+                    'sector' => $sector === '' ? null : $sector,
+                    'order' => ++$order,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
             }
         }
 
-        $category->subjects()->sync($pivot);
+        DB::transaction(function () use ($category, $rows) {
+            DB::table('category_subject')->where('category_id', $category->id)->delete();
+
+            if ($rows !== []) {
+                DB::table('category_subject')->insert($rows);
+            }
+        });
+    }
+
+    /** @param  array<string, mixed>  $subjects */
+    private function isSectorKeyed(array $subjects): bool
+    {
+        return array_keys($subjects) !== []
+            && array_diff(array_keys($subjects), Sector::ALL) === [];
     }
 }

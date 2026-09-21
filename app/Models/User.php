@@ -19,7 +19,7 @@ class User extends Authenticatable implements HasLocalePreference
     protected $guard_name = 'web';
 
     protected $fillable = [
-        'first_name', 'last_name', 'name', 'email', 'password', 'phone', 'locale', 'is_active'
+        'first_name', 'last_name', 'name', 'email', 'password', 'phone', 'locale', 'sector', 'is_active'
     ];
 
     /**
