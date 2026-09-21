@@ -97,7 +97,8 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 - [x] `composer audit` zəiflikləri: 41 zəiflik (13 high, 24 medium, 4 low) bağlandı, indi
       `No security vulnerability advisories found`. Paket-paket yeniləndi, hər addımdan sonra
       testlər keçdi. Major versiya dəyişikliyi lazım olmadı.
-- [ ] `npm audit` zəiflikləri (14: 2 critical, 8 high, 3 moderate, 1 low).
+- [x] `npm audit` zəiflikləri: 14 zəiflik (2 critical, 8 high, 3 moderate, 1 low) bağlandı,
+      indi `found 0 vulnerabilities`. Major versiya dəyişikliyi lazım olmadı.
 - [ ] `Admin/Exams/Index.vue` filtrləri işləmir: səhifə `subject`/`status` göndərir, controller isə
       `subject_id`/`group_id`/`status` gözləyir; `active`/`inactive` statusları ümumiyyətlə emal olunmur.
 - [x] `saveAnswer`: `question_id` həmin imtahana, `selected_option_id` həmin suala aid olmalıdır
