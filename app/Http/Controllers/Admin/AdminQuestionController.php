@@ -24,10 +24,18 @@ class AdminQuestionController extends Controller
     {
     }
 
-    public function create(Exam $exam): Response
+    public function create(Request $request, Exam $exam): Response
     {
+        $sections = $exam->sections()->with('subject:id,name')->get();
+        $sectionId = (int) $request->query('section_id') ?: $sections->first()?->id;
+
         return Inertia::render('Admin/Questions/Create', [
             'exam' => $exam->load('subject'),
+            'sections' => $sections->map(fn ($section) => [
+                'id' => $section->id,
+                'title' => $section->displayTitle(),
+            ]),
+            'sectionId' => $sectionId,
             'topics' => $this->topicOptions($exam),
         ]);
     }
@@ -82,9 +90,17 @@ class AdminQuestionController extends Controller
     {
         $validated = $request->validate([
             'question_id' => ['required', Rule::exists('questions', 'id')],
+            'section_id' => [
+                'nullable',
+                Rule::exists('exam_sections', 'id')->where('exam_id', $exam->id),
+            ],
         ]);
 
-        $this->questions->attach($exam, Question::findOrFail($validated['question_id']));
+        $section = isset($validated['section_id'])
+            ? $exam->sections()->find($validated['section_id'])
+            : null;
+
+        $this->questions->attach($exam, Question::findOrFail($validated['question_id']), $section);
 
         return back()->with('success', 'Sual imtahana əlavə edildi.');
     }

@@ -162,15 +162,21 @@ bilmir. Çoxfənli imtahanlar və mövzu sınağı bunun üzərində qurulacaq, 
       ilə əvəzlənsə belə köhnə nəticə səhifəsi dəyişmir. Cəhddə işlənmiş sual bankdan silinmir.
 - [x] Excel importu mövzu və çətinlik sütunlarını da qəbul etsin.
 
-### Mərhələ 3 — Çoxfənli imtahanlar (exam_sections)
+### Mərhələ 3 — Çoxfənli imtahanlar (exam_sections) — bölmələr ✅ (21.09.2026), şablonlar qalır
 
 Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seçilir.
 
-- [ ] `exam_sections`: `exam_id`, `subject_id`, `question_count`, `max_score`, `order`.
-- [ ] `exam_question` bölməyə bağlanır (`section_id`).
-- [ ] `ScoringStrategy` çoxfənli imtahanı dəstəkləsin: hər bölmə üzrə ayrıca bal, sonra ümumi bal
+- [x] `exam_sections`: `exam_id`, `subject_id`, `title`, `question_count`, `max_score`, `order`.
+      Hər imtahanın ən azı bir bölməsi var (mövcud tək-fənli imtahanlar migration ilə köçürüldü) —
+      ayrıca "bölməsiz" kod yolu yoxdur.
+- [x] `attempt_sections`: bölmə üzrə nəticə hesablama anında dondurulur (`max_score` və NB daxil),
+      bal matrisi sonra dəyişsə də köhnə nəticə eyni qalır.
+- [x] Admin: bölmə əlavə etmə/silmə, sual və bankdan əlavə etmə bölmə üzrə.
+- [x] Nəticə səhifəsində fənn-fənn bölgü; ümumi maksimum bölmələrin cəmindən hesablanır.
+- [x] `exam_question` bölməyə bağlanır (`section_id`).
+- [x] `ScoringStrategy` çoxfənli imtahanı dəstəkləsin: hər bölmə üzrə ayrıca bal, sonra ümumi bal
       (mövcud düstur fənn səviyyəsində işləyir, dəyişmir).
-- [ ] İmtahan interfeysində fənn tabları, nəticədə fənn-fənn bölgü.
+- [x] İmtahan interfeysində fənn tabları, nəticədə fənn-fənn bölgü.
 - [ ] `exam_templates`: hansı fənlər, hər fəndən neçə sual, sual növlərinin sayı, müddət,
       variant sayı, bal strategiyası. İmtahanlar şablondan qurulur (sabit variantlar: A, B, C…).
 

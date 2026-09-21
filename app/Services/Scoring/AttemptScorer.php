@@ -4,19 +4,27 @@ namespace App\Services\Scoring;
 
 use App\Models\AttemptAnswer;
 use App\Models\ExamAttempt;
+use App\Models\ExamSection;
 use App\Models\Group;
 use App\Models\Question;
 use App\Models\SubjectGroupScore;
 use App\Support\AnswerNormalizer;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Cəhdin qiymətləndirilməsi: cavablar yoxlanır, bal DİM düsturu ilə hesablanır.
+ * Cəhdin qiymətləndirilməsi.
  *
- * - `multiple_choice` — seçilmiş variant düzgündürmü
- * - `open_coded` — `AnswerNormalizer` ilə avtomatik (0,5 = 0.5 = 1/2)
- * - `open_written` — admin şkala ilə qiymətləndirir; qiymətləndirilməmiş cavab varsa
- *   cəhd `pending_review` olur və bal müvəqqətidir (yoxlanmamış cavablar 0 sayılır).
+ * - Suallar cəhd başlayanda DONDURULMUŞ siyahıdan götürülür (`attempt_questions`): imtahandan
+ *   sual ayrılsa və ya kopyası ilə əvəzlənsə belə bu cəhdin nəticəsi dəyişmir.
+ * - Bal BÖLMƏ üzrə hesablanır: hər fənn üçün DİM düsturu ayrıca işləyir (öz maksimal balı ilə),
+ *   ümumi bal onların cəmidir. Tək-fənli imtahanın da bir bölməsi var, ona görə ayrıca kod yolu
+ *   yoxdur.
+ * - Bölmə nəticəsi `attempt_sections`-a dondurulur (max_score və NB daxil), sonra bal matrisi
+ *   dəyişsə də köhnə nəticə eyni qalır.
+ *
+ * Sual tipləri: `multiple_choice` variantla, `open_coded` AnswerNormalizer ilə avtomatik,
+ * `open_written` admin şkalası ilə (yoxlanmayıbsa cəhd `pending_review` olur).
  */
 class AttemptScorer
 {
@@ -27,90 +35,137 @@ class AttemptScorer
     public function score(ExamAttempt $attempt): ExamAttempt
     {
         return DB::transaction(function () use ($attempt) {
-            /*
-             * Suallar imtahanın CARİ dəstindən yox, cəhd başlayanda dondurulmuş siyahıdan
-             * götürülür: imtahandan sual ayrılsa və ya kopyası ilə əvəzlənsə belə, bu cəhdin
-             * nəticəsi dəyişmir.
-             */
             $questions = $attempt->questions()->with('options')->get();
-
-            // N+1 olmasın: bütün cavablar bir sorğu ilə
             $answers = $attempt->answers()->get()->keyBy('question_id');
 
-            $closedTotal = $closedCorrect = $closedWrong = 0;
-            $codedTotal = $codedCorrect = $writtenTotal = 0;
-            $writtenRatios = [];
+            $group = $this->scoringGroup($attempt);
+            $sections = ExamSection::with('subject')
+                ->whereIn('id', $questions->pluck('pivot.section_id')->filter()->unique())
+                ->get()
+                ->keyBy('id');
+
+            $totals = ['subject' => 0.0, 'max' => 0.0, 'correct' => 0, 'wrong' => 0, 'unanswered' => 0];
             $pendingReview = false;
-            $answered = 0;
+            $order = 0;
 
-            /** @var array<int, array{answer: AttemptAnswer, is_correct: ?bool, raw: float}> */
-            $outcomes = [];
+            // Nəticə hər hesablamada yenidən qurulur (yazılı cavab qiymətləndiriləndən sonra da)
+            $attempt->sectionResults()->delete();
 
-            foreach ($questions as $question) {
-                $answer = $answers->get($question->id);
+            foreach ($questions->groupBy(fn (Question $question) => $question->pivot->section_id) as $sectionId => $sectionQuestions) {
+                $section = $sections->get($sectionId);
 
-                match ($question->type) {
-                    Question::TYPE_OPEN_CODED => $codedTotal++,
-                    Question::TYPE_OPEN_WRITTEN => $writtenTotal++,
-                    default => $closedTotal++,
-                };
+                $tally = $this->tally($sectionQuestions, $answers);
+                $pendingReview = $pendingReview || $tally['pending_review'];
 
-                if ($answer === null) {
-                    continue;
-                }
+                $maxScore = $this->maxScore($section, $attempt, $group);
 
-                [$isCorrect, $raw, $isAnswered, $needsReview] = $this->evaluate($question, $answer);
+                $result = $this->strategy->score(new ScoringInput(
+                    closedTotal: $tally['closed_total'],
+                    closedCorrect: $tally['closed_correct'],
+                    closedWrong: $tally['closed_wrong'],
+                    codedTotal: $tally['coded_total'],
+                    codedCorrect: $tally['coded_correct'],
+                    writtenTotal: $tally['written_total'],
+                    writtenRatios: $tally['written_ratios'],
+                    maxScore: $maxScore,
+                    stage: $group?->stage ?? Group::STAGE_SECOND,
+                ));
 
-                $answered += $isAnswered ? 1 : 0;
-                $pendingReview = $pendingReview || $needsReview;
+                $this->writeAnswerScores($tally['outcomes'], $result->subjectPointsPerRawPoint());
 
-                if ($question->type === Question::TYPE_MULTIPLE_CHOICE && $isAnswered) {
-                    $isCorrect ? $closedCorrect++ : $closedWrong++;
-                }
+                $unanswered = max(0, $sectionQuestions->count() - $tally['answered']);
 
-                if ($question->type === Question::TYPE_OPEN_CODED && $isCorrect) {
-                    $codedCorrect++;
-                }
+                $attempt->sectionResults()->create([
+                    'section_id' => $section?->id,
+                    'subject_id' => $section?->subject_id ?? $attempt->exam->subject_id,
+                    'title' => $section?->displayTitle(),
+                    'max_score' => $maxScore,
+                    'question_count' => $sectionQuestions->count(),
+                    'correct_answers' => $tally['closed_correct'] + $tally['coded_correct'],
+                    'wrong_answers' => $tally['closed_wrong'],
+                    'unanswered' => $unanswered,
+                    'relative_score' => $result->relativeScore,
+                    'subject_score' => $result->subjectScore,
+                    'order' => $section?->order ?? ++$order,
+                ]);
 
-                if ($question->type === Question::TYPE_OPEN_WRITTEN && $answer->grade_ratio !== null) {
-                    $writtenRatios[] = (float) $answer->grade_ratio;
-                }
-
-                $outcomes[] = ['answer' => $answer, 'is_correct' => $isCorrect, 'raw' => $raw];
+                $totals['subject'] += $result->subjectScore;
+                $totals['max'] += $maxScore;
+                $totals['correct'] += $tally['closed_correct'] + $tally['coded_correct'];
+                $totals['wrong'] += $tally['closed_wrong'];
+                $totals['unanswered'] += $unanswered;
             }
 
-            $group = $this->scoringGroup($attempt);
-
-            $result = $this->strategy->score(new ScoringInput(
-                closedTotal: $closedTotal,
-                closedCorrect: $closedCorrect,
-                closedWrong: $closedWrong,
-                codedTotal: $codedTotal,
-                codedCorrect: $codedCorrect,
-                writtenTotal: $writtenTotal,
-                writtenRatios: $writtenRatios,
-                maxScore: $this->maxScore($attempt->exam->subject_id, $group),
-                stage: $group?->stage ?? 'second_stage',
-            ));
-
-            $this->writeAnswerScores($outcomes, $result->subjectPointsPerRawPoint());
-
             $attempt->update([
-                'status' => $pendingReview ? 'pending_review' : 'completed',
+                'status' => $pendingReview
+                    ? ExamAttempt::STATUS_PENDING_REVIEW
+                    : ExamAttempt::STATUS_COMPLETED,
                 'finished_at' => $attempt->finished_at ?? now(),
                 'graded_at' => $pendingReview ? null : now(),
                 'time_spent_seconds' => $attempt->time_spent_seconds > 0
                     ? $attempt->time_spent_seconds
                     : max(0, now()->diffInSeconds($attempt->started_at, absolute: true)),
-                'total_score' => $result->subjectScore,
-                'relative_score' => $result->relativeScore,
-                'correct_answers' => $closedCorrect + $codedCorrect,
-                'wrong_answers' => $closedWrong,
-                'unanswered' => max(0, $questions->count() - $answered),
+                'total_score' => round($totals['subject'], 2),
+                // Ümumi nisbi bal: bölmə maksimumlarının cəmindən
+                'relative_score' => $this->relative($totals['subject'], $totals['max']),
+                'correct_answers' => $totals['correct'],
+                'wrong_answers' => $totals['wrong'],
+                'unanswered' => $totals['unanswered'],
             ]);
 
             return $attempt;
         });
+    }
+
+    /**
+     * Bir bölmənin cavablarını sayır.
+     *
+     * @param  Collection<int, Question>  $questions
+     * @param  Collection<int, AttemptAnswer>  $answers
+     */
+    private function tally(Collection $questions, Collection $answers): array
+    {
+        $tally = [
+            'closed_total' => 0, 'closed_correct' => 0, 'closed_wrong' => 0,
+            'coded_total' => 0, 'coded_correct' => 0,
+            'written_total' => 0, 'written_ratios' => [],
+            'answered' => 0, 'pending_review' => false, 'outcomes' => [],
+        ];
+
+        foreach ($questions as $question) {
+            match ($question->type) {
+                Question::TYPE_OPEN_CODED => $tally['coded_total']++,
+                Question::TYPE_OPEN_WRITTEN => $tally['written_total']++,
+                default => $tally['closed_total']++,
+            };
+
+            $answer = $answers->get($question->id);
+
+            if ($answer === null) {
+                continue;
+            }
+
+            [$isCorrect, $raw, $isAnswered, $needsReview] = $this->evaluate($question, $answer);
+
+            $tally['answered'] += $isAnswered ? 1 : 0;
+            $tally['pending_review'] = $tally['pending_review'] || $needsReview;
+
+            if ($question->type === Question::TYPE_MULTIPLE_CHOICE && $isAnswered) {
+                $isCorrect ? $tally['closed_correct']++ : $tally['closed_wrong']++;
+            }
+
+            if ($question->type === Question::TYPE_OPEN_CODED && $isCorrect) {
+                $tally['coded_correct']++;
+            }
+
+            if ($question->type === Question::TYPE_OPEN_WRITTEN && $answer->grade_ratio !== null) {
+                $tally['written_ratios'][] = (float) $answer->grade_ratio;
+            }
+
+            $tally['outcomes'][] = ['answer' => $answer, 'is_correct' => $isCorrect, 'raw' => $raw];
+        }
+
+        return $tally;
     }
 
     /**
@@ -161,6 +216,18 @@ class AttemptScorer
         }
     }
 
+    private function relative(float $subjectTotal, float $maxTotal): float
+    {
+        if ($maxTotal <= 0) {
+            return 0.0;
+        }
+
+        $step = (float) config('scoring.relative_score_step', 0.1);
+        $value = $subjectTotal * 100 / $maxTotal;
+
+        return $step > 0 ? round(round($value / $step) * $step, 4) : $value;
+    }
+
     /** Altqrupda (I-RK, III-DT …) ballar baş qrupda saxlanılır. */
     private function scoringGroup(ExamAttempt $attempt): ?Group
     {
@@ -169,8 +236,15 @@ class AttemptScorer
         return $group?->parent ?? $group;
     }
 
-    private function maxScore(int $subjectId, ?Group $group): float
+    /** Bölmədə bal göstərilməyibsə qrupun bal matrisindən götürülür. */
+    private function maxScore(?ExamSection $section, ExamAttempt $attempt, ?Group $group): float
     {
+        if ($section?->max_score !== null) {
+            return (float) $section->max_score;
+        }
+
+        $subjectId = $section?->subject_id ?? $attempt->exam->subject_id;
+
         if ($group === null) {
             return (float) config('scoring.default_max_score', 100);
         }

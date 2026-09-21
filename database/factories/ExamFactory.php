@@ -29,6 +29,19 @@ class ExamFactory extends Factory
         ];
     }
 
+    /** Hər imtahanın ən azı bir bölməsi olur (migration və controller bunu təmin edir). */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (\App\Models\Exam $exam) {
+            if ($exam->sections()->doesntExist()) {
+                $exam->sections()->create([
+                    'subject_id' => $exam->subject_id,
+                    'order' => 1,
+                ]);
+            }
+        });
+    }
+
     public function paid(float $price = 10.00): static
     {
         return $this->state(fn () => ['is_free' => false, 'price' => $price]);

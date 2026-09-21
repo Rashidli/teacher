@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminExamAccessController;
 use App\Http\Controllers\Admin\AdminExamController;
+use App\Http\Controllers\Admin\AdminExamSectionController;
 use App\Http\Controllers\Admin\AdminGradingController;
 use App\Http\Controllers\Admin\AdminGroupController;
 use App\Http\Controllers\Admin\AdminQuestionBankController;
@@ -115,6 +116,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('exams', AdminExamController::class);
         Route::post('/exams/{exam}/toggle-active', [AdminExamController::class, 'toggleActive'])->name('exams.toggle-active');
         Route::post('/exams/{exam}/toggle-publish', [AdminExamController::class, 'togglePublish'])->name('exams.toggle-publish');
+
+        // İmtahan bölmələri (çoxfənli imtahan)
+        Route::post('/exams/{exam}/sections', [AdminExamSectionController::class, 'store'])->name('exams.sections.store');
+        Route::put('/exams/{exam}/sections/{section}', [AdminExamSectionController::class, 'update'])->name('exams.sections.update');
+        Route::delete('/exams/{exam}/sections/{section}', [AdminExamSectionController::class, 'destroy'])->name('exams.sections.destroy');
 
         // İmtahana giriş hüququ (əl ilə vermə / ləğv)
         Route::get('/exams/{exam}/access', [AdminExamAccessController::class, 'index'])->name('exams.access.index');

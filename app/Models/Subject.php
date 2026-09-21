@@ -37,6 +37,11 @@ class Subject extends Model
         return $this->hasMany(Exam::class);
     }
 
+    public function examSections(): HasMany
+    {
+        return $this->hasMany(ExamSection::class);
+    }
+
     public function topics(): HasMany
     {
         return $this->hasMany(Topic::class)->orderBy('order')->orderBy('name');

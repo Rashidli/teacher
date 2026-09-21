@@ -30,7 +30,10 @@ class AdminQuestionBankTest extends TestCase
     {
         $exam = Exam::factory()->create(['subject_id' => $this->maths->id]);
         $question = Question::factory()->create(['subject_id' => $this->maths->id]);
-        $exam->questions()->attach($question->id, ['order' => 1]);
+        $exam->questions()->attach($question->id, [
+            'section_id' => $exam->sections()->value('id'),
+            'order' => 1,
+        ]);
 
         $this->actingAs($this->admin, 'admin')
             ->get(route('admin.questions.index'))

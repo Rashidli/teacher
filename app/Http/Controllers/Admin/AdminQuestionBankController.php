@@ -62,7 +62,7 @@ class AdminQuestionBankController extends Controller
             'topics' => Topic::active()
                 ->when($request->subject_id, fn ($query, $id) => $query->where('subject_id', $id))
                 ->orderBy('name')->get(['id', 'name', 'subject_id']),
-            'filters' => $request->only(['subject_id', 'topic_id', 'type', 'difficulty', 'search', 'exam_id']),
+            'filters' => $request->only(['subject_id', 'topic_id', 'type', 'difficulty', 'search', 'exam_id', 'section_id']),
         ]);
     }
 

@@ -40,7 +40,10 @@ class UsedQuestionEditingTest extends TestCase
 
     private function attach(Question $question, int $order = 1): Question
     {
-        $this->exam->questions()->attach($question->id, ['order' => $order]);
+        $this->exam->questions()->attach($question->id, [
+            'section_id' => $this->exam->sections()->value('id'),
+            'order' => $order,
+        ]);
 
         return $question->load('options');
     }

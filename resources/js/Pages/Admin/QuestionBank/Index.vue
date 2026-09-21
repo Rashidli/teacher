@@ -48,7 +48,7 @@ const apply = () => {
 
 const attach = (question) => {
     router.post(route('admin.exams.questions.attach', props.targetExam.id),
-        { question_id: question.id },
+        { question_id: question.id, section_id: props.filters.section_id ?? null },
         { preserveScroll: true, preserveState: false });
 };
 

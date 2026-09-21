@@ -80,7 +80,10 @@ class AttemptScoringTest extends TestCase
     {
         $question = Question::create($attributes + ['subject_id' => $this->exam->subject_id]);
 
-        $this->exam->questions()->attach($question->id, ['order' => $order]);
+        $this->exam->questions()->attach($question->id, [
+            'section_id' => $this->exam->sections()->value('id'),
+            'order' => $order,
+        ]);
 
         return $question;
     }
@@ -231,7 +234,10 @@ class AttemptScoringTest extends TestCase
             'question_text' => 'Başqa imtahanın sualı',
             'type' => Question::TYPE_OPEN_WRITTEN,
         ]);
-        $otherExam->questions()->attach($foreign->id, ['order' => 1]);
+        $otherExam->questions()->attach($foreign->id, [
+            'section_id' => $otherExam->sections()->value('id'),
+            'order' => 1,
+        ]);
 
         $this->actingAs($this->student, 'student')
             ->postJson(route('student.exams.save-answer', $attempt), [

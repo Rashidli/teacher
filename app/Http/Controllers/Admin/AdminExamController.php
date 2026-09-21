@@ -183,16 +183,49 @@ class AdminExamController extends Controller
 
         $exam = Exam::create($validated);
 
+        // Hər imtahanın ən azı bir bölməsi olur: bal hesablaması və səhifələr tək məntiqlə işləyir
+        $exam->sections()->create([
+            'subject_id' => $exam->subject_id,
+            'order' => 1,
+        ]);
+
         return redirect()->route('admin.exams.show', $exam)
             ->with('success', 'İmtahan uğurla yaradıldı.');
     }
 
     public function show(Exam $exam)
     {
-        $exam->load(['teacher', 'subject', 'group', 'category', 'questions.options', 'questions.topic']);
+        $exam->load(['teacher', 'subject', 'group', 'category']);
+
+        $sections = $exam->sections()->with(['subject:id,name', 'questions.options', 'questions.topic'])->get();
 
         return Inertia::render('Admin/Exams/Show', [
             'exam' => $exam,
+            'sections' => $sections->map(fn ($section) => [
+                'id' => $section->id,
+                'title' => $section->displayTitle(),
+                'subject' => $section->subject?->name,
+                'question_count' => $section->question_count,
+                'max_score' => $section->max_score,
+                'order' => $section->order,
+                'questions' => $section->questions->map(fn ($question) => [
+                    'id' => $question->id,
+                    'question_text' => $question->question_text,
+                    'question_image' => $question->question_image,
+                    'type' => $question->type,
+                    'topic' => $question->topic?->name,
+                    'explanation' => $question->explanation,
+                    'accepted_answers' => $question->accepted_answers,
+                    'options' => $question->options->map(fn ($option) => [
+                        'id' => $option->id,
+                        'option_letter' => $option->option_letter,
+                        'option_text' => $option->option_text,
+                        'is_correct' => $option->is_correct,
+                    ]),
+                ]),
+            ]),
+            'subjects' => Subject::active()->orderBy('order')->get(['id', 'name']),
+            'questionsTotal' => $sections->sum(fn ($section) => $section->questions->count()),
         ]);
     }
 

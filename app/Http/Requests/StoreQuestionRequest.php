@@ -62,6 +62,11 @@ class StoreQuestionRequest extends FormRequest
                 Rule::exists('topics', 'id')->where('subject_id', $this->exam()->subject_id),
             ],
             'source' => ['nullable', 'string', 'max:255'],
+            // Sual imtahanın hansı bölməsinə düşür
+            'section_id' => [
+                'nullable',
+                Rule::exists('exam_sections', 'id')->where('exam_id', $this->exam()->id),
+            ],
             'explanation' => ['nullable', 'string', 'max:1000'],
 
             // Variantlı test: variant sayı imtahandakı ilə eyni olmalıdır.
@@ -117,6 +122,7 @@ class StoreQuestionRequest extends FormRequest
             'options.required' => 'Test sualı üçün variantlar mütləqdir.',
             'options.size' => "Bu imtahanda hər sualda {$optionCount} variant olmalıdır.",
             'topic_id.exists' => 'Seçilmiş mövzu bu imtahanın fənninə aid deyil.',
+            'section_id.exists' => 'Seçilmiş bölmə bu imtahana aid deyil.',
             'accepted_answers.required' => 'Qısa cavablı sual üçün ən azı bir düzgün cavab yazılmalıdır.',
             'accepted_answers.min' => 'Ən azı bir düzgün cavab yazılmalıdır.',
         ];

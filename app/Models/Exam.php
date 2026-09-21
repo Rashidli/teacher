@@ -50,12 +50,19 @@ class Exam extends Model
         return $this->belongsTo(Category::class);
     }
 
+    /** İmtahanın fənn bölmələri (tək-fənli imtahanda da bir bölmə olur) */
+    public function sections(): HasMany
+    {
+        return $this->hasMany(ExamSection::class)->orderBy('order');
+    }
+
     /** İmtahanın sualları bankdan gəlir; sıra pivotdadır */
     public function questions(): BelongsToMany
     {
         return $this->belongsToMany(Question::class)
-            ->withPivot('order')
+            ->withPivot(['order', 'section_id'])
             ->withTimestamps()
+            ->orderBy('exam_question.section_id')
             ->orderBy('exam_question.order');
     }
 

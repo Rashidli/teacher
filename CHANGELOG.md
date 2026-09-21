@@ -10,6 +10,39 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Çoxfənli imtahanlar (P2 Mərhələ 3, bölmələr)
+
+**Migration:** `exam_sections` (exam, fənn, başlıq, sual sayı, maksimal bal, sıra),
+`exam_question.section_id` (NOT NULL), `attempt_questions.section_id`, `attempt_sections`.
+
+**Bir kod yolu.** Mövcud tək-fənli imtahanların hər birinə migration ilə bir bölmə yaradıldı və
+`section_id` NOT NULL edildi. Beləliklə bal hesablaması, cəhd səhifəsi və nəticə səhifəsi hər
+imtahan üçün eyni məntiqlə işləyir — "bölməsiz imtahan" rejimi yoxdur.
+
+**Bal.** Hər bölmə öz fənninin maksimal balı ilə ayrıca hesablanır (mövcud DİM düsturu dəyişmir,
+sadəcə bölmə sayı qədər çağırılır), ümumi bal onların cəmidir. Ümumi maksimum bölmələrin
+`max_score` cəmindən gəlir — sabit rəqəm yazılmır, çünki I mərhələ, buraxılış və dövlət qulluğu
+imtahanlarında maksimum fərqlidir.
+
+**Dondurma.** Bölmə nəticəsi `attempt_sections`-a yazılır: `max_score`, nisbi bal (NB), fənn balı,
+düzgün/səhv/boş sayı və fənn adı surəti. Qrupun bal matrisi sonradan dəyişsə də köhnə nəticələr
+dəyişmir (test bunu yoxlayır). Bölmə silinsə sətir qalır.
+
+**Admin:** imtahan səhifəsi bölmələr üzrə quruldu — bölmə əlavə etmə (fənn, sual sayı, maks. bal),
+boş bölmənin silinməsi (sonuncu bölmə və sualı olan bölmə silinmir), hər bölmə üçün ayrıca
+"+ Sual" və "Bankdan" düymələri. Sual sıralaması bölmə daxilindədir.
+
+**Şagird:** imtahan səhifəsində fənn tabları (çoxfənli imtahanda), nəticə səhifəsində fənn-fənn
+cədvəl (düzgün/səhv/boş, nisbi bal, fənn balı / maksimum).
+
+**Data:** 6 imtahan → 6 bölmə, 57 sual bağlantısı köçürüldü, bölməsiz sətir qalmadı.
+
+**Testlər:** `MultiSubjectScoringTest` (5), `AdminExamSectionTest` (8). Cəmi 248 test /
+1076 assertion.
+
+**Qalır:** `exam_templates` (şablondan imtahan generasiyası, sabit variantlar A/B/C) — Mərhələ 3-ün
+ikinci hissəsi.
+
 ### 2026-09-21 — Sual bankı (P2 Mərhələ 2)
 
 **Migration (3 fayl):** `topics` cədvəli; `questions`-a `subject_id`, `topic_id`, `difficulty`,

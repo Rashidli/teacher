@@ -6,9 +6,12 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 const props = defineProps({
     exam: { type: Object, required: true },
     topics: { type: Array, default: () => [] },
+    sections: { type: Array, default: () => [] },
+    sectionId: { type: Number, default: null },
 });
 
 const form = useForm({
+    section_id: props.sectionId,
     question_text: '',
     type: 'multiple_choice',
     question_image: null,
@@ -44,6 +47,16 @@ const submit = () => {
 
         <div class="py-12">
             <div class="mx-auto max-w-3xl sm:px-6 lg:px-8">
+                <div v-if="sections.length > 1" class="mb-4 bg-white shadow-sm rounded-lg p-4">
+                    <label for="section_id" class="block text-sm font-medium text-gray-700">Bölmə</label>
+                    <select id="section_id" v-model="form.section_id"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                        <option v-for="section in sections" :key="section.id" :value="section.id">
+                            {{ section.title }}
+                        </option>
+                    </select>
+                </div>
+
                 <QuestionForm
                     :form="form"
                     :exam="exam"

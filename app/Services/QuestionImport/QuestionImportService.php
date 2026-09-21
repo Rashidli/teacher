@@ -82,12 +82,14 @@ class QuestionImportService
         }
 
         return DB::transaction(function () use ($exam, $rows) {
-            $order = (int) (DB::table('exam_question')->where('exam_id', $exam->id)->max('order') ?? 0);
+            // İmport imtahanın ilk bölməsinə düşür (çoxfənli imtahanda bölmə seçimi UI-dadır)
+            $section = $exam->sections()->orderBy('order')->firstOrFail();
+            $order = (int) (DB::table('exam_question')->where('section_id', $section->id)->max('order') ?? 0);
 
             foreach ($rows as $row) {
                 // Sual banka yazılır (imtahanın fənninə), sonra imtahana bağlanır
                 $question = Question::create([
-                    'subject_id' => $exam->subject_id,
+                    'subject_id' => $section->subject_id,
                     'topic_id' => $row->topicId,
                     'difficulty' => $row->difficulty,
                     'question_text' => $row->questionText,
@@ -98,7 +100,10 @@ class QuestionImportService
                     'explanation' => $row->explanation,
                 ]);
 
-                $exam->questions()->attach($question->id, ['order' => ++$order]);
+                $exam->questions()->attach($question->id, [
+                    'section_id' => $section->id,
+                    'order' => ++$order,
+                ]);
 
                 foreach ($row->options as $index => $option) {
                     $question->options()->create([

@@ -44,7 +44,10 @@ class AttemptLifecycleTest extends TestCase
             'type' => Question::TYPE_MULTIPLE_CHOICE,
         ]);
 
-        $this->exam->questions()->attach($this->question->id, ['order' => 1]);
+        $this->exam->questions()->attach($this->question->id, [
+            'section_id' => $this->exam->sections()->value('id'),
+            'order' => 1,
+        ]);
 
         foreach (['A', 'B', 'C', 'D'] as $index => $letter) {
             $this->question->options()->create([

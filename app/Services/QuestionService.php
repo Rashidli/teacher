@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Exam;
+use App\Models\ExamSection;
 use App\Models\Question;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -22,16 +23,35 @@ class QuestionService
 
     private const OPTION_IMAGE_DIR = 'question-options';
 
-    /** Bankda yeni sual yaradır və imtahana bağlayır. */
+    /** Bankda yeni sual yaradır və imtahanın bölməsinə bağlayır. */
     public function create(Exam $exam, array $data): Question
     {
         return DB::transaction(function () use ($exam, $data) {
-            $question = $this->createInBank($data + ['subject_id' => $exam->subject_id]);
+            $section = $this->resolveSection($exam, $data['section_id'] ?? null);
 
-            $this->attach($exam, $question);
+            $question = $this->createInBank($data + ['subject_id' => $section->subject_id]);
+
+            $this->attach($exam, $question, $section);
 
             return $question;
         });
+    }
+
+    /**
+     * Sual hansı bölməyə düşür: göstərilibsə o, yoxsa imtahanın ilk bölməsi.
+     * Hər imtahanın ən azı bir bölməsi var (migration bunu təmin edir).
+     */
+    private function resolveSection(Exam $exam, ?int $sectionId): ExamSection
+    {
+        if ($sectionId) {
+            $section = $exam->sections()->whereKey($sectionId)->first();
+
+            if ($section) {
+                return $section;
+            }
+        }
+
+        return $exam->sections()->orderBy('order')->firstOrFail();
     }
 
     /** Yalnız bankda sual yaradır (imtahana bağlamadan). */
@@ -171,11 +191,15 @@ class QuestionService
                 ]));
             }
 
-            // Kopya köhnə sualın yerini tutur
-            $order = $exam->questions()->where('questions.id', $question->id)->first()?->pivot?->order;
+            // Kopya köhnə sualın yerini (bölmə və sıra) tutur
+            $pivot = $exam->questions()->where('questions.id', $question->id)->first()?->pivot;
+            $section = $this->resolveSection($exam, $pivot?->section_id);
 
             $exam->questions()->detach($question->id);
-            $exam->questions()->attach($copy->id, ['order' => $order ?? $this->nextOrder($exam)]);
+            $exam->questions()->attach($copy->id, [
+                'section_id' => $section->id,
+                'order' => $pivot?->order ?? $this->nextOrder($section),
+            ]);
 
             return $copy;
         });
@@ -203,14 +227,19 @@ class QuestionService
         });
     }
 
-    /** Mövcud bank sualını imtahana bağlayır. */
-    public function attach(Exam $exam, Question $question): void
+    /** Mövcud bank sualını imtahanın bölməsinə bağlayır. */
+    public function attach(Exam $exam, Question $question, ?ExamSection $section = null): void
     {
         if ($exam->questions()->where('questions.id', $question->id)->exists()) {
             return;
         }
 
-        $exam->questions()->attach($question->id, ['order' => $this->nextOrder($exam)]);
+        $section ??= $this->resolveSection($exam, null);
+
+        $exam->questions()->attach($question->id, [
+            'section_id' => $section->id,
+            'order' => $this->nextOrder($section),
+        ]);
     }
 
     /** Sualı imtahandan ayırır — bankdan silmir. */
@@ -232,12 +261,17 @@ class QuestionService
                 return;
             }
 
+            // Sürüşdürmə yalnız öz bölməsi daxilində olur
+            $sectionId = $current->pivot->section_id;
+
             /*
              * reorder(): əlaqədə sabit `orderBy('exam_question.order')` var, əks halda buradakı
              * sıralama ikinci dərəcəli qalır və qonşu səhv seçilir.
              * when() istifadə olunmur: reorder() əlaqəni sorğu obyektinə çevirir və nəticə itir.
              */
             $query = $exam->questions();
+
+            $query->wherePivot('section_id', $sectionId);
 
             $neighbour = $direction === 'up'
                 ? $query->wherePivot('order', '<', $current->pivot->order)
@@ -254,20 +288,25 @@ class QuestionService
         });
     }
 
-    /** Sıra nömrələrini 1-dən başlayaraq boşluqsuz yenidən yazır. */
+    /** Hər bölmədə sıra nömrələrini 1-dən başlayaraq boşluqsuz yenidən yazır. */
     public function resequence(Exam $exam): void
     {
         DB::transaction(function () use ($exam) {
-            $exam->questions()->get()->each(
-                fn (Question $question, int $index) => $exam->questions()
-                    ->updateExistingPivot($question->id, ['order' => $index + 1])
-            );
+            foreach ($exam->sections as $section) {
+                $section->questions()->get()->each(
+                    fn (Question $question, int $index) => DB::table('exam_question')
+                        ->where('section_id', $section->id)
+                        ->where('question_id', $question->id)
+                        ->update(['order' => $index + 1])
+                );
+            }
         });
     }
 
-    private function nextOrder(Exam $exam): int
+    /** Sıra bölmə daxilindədir: hər bölmənin sualları 1-dən nömrələnir. */
+    private function nextOrder(ExamSection $section): int
     {
-        return (int) (DB::table('exam_question')->where('exam_id', $exam->id)->max('order') ?? 0) + 1;
+        return (int) (DB::table('exam_question')->where('section_id', $section->id)->max('order') ?? 0) + 1;
     }
 
     /**

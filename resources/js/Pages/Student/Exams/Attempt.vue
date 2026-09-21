@@ -22,6 +22,25 @@ const openAnswers = ref(
 );
 
 let openAnswerTimer = null;
+
+// Fənn bölmələri: çoxfənli imtahanda tablarla keçid
+const sections = computed(() => {
+    const seen = new Map();
+
+    (props.questions || []).forEach((question) => {
+        if (question.section_id && !seen.has(question.section_id)) {
+            seen.set(question.section_id, { id: question.section_id, title: question.section_title });
+        }
+    });
+
+    return [...seen.values()];
+});
+
+const activeSection = ref(null);
+
+const visibleQuestions = computed(() => (activeSection.value
+    ? (props.questions || []).filter((question) => question.section_id === activeSection.value)
+    : (props.questions || [])));
 const timeRemaining = ref(props.attempt?.remaining_time || 0);
 const isSaving = ref(false);
 const isFinishing = ref(false);
@@ -311,8 +330,30 @@ const getQuestionStatus = (question) => {
 
                     <!-- All Questions -->
                     <div class="flex-1 min-w-0 space-y-4 sm:space-y-6">
+                        <!-- Fənn tabları (yalnız çoxfənli imtahanda) -->
+                        <div v-if="sections.length > 1" class="bg-white rounded-lg shadow-sm p-2 flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                @click="activeSection = null"
+                                :class="['px-3 py-1.5 text-sm rounded transition',
+                                    activeSection === null ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700']"
+                            >
+                                Hamısı
+                            </button>
+                            <button
+                                v-for="section in sections"
+                                :key="section.id"
+                                type="button"
+                                @click="activeSection = section.id"
+                                :class="['px-3 py-1.5 text-sm rounded transition',
+                                    activeSection === section.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700']"
+                            >
+                                {{ section.title }}
+                            </button>
+                        </div>
+
                         <div
-                            v-for="(question, index) in questions"
+                            v-for="(question, index) in visibleQuestions"
                             :key="question.id"
                             :id="`question-${index}`"
                             class="bg-white rounded-lg shadow-sm p-4 sm:p-6 scroll-mt-20"

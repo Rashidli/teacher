@@ -60,9 +60,16 @@ class ExamAttempt extends Model
     public function questions(): BelongsToMany
     {
         return $this->belongsToMany(Question::class, 'attempt_questions', 'attempt_id', 'question_id')
-            ->withPivot('order')
+            ->withPivot(['order', 'section_id'])
             ->withTimestamps()
+            ->orderBy('attempt_questions.section_id')
             ->orderBy('attempt_questions.order');
+    }
+
+    /** Bölmə üzrə nəticələr (hesablama anında dondurulmuş) */
+    public function sectionResults(): HasMany
+    {
+        return $this->hasMany(AttemptSection::class, 'attempt_id')->orderBy('order');
     }
 
     public function answers(): HasMany

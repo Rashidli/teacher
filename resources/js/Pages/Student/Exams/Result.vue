@@ -6,6 +6,7 @@ import { computed } from 'vue';
 
 const props = defineProps({
     attempt: Object,
+    sections: { type: Array, default: () => [] },
     exam: Object,
     answers: Array,
 });
@@ -75,6 +76,35 @@ const getAnswerStatus = (answer) => {
                                 <span class="font-semibold text-gray-900">{{ attempt.score }}</span>
                                 <span class="text-gray-500"> / {{ attempt.max_subject_score }}</span>
                             </p>
+                        </div>
+
+                        <!-- Fənn üzrə bölgü (yalnız çoxfənli imtahanda) -->
+                        <div v-if="sections.length > 1" class="mt-8 overflow-x-auto">
+                            <table class="min-w-full text-sm">
+                                <thead>
+                                    <tr class="text-gray-500">
+                                        <th class="px-3 py-2 text-left font-medium">Fənn</th>
+                                        <th class="px-3 py-2 text-right font-medium">Düzgün</th>
+                                        <th class="px-3 py-2 text-right font-medium">Səhv</th>
+                                        <th class="px-3 py-2 text-right font-medium">Boş</th>
+                                        <th class="px-3 py-2 text-right font-medium">Nisbi bal</th>
+                                        <th class="px-3 py-2 text-right font-medium">Fənn balı</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    <tr v-for="section in sections" :key="section.title">
+                                        <td class="px-3 py-2 text-left font-medium text-gray-900">{{ section.title }}</td>
+                                        <td class="px-3 py-2 text-right text-green-700">{{ section.correct_answers }}</td>
+                                        <td class="px-3 py-2 text-right text-red-700">{{ section.wrong_answers }}</td>
+                                        <td class="px-3 py-2 text-right text-gray-500">{{ section.unanswered }}</td>
+                                        <td class="px-3 py-2 text-right">{{ section.relative_score }}</td>
+                                        <td class="px-3 py-2 text-right font-semibold text-gray-900">
+                                            {{ section.subject_score }}
+                                            <span class="text-gray-400">/ {{ section.max_score }}</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
 
                         <div class="grid grid-cols-3 gap-4 mt-8 max-w-md mx-auto">

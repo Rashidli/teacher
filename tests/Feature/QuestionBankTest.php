@@ -49,7 +49,10 @@ class QuestionBankTest extends TestCase
             'question_text' => $text,
         ]);
 
-        $this->exam->questions()->attach($question->id, ['order' => $order]);
+        $this->exam->questions()->attach($question->id, [
+            'section_id' => $this->exam->sections()->value('id'),
+            'order' => $order,
+        ]);
 
         return $question->load('options');
     }
@@ -82,7 +85,7 @@ class QuestionBankTest extends TestCase
         $question = $this->addQuestion('Sual', 1);
 
         $this->assertSame($this->exam->subject_id, $question->subject_id);
-        $this->assertFalse(\Schema::hasColumn('questions', 'exam_id'));
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('questions', 'exam_id'));
     }
 
     public function test_the_same_question_can_be_used_in_two_exams(): void

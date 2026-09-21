@@ -141,7 +141,10 @@ class AdminQuestionImportTest extends TestCase
             'question_text' => 'Əvvəlki sual',
             'type' => Question::TYPE_OPEN_WRITTEN,
         ]);
-        $this->exam->questions()->attach($existing->id, ['order' => 1]);
+        $this->exam->questions()->attach($existing->id, [
+            'section_id' => $this->exam->sections()->value('id'),
+            'order' => 1,
+        ]);
 
         $file = $this->csv([['Yeni sual', 'aciq', '', '', '', '', '', '']]);
         $token = $this->preview($file)->viewData('page')['props']['token'];

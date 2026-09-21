@@ -131,7 +131,10 @@ class StudentExamController extends Controller
              */
             $snapshot = $exam->questions()->get()
                 ->mapWithKeys(fn ($question, $index) => [
-                    $question->id => ['order' => $question->pivot->order ?: $index + 1],
+                    $question->id => [
+                        'section_id' => $question->pivot->section_id,
+                        'order' => $question->pivot->order ?: $index + 1,
+                    ],
                 ])
                 ->all();
 
@@ -174,14 +177,23 @@ class StudentExamController extends Controller
         // Cavablar bir dəfə yüklənir (əvvəl hər sual üçün ayrıca sorğu gedirdi)
         $answersByQuestion = $attempt->answers->keyBy('question_id');
 
+        $sectionTitles = \App\Models\ExamSection::whereIn(
+            'id',
+            $attempt->questions()->pluck('attempt_questions.section_id')->filter()->unique()
+        )->with('subject:id,name')->get()->mapWithKeys(
+            fn ($section) => [$section->id => $section->displayTitle()]
+        );
+
         $questions = $attempt->questions()
             ->with('options')
             ->get()
-            ->map(function ($question) use ($answersByQuestion) {
+            ->map(function ($question) use ($answersByQuestion, $sectionTitles) {
                 $answer = $answersByQuestion->get($question->id);
 
                 return [
                     'id' => $question->id,
+                    'section_id' => $question->pivot->section_id,
+                    'section_title' => $sectionTitles->get($question->pivot->section_id),
                     'question_text' => $question->question_text,
                     'question_image' => $question->question_image,
                     'type' => $question->type,
@@ -332,12 +344,26 @@ class StudentExamController extends Controller
         $attemptData['score'] = $attempt->total_score;
         // Yazılı suallar yoxlanana qədər bal müvəqqətidir
         $attemptData['awaiting_review'] = $attempt->status === ExamAttempt::STATUS_PENDING_REVIEW;
-        $attemptData['max_subject_score'] = $this->subjectMaxScore($attempt);
+        // Ümumi maksimum bölmələrin cəmindən gəlir (sabit rəqəm yazılmır)
+        $attemptData['max_subject_score'] = (float) $attempt->sectionResults()->sum('max_score')
+            ?: $this->subjectMaxScore($attempt);
 
         return Inertia::render('Student/Exams/Result', [
             'attempt' => $attemptData,
             'exam' => $attempt->exam,
             'answers' => $questionsWithAnswers,
+            // Fənn-fənn bölgü (hesablama anında dondurulub)
+            'sections' => $attempt->sectionResults()->with('subject:id,name')->get()
+                ->map(fn ($section) => [
+                    'title' => $section->title ?: $section->subject?->name,
+                    'question_count' => $section->question_count,
+                    'correct_answers' => $section->correct_answers,
+                    'wrong_answers' => $section->wrong_answers,
+                    'unanswered' => $section->unanswered,
+                    'relative_score' => $section->relative_score,
+                    'subject_score' => $section->subject_score,
+                    'max_score' => $section->max_score,
+                ]),
         ]);
     }
 }
