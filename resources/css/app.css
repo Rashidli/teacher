@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ana səhifə və kateqoriya səhifələrinin ortaq tokenləri ("cavab kartı" üslubu) */
+.site {
+    --paper: #FCFCFA;
+    --paper-sunk: #F3F4F1;
+    --graphite: #1E2227;
+    --muted: #596069;
+    --ink-red: #C8354E;
+    --ink-red-line: rgba(200, 53, 78, 0.38);
+    --pen: #2440A0;
+    --pen-deep: #1A2C73;
+    --correct: #1F7A4D;
+    --sign-yellow: #F4C430;
+
+    --font-display: 'Literata', Georgia, 'Times New Roman', serif;
+    --font-text: 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    --gutter: 16px;
+    --max: 1160px;
+
+    min-height: 100vh;
+    background: var(--paper);
+    color: var(--graphite);
+    font-family: var(--font-text);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Şəkil və SVG-lər heç vaxt konteynerdən enli olmasın */
+.site img,
+.site svg {
+    max-width: 100%;
+}
+
+@media (min-width: 640px) {
+    .site { --gutter: 24px; }
+}
+
+@media (min-width: 1024px) {
+    .site { --gutter: 32px; }
+}
+
+.site :focus-visible {
+    outline: 2px solid var(--pen);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.site .wrap {
+    width: 100%;
+    max-width: var(--max);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+}
+
+.site .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
