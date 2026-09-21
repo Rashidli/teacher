@@ -10,6 +10,23 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — Giriş məlumatları repodan çıxarıldı
+
+- Bu sənəddəki "Giriş Məlumatları" bölməsi (admin və müəllim hesabları) tamamilə silindi.
+- `AdminUserSeeder` artıq parolu koddan deyil, `.env`-dən oxuyur: `ADMIN_SEED_EMAIL`,
+  `ADMIN_SEED_PASSWORD`. İkisindən biri boşdursa seeder aydın mesajla dayanır.
+  Dəyərlər `config/seeding.php` üzərindən oxunur — `php artisan config:cache` işlədiləndə
+  Laravel `.env` faylını yükləmir və `env()` null qaytarardı.
+- Seeder idempotentdir: hesab artıq varsa parol dəyişdirilmir, yalnız rol təmin edilir.
+- `.env.example`-a açarlar dəyərsiz əlavə edildi.
+- Repo tam skan edildi (parol / secret / token / açar bənzəri sətirlər, real email və domenlər):
+  bu ikisindən başqa gizli məlumat tapılmadı.
+- Testlər: `AdminUserSeederTest` — konfiqurasiya boşdursa xəta, düzgün konfiqurasiya ilə admin
+  yaradılması, mövcud adminin parolunun qorunması.
+
+**Diqqət:** bu dəyişiklik parolları git tarixçəsindən silmir — ilk commit-də qalırlar.
+Həmin hesabların parolları dəyişdirilməlidir.
+
 ### 2026-09-21 — Test təməli bərpa edildi
 
 **Problem:** `php artisan test` işləmirdi — 25 testdən 20-si sınırdı, qalanları da yanlış səbəbdən
@@ -31,21 +48,7 @@ telefonun unikallığı.
 
 **Nəticə:** 29 test / 75 assertion, hamısı keçir.
 
-## 1. Giriş Məlumatları
-
-### Admin
-- **URL:** `/admin/login`
-- **Email:** admin@teacher.cvhazirla.az
-- **Parol:** [silindi]
-
-### Müəllim (test)
-- **URL:** `/teacher/login`
-- **Email:** rashidliseymur@gmail.com
-- **Parol:** [silindi]
-
----
-
-## 2. Saytın Yeni Məntiqi
+## 1. Saytın Yeni Məntiqi
 
 Layihə **sınaq imtahanları satış platformasına** çevrildi:
 
@@ -55,9 +58,9 @@ Layihə **sınaq imtahanları satış platformasına** çevrildi:
 
 ---
 
-## 3. Edilən İşlər
+## 2. Edilən İşlər
 
-### 3.1 Müəllim Qeydiyyatı — Texniki Fənlər Əlavəsi
+### 2.1 Müəllim Qeydiyyatı — Texniki Fənlər Əlavəsi
 
 **Problem:** Qeydiyyat formasında yalnız humanitar fənlər görünürdü.
 
@@ -69,7 +72,7 @@ Layihə **sınaq imtahanları satış platformasına** çevrildi:
 
 ---
 
-### 3.2 Müəllim Verifikasiyasının Ləğvi
+### 2.2 Müəllim Verifikasiyasının Ləğvi
 
 **Problem:** Qeydiyyatdan sonra müəllim admin təsdiqini gözləyirdi.
 
@@ -80,7 +83,7 @@ Layihə **sınaq imtahanları satış platformasına** çevrildi:
 
 ---
 
-### 3.3 Formula Dəstəyi (KaTeX)
+### 2.3 Formula Dəstəyi (KaTeX)
 
 **Məqsəd:** Riyaziyyat, Fizika, Kimya, Məntiq fənləri üçün sual və cavablarda formula yazmaq imkanı.
 
@@ -106,7 +109,7 @@ Kəsr, Kvadrat kök, Kvadrat, Alt indeks, Cəm (Σ), İnteqral, Pi (π), Sonsuzl
 
 ---
 
-### 3.4 Ana Səhifə Dizaynı
+### 2.4 Ana Səhifə Dizaynı
 
 **Məqsəd:** Saytı abituriyentlərə yönləndirilmiş, peşəkar görünümlü satış səhifəsinə çevirmək.
 
@@ -121,7 +124,7 @@ Kəsr, Kvadrat kök, Kvadrat, Alt indeks, Cəm (Σ), İnteqral, Pi (π), Sonsuzl
 
 ---
 
-### 3.5 AI Sual Yaratma (Geri Alındı)
+### 2.5 AI Sual Yaratma (Geri Alındı)
 
 Groq API (llama-3.3-70b) ilə sual yaratma funksionallığı əlavə edildi, lakin sual keyfiyyəti qeyri-kafi olduğu üçün **tamamilə silindi**.
 
@@ -131,7 +134,7 @@ Silinən fayllar:
 
 ---
 
-## 4. Fənn Siyahısı (DB)
+## 3. Fənn Siyahısı (DB)
 
 | ID | Ad | Kateqoriya |
 |----|----|------------|
@@ -152,7 +155,7 @@ Silinən fayllar:
 
 ---
 
-## 5. Mühüm Fayl Yolları
+## 4. Mühüm Fayl Yolları
 
 ```
 app/
@@ -183,7 +186,7 @@ resources/js/
 
 ---
 
-## 6. Növbəti Addımlar (Planlaşdırılıb)
+## 5. Növbəti Addımlar (Planlaşdırılıb)
 
 - [ ] Ödəniş sistemi (tələbələr imtahan alacaq)
 - [ ] Tələbə dashboard-u (keçmiş imtahanlar, statistika)

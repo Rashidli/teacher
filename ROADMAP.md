@@ -27,10 +27,10 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 
 ## P0: Təhlükəsizlik (ilk bu)
 
-- [ ] `CHANGELOG.md`-dən "Giriş Məlumatları" bölməsini tamamilə sil.
-- [ ] `AdminUserSeeder`: parolu hardcode etmə, `env('ADMIN_SEED_PASSWORD')`-dən oxu; boşdursa seeder
+- [x] `CHANGELOG.md`-dən "Giriş Məlumatları" bölməsini tamamilə sil.
+- [x] `AdminUserSeeder`: parolu hardcode etmə, `env('ADMIN_SEED_PASSWORD')`-dən oxu; boşdursa seeder
       xəta versin. `.env.example`-a açarı (dəyərsiz) əlavə et.
-- [ ] Repo-da başqa gizli məlumat olub-olmadığını yoxla (`grep -ri "password\|secret\|token"`),
+- [x] Repo-da başqa gizli məlumat olub-olmadığını yoxla (`grep -ri "password\|secret\|token"`),
       tapılanı `.env`-ə köçür.
 
 ## P0: Admin imtahan yarada bilsin (hazırda 500 verir)
