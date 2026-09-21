@@ -30,6 +30,7 @@ use App\Http\Controllers\Payments\PaymentCallbackController;
 use App\Http\Controllers\Student\StudentPaymentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SectorController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
@@ -235,6 +236,9 @@ Route::prefix('student')->name('student.')->group(function () {
 
 // Sitemap: hər iki dildə, kateqoriya ağacından qurulur (keşlənir)
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+
+// robots.txt statik fayl deyil: məzmunu SEO_INDEXING bayrağından asılıdır
+Route::get('/robots.txt', RobotsController::class)->name('robots');
 
 // Qonağın tədris sektoru seçimi (kataloqdakı az/ru keçidi)
 Route::post('/sektor', [SectorController::class, 'update'])->name('sector.update');

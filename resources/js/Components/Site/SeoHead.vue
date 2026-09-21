@@ -15,12 +15,14 @@ const props = defineProps({
 
 const page = usePage();
 const seo = computed(() => page.props.seo);
+// SEO_INDEXING bağlıdırsa (müvəqqəti domen, staging) bütün səhifələr bağlanır
+const robots = computed(() => (props.noindex || page.props.indexable === false ? 'noindex, nofollow' : null));
 </script>
 
 <template>
     <Head :title="title">
         <meta head-key="description" name="description" :content="description || $t('site.seo.description')" />
-        <meta v-if="noindex" head-key="robots" name="robots" content="noindex" />
+        <meta v-if="robots" head-key="robots" name="robots" :content="robots" />
         <template v-if="seo">
             <link head-key="canonical" rel="canonical" :href="seo.canonical" />
             <link

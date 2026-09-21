@@ -249,34 +249,36 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 
 ---
 
-## P2.5: Staging mühiti — PRODUKSİYAYA ÇIXMAZDAN ƏVVƏLKİ SON ADDIM
+## P2.5: Domen keçidi və staging — PRODUKSİYAYA ÇIXMAZDAN ƏVVƏLKİ SON ADDIM
 
-Hazırda bütün işlər birbaşa produksiya qovluğunda görülür: testlər, migration-lar və
-`npm run build` canlı saytın üzərində işləyir. Satışa çıxmazdan əvvəl bu ayrılmalıdır.
+**Qərar (21.09.2026):** ayrıca staging subdomeni QURULMUR. Əsl domen alınanda:
 
-**Hazırlanıb (kod tərəfi, 21.09.2026):**
+- yeni domen **produksiya** olur (`SEO_INDEXING=true`, real ödəniş provayderi);
+- `teacher.cvhazirla.az` **staging**-ə çevrilir (`APP_ENV=staging`, `SEO_INDEXING=false`,
+  `PAYMENT_DRIVER=fake`, `MAIL_MAILER=log`) — indiki qovluq və baza orada qalır.
 
-- [x] `php artisan db:backup` — nüsxə `public_html`-dən kənarda, yalnız son 3 saxlanılır,
-      parol əmr sətrində görünmür. Deploy addımlarında migration-dan əvvəl çağırılır.
-- [x] `php artisan staging:anonymize` — surət alınmış bazada şagird/müəllim məlumatlarını
-      təmizləyir; **produksiyada işləmir**, admin hesablarına toxunmur.
-- [x] `APP_ENV != production` olanda hər cavaba `X-Robots-Tag: noindex, nofollow`
-      (`PreventIndexingOutsideProduction`) — staging təsadüfən indeksləşməsin.
-- [x] `DEPLOY.md`: deploy ardıcıllığı, yoxlama və geri qaytarma addımları.
+**Hazırdır (kod tərəfi):**
 
-**Server tərəfi — istifadəçinin təsdiqini gözləyir:**
+- [x] `SEO_INDEXING` bayrağı (`config/seo.php`): false olanda `APP_ENV`-dən asılı olmayaraq
+      hər səhifə `noindex, nofollow` (meta + `X-Robots-Tag`) alır, `robots.txt` isə
+      `Disallow: /` qaytarır və sitemap-ı göstərmir. Produksiyada **false** qoyulub.
+- [x] `robots.txt` statik fayl deyil, route-dur (`RobotsController`) — bayraq dərhal işləyir.
+- [x] `php artisan db:backup` — nüsxə `public_html`-dən kənarda, son 3 saxlanılır.
+- [x] `php artisan staging:anonymize` — produksiyada işləmir, admin hesablarına toxunmur.
+- [x] `DEPLOY.md`: deploy ardıcıllığı, yoxlama, geri qaytarma və domen keçidi.
 
-- [ ] Ayrıca qovluq: `/home/websites/web/staging.teacher.cvhazirla.az/public_html`.
-- [ ] Ayrıca subdomen və DNS: `staging.teacher.cvhazirla.az` + SSL sertifikatı;
-      əlavə olaraq HTTP basic auth (parol qorunması) və `robots.txt` → `Disallow: /`.
-- [ ] Ayrıca baza və istifadəçi: `websites_teacher_exam_staging` (produksiyadan surət,
-      sonra `staging:anonymize`).
-- [ ] Ayrıca `.env`: `APP_ENV=staging`, `APP_DEBUG=false`, `PAYMENT_DRIVER=fake`,
-      `MAIL_MAILER=log`, ayrıca `APP_KEY`.
-- [ ] İş qaydası: dəyişikliklər staging-də edilir və orada yoxlanılır; produksiyaya
-      **yalnız `git pull`** ilə çıxarılır (kod redaktəsi produksiyada aparılmır).
-- [ ] Produksiyada `composer install --no-dev --optimize-autoloader`: dev paketləri
-      (phpunit, mockery, pint, sail) silinir — testlər staging-də işləyəcək.
+**Domen alınanda (təsdiq gözləyir):**
+
+- [ ] Yeni domen + DNS + SSL; qovluq və baza (yeni produksiya nüsxəsi).
+- [ ] Yeni domendə `.env`: `APP_URL=<yeni domen>`, `APP_ENV=production`, `SEO_INDEXING=true`,
+      real `PAYMENT_DRIVER`, ayrıca `APP_KEY`.
+- [ ] `teacher.cvhazirla.az` staging-ə çevrilir: `APP_ENV=staging`, `SEO_INDEXING=false`,
+      `PAYMENT_DRIVER=fake`, `MAIL_MAILER=log`, şagird məlumatları `staging:anonymize` ilə
+      təmizlənir, mümkünsə basic auth qoyulur.
+- [ ] İş qaydası: dəyişiklik staging-də yoxlanılır, produksiyaya **yalnız `git pull`** ilə
+      çıxarılır (kod redaktəsi produksiyada aparılmır).
+- [ ] Produksiyada `composer install --no-dev --optimize-autoloader` (testlər staging-də işləyir).
+- [ ] Yeni domendə Search Console + sitemap göndərilməsi; köhnə domendən 301 (istənilsə).
 - [ ] Deploydan əvvəl backup-ın avtomatlaşdırılması (cron və ya deploy skripti).
 
 ## P3: Vizyondan qalan, sonraya saxlanılan

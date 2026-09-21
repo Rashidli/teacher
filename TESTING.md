@@ -117,6 +117,8 @@ Giriş: `/admin/login`
 | B2.6 | `/miq`, `/mekteb`, `/suruculuk-imtahani` | Köhnə ünvanlar işləyir (dəyişməyib) |
 | B2.7 | Səhifə mənbəyində `<link rel="canonical">` və `hreflang` | Var; ru səhifədə canonical `/ru/abiturient` |
 | B2.8 | `/sitemap.xml` | XML açılır, hər səhifə iki dildə, `x-default` var |
+| B2.9 | `/robots.txt` | **`User-agent: *` + `Disallow: /`** — sayt hazırda axtarış sistemlərinə bağlıdır (`SEO_INDEXING=false`), sitemap göstərilmir |
+| B2.10 | İstənilən səhifənin mənbəyi / başlıqları | `<meta name="robots" content="noindex, nofollow">` və `X-Robots-Tag: noindex, nofollow` var. **Əsl domenə keçəndə `SEO_INDEXING=true` ilə hər ikisi yox olmalıdır** |
 
 ### B3. Mövzu sınağı axını
 

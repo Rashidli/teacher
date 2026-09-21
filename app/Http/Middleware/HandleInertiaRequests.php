@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Category;
 use App\Support\Localization;
+use App\Support\Seo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Middleware;
@@ -84,6 +85,8 @@ class HandleInertiaRequests extends Middleware
             // Dil (SetLocale middleware-i tərəfindən müəyyən olunur) və SEO (canonical, hreflang)
             'locale' => fn () => app()->getLocale(),
             'seo' => fn () => Localization::seo($request),
+            // SEO_INDEXING bağlıdırsa hər səhifə noindex meta teqi alır (SeoHead.vue)
+            'indexable' => fn () => Seo::indexable(),
             // SSR serverində route() üçün (brauzerdə @routes istifadə olunur)
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),

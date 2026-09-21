@@ -8,28 +8,12 @@ use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**
- * Staging/deploy alətləri: indeksləşmə qoruması və anonimləşdirmə.
- * Bunlar produksiyaya toxunmamalıdır — testlər məhz bunu yoxlayır.
+ * Deploy alətləri: nüsxə və anonimləşdirmə. Produksiyaya toxunmamalıdırlar.
+ * İndeksləşmə bayrağı ayrıca yoxlanılır: SearchIndexingTest.
  */
 class DeploymentToolsTest extends TestCase
 {
     use RefreshDatabase;
-
-    public function test_non_production_responses_are_not_indexable(): void
-    {
-        // Test mühiti "testing"-dir, yəni produksiya deyil
-        $this->get('/')->assertHeader('X-Robots-Tag', 'noindex, nofollow');
-    }
-
-    public function test_production_responses_keep_no_robots_header(): void
-    {
-        $this->app['env'] = 'production';
-        config(['app.env' => 'production']);
-
-        $response = $this->get('/');
-
-        $this->assertNull($response->headers->get('X-Robots-Tag'));
-    }
 
     public function test_anonymize_refuses_to_run_in_production(): void
     {

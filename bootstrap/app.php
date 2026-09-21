@@ -11,8 +11,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Staging/lokal nüsxə axtarış sistemlərinə düşməsin (produksiyada təsiri yoxdur)
-        $middleware->append(\App\Http\Middleware\PreventIndexingOutsideProduction::class);
+        // SEO_INDEXING=false və ya produksiyadan kənar nüsxə: axtarış sistemlərinə düşməsin
+        $middleware->append(\App\Http\Middleware\ControlSearchIndexing::class);
 
         $middleware->web(append: [
             // Dil HandleInertiaRequests-dən əvvəl müəyyən olunmalıdır (paylaşılan props dilə bağlıdır)

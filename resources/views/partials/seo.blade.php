@@ -4,6 +4,10 @@
 --}}
 @php($seo = \App\Support\Localization::seo(request()))
 <meta name="description" content="{{ __('site.seo.description') }}" inertia="description">
+@unless (\App\Support\Seo::indexable())
+    {{-- SEO_INDEXING=false və ya produksiyadan kənar nüsxə --}}
+    <meta name="robots" content="{{ \App\Support\Seo::robotsDirective() }}" inertia="robots">
+@endunless
 @if ($seo)
     <link rel="canonical" href="{{ $seo['canonical'] }}" inertia="canonical">
     @foreach ($seo['alternates'] as $lang => $url)

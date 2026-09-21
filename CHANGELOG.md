@@ -10,6 +10,27 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-21 — `SEO_INDEXING` bayrağı: sayt müvəqqəti domendə indeksləşmir
+
+`.env`-də bir bayraq bütün SEO davranışını idarə edir (`config/seo.php`). **Produksiyada
+`false` qoyulub** — əsl domenə keçəndə `true` ediləcək.
+
+`SEO_INDEXING=false` olanda (`APP_ENV`-dən asılı olmayaraq):
+
+- hər səhifə `<meta name="robots" content="noindex, nofollow">` alır (Blade + SeoHead.vue,
+  yəni həm ilk yüklənmədə, həm SPA keçidində);
+- hər cavaba `X-Robots-Tag: noindex, nofollow` başlığı əlavə olunur (bütün route-lar);
+- `robots.txt` → `User-agent: *` + `Disallow: /`, **sitemap göstərilmir**.
+
+`true` olanda əvvəlki davranış qayıdır: `robots.txt` yalnız panel ünvanlarını bağlayır və
+sitemap-ı göstərir. İndeksləşmə yalnız bayraq açıq **və** `APP_ENV=production` olanda işləyir —
+staging/lokal nüsxə həmişə bağlıdır.
+
+**`robots.txt` artıq statik fayl deyil**, route-dur (`RobotsController`): `public/robots.txt`
+silindi, əks halda veb server statik faylı verərdi və bayraq işləməzdi.
+
+**Testlər:** 340 test / 1625 assertion (yeni `SearchIndexingTest`: 9 test).
+
 ### 2026-09-21 — Deploy alətləri və staging hazırlığı (P2.5, kod tərəfi)
 
 - **`php artisan db:backup`**: bazanın nüsxəsi `public_html`-dən kənarda saxlanılır, yalnız son

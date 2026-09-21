@@ -175,11 +175,15 @@ class SeoTest extends TestCase
         $this->assertStringNotContainsString(url('magistratura').'<', $this->get('/sitemap.xml')->getContent());
     }
 
+    /** İndeksləşmə açıq olanda robots.txt sitemap-ı göstərir (bax: SearchIndexingTest) */
     public function test_robots_points_to_the_sitemap(): void
     {
-        $robots = file_get_contents(public_path('robots.txt'));
+        $this->app['env'] = 'production';
+        config(['app.env' => 'production', 'seo.indexing' => true]);
 
-        $this->assertStringContainsString('Sitemap: https://teacher.cvhazirla.az/sitemap.xml', $robots);
+        $robots = $this->get('/robots.txt')->assertOk()->getContent();
+
+        $this->assertStringContainsString('Sitemap: '.route('sitemap'), $robots);
         $this->assertStringContainsString('Disallow: /admin', $robots);
     }
 

@@ -8,8 +8,11 @@ dəyişiklik staging-də edilir, produksiyaya yalnız `git pull` ilə çıxarıl
 
 | Mühit | Qovluq | Baza | URL |
 |---|---|---|---|
-| Produksiya | `/home/websites/web/teacher.cvhazirla.az/public_html` | `websites_teacher_exam_db` | https://teacher.cvhazirla.az |
-| Staging (planlaşdırılır) | `/home/websites/web/staging.teacher.cvhazirla.az/public_html` | `websites_teacher_exam_staging` | https://staging.teacher.cvhazirla.az |
+| Produksiya (müvəqqəti domen) | `/home/websites/web/teacher.cvhazirla.az/public_html` | `websites_teacher_exam_db` | https://teacher.cvhazirla.az |
+| Produksiya (əsl domen) | *(domen alınanda)* | *(yeni baza)* | *(yeni domen)* |
+
+Əsl domen alınanda **ayrıca staging subdomeni qurulmur**: yeni domen produksiya olur,
+`teacher.cvhazirla.az` isə staging-ə çevrilir (aşağıda "Domen keçidi").
 
 Ehtiyat nüsxələr `public_html`-dən **kənarda** saxlanılır:
 `/home/websites/web/teacher.cvhazirla.az/backup_db_*.sql` (yalnız son 3 nüsxə;
@@ -60,13 +63,34 @@ php artisan migrate:rollback --step=1
 # mariadb -u <user> -p websites_teacher_exam_db < /home/websites/web/teacher.cvhazirla.az/backup_db_<tarix>.sql
 ```
 
-## Staging qaydaları (qurulandan sonra)
+## Axtarış sistemləri: `SEO_INDEXING`
 
-- `.env`: `APP_ENV=staging`, `APP_DEBUG=false`, `PAYMENT_DRIVER=fake`, `MAIL_MAILER=log`.
-- Axtarış sistemlərindən bağlıdır: `APP_ENV != production` olanda hər cavaba
-  `X-Robots-Tag: noindex, nofollow` əlavə olunur (`PreventIndexingOutsideProduction`).
-  Bundan əlavə staging-in öz `robots.txt`-i `Disallow: /` olmalıdır.
-- Produksiyadan surət alandan sonra şəxsi məlumatlar təmizlənir:
-  `php artisan staging:anonymize --password=<parol>` (admin hesabları toxunulmur;
-  əmr produksiyada işləmir).
-- Testlər staging-də işləyir: produksiyada `composer install --no-dev` ilə dev paketləri yoxdur.
+`.env`-dəki `SEO_INDEXING` bayrağı bütün SEO davranışını bir yerdən idarə edir:
+
+| Dəyər | Nəticə |
+|---|---|
+| `false` (indiki hal) | Hər səhifədə `<meta name="robots" content="noindex, nofollow">` və `X-Robots-Tag` başlığı; `robots.txt` → `Disallow: /`, sitemap göstərilmir |
+| `true` | Normal indeksləşmə; `robots.txt` panel ünvanlarını bağlayır və sitemap-ı göstərir |
+
+İndeksləşmə yalnız `SEO_INDEXING=true` **və** `APP_ENV=production` olanda açılır — staging və
+lokal nüsxə bayraqdan asılı olmayaraq bağlıdır (`App\Support\Seo::indexable()`).
+Dəyişikliyi tətbiq etmək üçün: `php artisan config:clear`.
+
+`robots.txt` statik fayl deyil, route-dur (`RobotsController`) — `public/robots.txt` yaratmaq
+olmaz, əks halda veb server statik faylı verər və bayraq işləməz.
+
+## Domen keçidi (əsl domen alınanda)
+
+1. Yeni domen üçün qovluq, baza və `.env` hazırlanır:
+   `APP_URL=<yeni domen>`, `APP_ENV=production`, **`SEO_INDEXING=true`**, real `PAYMENT_DRIVER`,
+   ayrıca `APP_KEY`.
+2. Kod `git pull` ilə çıxarılır, yuxarıdakı deploy addımları icra olunur.
+3. `teacher.cvhazirla.az` staging-ə çevrilir:
+   - `.env`: `APP_ENV=staging`, `APP_DEBUG=false`, **`SEO_INDEXING=false`**,
+     `PAYMENT_DRIVER=fake`, `MAIL_MAILER=log`;
+   - `php artisan staging:anonymize --password=<parol>` (admin hesabları toxunulmur,
+     əmr produksiyada işləmir);
+   - mümkünsə HTTP basic auth.
+4. Yeni domendə Search Console-a sitemap göndərilir; istənilsə köhnə domendən 301 qoyulur.
+5. İş qaydası: dəyişiklik staging-də yoxlanılır, produksiyaya yalnız `git pull` ilə çıxarılır.
+   Produksiyada `composer install --no-dev` olduğuna görə testlər staging-də işləyir.
