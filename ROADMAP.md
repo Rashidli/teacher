@@ -94,9 +94,10 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 
 ## P1: Təhlükəsizlik və keyfiyyət
 
-- [ ] `composer audit` 14 paketdə 42 zəiflik göstərir (league/commonmark, guzzlehttp/guzzle,
-      symfony/*, laravel/framework). Əksəriyyəti dolayı asılılıqdır; `composer update` ilə
-      baxılmalıdır (ayrıca tapşırıq, sınaqdan keçirilməlidir).
+- [x] `composer audit` zəiflikləri: 41 zəiflik (13 high, 24 medium, 4 low) bağlandı, indi
+      `No security vulnerability advisories found`. Paket-paket yeniləndi, hər addımdan sonra
+      testlər keçdi. Major versiya dəyişikliyi lazım olmadı.
+- [ ] `npm audit` zəiflikləri (14: 2 critical, 8 high, 3 moderate, 1 low).
 - [ ] `Admin/Exams/Index.vue` filtrləri işləmir: səhifə `subject`/`status` göndərir, controller isə
       `subject_id`/`group_id`/`status` gözləyir; `active`/`inactive` statusları ümumiyyətlə emal olunmur.
 - [x] `saveAnswer`: `question_id` həmin imtahana, `selected_option_id` həmin suala aid olmalıdır
@@ -112,6 +113,10 @@ Testlər olmadan digər tapşırıqların "test yaz və keçsin" şərti yerinə
 ---
 
 ## Gələcək qeydlər
+
+- Produksiyada `composer install --no-dev --optimize-autoloader` istifadə edilməlidir. Testlər
+  ayrıca mühitə köçəndə dev paketləri (phpunit, mockery, pint, sail …) produksiya serverindən
+  çıxarılacaq — hazırda testlər elə produksiya qovluğunda işlədiyi üçün onlar quraşdırılı qalır.
 
 - Bal düsturu dəyişsə, mövcud cəhdləri yenidən hesablayan `attempts:rescore` artisan komandası
   lazım olacaq (`--dry-run` ilə köhnə və yeni balları yan-yana göstərsin). Hazırda bazada cəhd
