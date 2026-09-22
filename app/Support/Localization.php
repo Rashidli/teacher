@@ -96,6 +96,13 @@ class Localization
     public const JSON_LD_ATTRIBUTE = 'json_ld';
 
     /**
+     * Səhifənin TƏK əsas ünvanı. Məzmunu tərcümə olunmayan səhifələr (imtahan) üçün:
+     * digər dil prefiksi ilə də açılır, amma canonical həmişə buraya göstərir və
+     * hreflang alternativi verilmir — eyni məzmun iki ünvanda indeksləşməsin.
+     */
+    public const CANONICAL_ATTRIBUTE = 'seo_canonical';
+
+    /**
      * Canonical və hreflang məlumatı. Yalnız dil prefiksli ictimai səhifələr üçün,
      * digərləri (panellər) üçün null.
      *
@@ -106,6 +113,17 @@ class Localization
     {
         if (! static::isLocalizedRoute($request)) {
             return null;
+        }
+
+        $canonical = $request->attributes->get(static::CANONICAL_ATTRIBUTE);
+
+        // Tək ünvanlı səhifə: dil variantı yoxdur, ona görə hreflang də yazılmır
+        if (is_string($canonical) && $canonical !== '') {
+            return [
+                'canonical' => $canonical,
+                'alternates' => [],
+                'x_default' => null,
+            ];
         }
 
         $alternates = $request->attributes->get(static::ALTERNATES_ATTRIBUTE);

@@ -287,6 +287,9 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
       gəzintisindən və ilk imtahanlardan çıxarılır, profildən dəyişilə bilir). Kabinetdə
       **"Sənin üçün imtahanlar"** bloku həmin kateqoriyanın yeni və tövsiyə olunan
       imtahanlarını göstərir; kataloq da o kateqoriyadan açılır.
+      **Panelin yeri hazırdır**: köhnə "Mövcud İmtahanlar" bloku (heç vaxt doldurulmurdu)
+      çıxarıldı, panelində indi davam edən cəhdlər, son nəticələr və "Kataloqa keç" var —
+      tövsiyə bloku məhz oraya gələcək.
 - [ ] `/imtahanlar` kataloq kök səhifəsi: hazırda kataloq ağacın kök kateqoriyalarından
       (ana səhifə) başlayır, ayrıca giriş nöqtəsi yoxdur.
 - [ ] Yeni sual növləri: uyğunluq (matching), mətn/situasiya əsaslı sual qrupu, esse.

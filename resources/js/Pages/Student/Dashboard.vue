@@ -1,12 +1,17 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { useLocale } from '@/Composables/useLocale';
 
+// Yeni imtahan axtarışı kataloqdadır (kateqoriya ağacı) — burada tövsiyə bloku yoxdur.
+// Onun yerini P3-dəki "Məqsədim" funksiyası tutacaq.
 defineProps({
     stats: Object,
-    recentAttempts: Array,
-    availableExams: Array,
+    inProgress: { type: Array, default: () => [] },
+    recentResults: { type: Array, default: () => [] },
 });
+
+const { lroute } = useLocale();
 </script>
 
 <template>
@@ -14,9 +19,15 @@ defineProps({
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Şagird Paneli
-            </h2>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-xl font-semibold leading-tight text-gray-800">Şagird Paneli</h2>
+                <Link
+                    :href="lroute('home')"
+                    class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                >
+                    Kataloqa keç
+                </Link>
+            </div>
         </template>
 
         <div class="py-12">
@@ -41,52 +52,42 @@ defineProps({
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Available Exams -->
-                    <div class="bg-white overflow-hidden shadow-sm rounded-lg">
-                        <div class="p-6 border-b border-gray-200">
-                            <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-semibold text-gray-900">Mövcud İmtahanlar</h3>
-                                <Link
-                                    :href="route('student.exams.index')"
-                                    class="text-sm text-indigo-600 hover:text-indigo-800"
-                                >
-                                    Hamısına bax
-                                </Link>
-                            </div>
+                <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                    <!-- Davam edən cəhdlər -->
+                    <div class="overflow-hidden rounded-lg bg-white shadow-sm">
+                        <div class="border-b border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900">Davam edən imtahanlar</h3>
                         </div>
                         <div class="p-6">
-                            <div v-if="availableExams?.length" class="space-y-4">
+                            <div v-if="inProgress.length" class="space-y-4">
                                 <div
-                                    v-for="exam in availableExams"
-                                    :key="exam.id"
-                                    class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                    v-for="item in inProgress"
+                                    :key="item.id"
+                                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 p-3"
                                 >
                                     <div>
-                                        <p class="font-medium text-gray-900">{{ exam.title }}</p>
-                                        <p class="text-sm text-gray-500">
-                                            {{ exam.subject?.name }} - {{ exam.duration_minutes }} dəq
-                                        </p>
+                                        <p class="font-medium text-gray-900">{{ item.title }}</p>
+                                        <p class="text-sm text-amber-700">{{ item.remaining_minutes }} dəqiqə qalıb</p>
                                     </div>
                                     <Link
-                                        :href="route('student.exams.show', exam.id)"
-                                        class="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                                        :href="item.url"
+                                        class="rounded bg-amber-500 px-3 py-1 text-sm font-semibold text-white hover:bg-amber-600"
                                     >
-                                        Başla
+                                        Davam et
                                     </Link>
                                 </div>
                             </div>
-                            <p v-else class="text-gray-500 text-center py-4">
-                                Hazırda mövcud imtahan yoxdur
+                            <p v-else class="py-4 text-center text-gray-500">
+                                Davam edən imtahanın yoxdur
                             </p>
                         </div>
                     </div>
 
-                    <!-- Recent Attempts -->
-                    <div class="bg-white overflow-hidden shadow-sm rounded-lg">
-                        <div class="p-6 border-b border-gray-200">
-                            <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-semibold text-gray-900">Son Nəticələr</h3>
+                    <!-- Son nəticələr -->
+                    <div class="overflow-hidden rounded-lg bg-white shadow-sm">
+                        <div class="border-b border-gray-200 p-6">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-gray-900">Son nəticələr</h3>
                                 <Link
                                     :href="route('student.results.index')"
                                     class="text-sm text-indigo-600 hover:text-indigo-800"
@@ -96,27 +97,26 @@ defineProps({
                             </div>
                         </div>
                         <div class="p-6">
-                            <div v-if="recentAttempts?.length" class="space-y-4">
-                                <div
-                                    v-for="attempt in recentAttempts"
-                                    :key="attempt.id"
-                                    class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            <div v-if="recentResults.length" class="space-y-4">
+                                <Link
+                                    v-for="item in recentResults"
+                                    :key="item.id"
+                                    :href="item.url"
+                                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 p-3 hover:bg-gray-100"
                                 >
                                     <div>
-                                        <p class="font-medium text-gray-900">{{ attempt.exam?.title }}</p>
-                                        <p class="text-sm text-gray-500">
-                                            {{ new Date(attempt.finished_at).toLocaleDateString('az-AZ') }}
-                                        </p>
+                                        <p class="font-medium text-gray-900">{{ item.title }}</p>
+                                        <p class="text-sm text-gray-500">{{ item.finished_at }}</p>
                                     </div>
                                     <div class="text-right">
-                                        <p class="font-semibold text-indigo-600">{{ attempt.score }} bal</p>
+                                        <p class="font-semibold text-indigo-600">{{ item.relative_score ?? 0 }} / 100</p>
                                         <p class="text-xs text-gray-500">
-                                            {{ attempt.correct_answers }}/{{ attempt.total_questions }}
+                                            {{ item.correct_answers }}/{{ item.question_count }} düz
                                         </p>
                                     </div>
-                                </div>
+                                </Link>
                             </div>
-                            <p v-else class="text-gray-500 text-center py-4">
+                            <p v-else class="py-4 text-center text-gray-500">
                                 Hələ imtahan verməmisiniz
                             </p>
                         </div>

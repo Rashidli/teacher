@@ -162,18 +162,16 @@ class ExamController extends Controller
     }
 
     /**
-     * Canonical/hreflang və JSON-LD. Kateqoriya səhifəsindəki qayda ilə eyni: sorğu
-     * atributlarında saxlanılır, `seo` prop-u üzərinə yazılmır.
+     * Canonical və JSON-LD. Kateqoriya səhifəsindəki qayda ilə eyni: sorğu atributlarında
+     * saxlanılır, `seo` prop-u üzərinə yazılmır.
+     *
+     * İmtahanın dil variantı yoxdur (məzmun tərcümə olunmur), ona görə hreflang də yazılmır:
+     * canonical həmişə sektorun əsas ünvanına göstərir. Səhifə digər dil prefiksi ilə də
+     * açılır — interfeys dilini dəyişmək üçün.
      */
     private function shareSeo(Request $request, Exam $exam): void
     {
-        $alternates = [];
-
-        foreach (Localization::supported() as $locale) {
-            $alternates[$locale] = $exam->publicUrl($locale);
-        }
-
-        $request->attributes->set(Localization::ALTERNATES_ATTRIBUTE, $alternates);
+        $request->attributes->set(Localization::CANONICAL_ATTRIBUTE, $exam->canonicalUrl());
         $request->attributes->set(Localization::JSON_LD_ATTRIBUTE, [
             '@context' => 'https://schema.org',
             '@type' => 'BreadcrumbList',

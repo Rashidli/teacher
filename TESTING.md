@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 425 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 430 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
@@ -72,8 +72,9 @@ Hər imtahanın ictimai səhifəsi var: `/imtahan/{slug}` — qonaq da görür.
 | K11 | Menyu → "Mənim imtahanlarım" | Davam edən, girişi olan və tamamlanmış imtahanlar; **filtr yoxdur** |
 | K12 | Heç bir imtahanı olmayan hesabla həmin səhifə | "Hələ imtahanın yoxdur" + **"Kataloqa keç"** düyməsi ana səhifəyə aparır |
 | K13 | Köhnə ünvan `/student/exams/{id}` | **301** ilə `/imtahan/{slug}`-a yönləndirilir |
-| K14 | `/sitemap.xml` | Dərc olunmuş imtahanların ünvanları var (qaralamalar yoxdur) |
-| K15 | İmtahan səhifəsinin mənbəyi | `canonical` və hər iki dilin `hreflang`-ı var; `SEO_INDEXING=false` olduğu üçün `noindex` də var |
+| K14 | `/sitemap.xml` | Hər dərc olunmuş imtahan **bir dəfə** — az sektoru `/imtahan/{slug}`, rus sektoru `/ru/imtahan/{slug}` (qaralamalar yoxdur) |
+| K15 | İmtahan səhifəsinin mənbəyi | `canonical` sektorun əsas ünvanına göstərir, **`hreflang` yoxdur** (imtahan mətni tərcümə olunmur); `SEO_INDEXING=false` olduğu üçün `noindex` var |
+| K16 | Az imtahanını `/ru/imtahan/{slug}` ilə aç | Səhifə açılır (interfeys rusca), amma `canonical` yenə `/imtahan/{slug}`-dır |
 
 ---
 
@@ -223,6 +224,14 @@ Rol və limit yoxlamaları yuxarıdakı "Giriş və rollar" bölməsindədir.
 | B5.5 | Eyni imtahanı ikinci dəfə ver | Nəticədə "Əvvəlki cəhd: … , dəyişmə: +/−" bloku və qrafik görünür |
 | B5.6 | "Mövzu üzrə bölgü" | Ən zəif mövzu yuxarıda, düzgünlük faizi ilə |
 | B5.7 | Admin sualı imtahandan ayırır və ya əvəz edir | **Köhnə nəticə səhifəsi dəyişmir** (cəhd dondurulub) |
+
+### B5.5 Şagird paneli
+
+| # | Addım | Gözlənilən nəticə |
+|---|---|---|
+| B5.5.1 | Kabinet → "Panel" | Dörd göstərici, **davam edən imtahanlar**, **son nəticələr** və başlıqda "Kataloqa keç" düyməsi |
+| B5.5.2 | Paneldə imtahan tövsiyəsi axtar | **"Mövcud İmtahanlar" bloku yoxdur** — yeni imtahan kataloqdan tapılır (o yer P3-dəki "Məqsədim" üçün saxlanılıb) |
+| B5.5.3 | Son nəticə sətrinə kliklə | Həmin cəhdin nəticə səhifəsi açılır |
 
 ### B6. Statistika
 

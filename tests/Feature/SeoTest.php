@@ -161,14 +161,22 @@ class SeoTest extends TestCase
         $this->assertStringContainsString(url('ru/abiturient/1-ya-gruppa/movzu-sinagi/2-ci-rub'), $xml);
     }
 
-    /** Dərc olunmuş imtahanın ictimai səhifəsi sitemap-a düşür, qaralama düşmür. */
-    public function test_published_exams_appear_in_the_sitemap(): void
+    /**
+     * İmtahan sitemap-a YALNIZ öz sektorunun ünvanı ilə düşür: məzmunu tərcümə olunmur,
+     * ona görə dil cütü yoxdur.
+     */
+    public function test_published_exams_appear_in_the_sitemap_once(): void
     {
         $category = Category::where('path', 'abituriyent/1-ci-qrup')->firstOrFail();
 
-        $published = Exam::factory()->published()->create([
+        $azerbaijani = Exam::factory()->published()->create([
             'category_id' => $category->id,
-            'title' => 'Dərc olunmuş sınaq',
+            'title' => 'Azərbaycan sınağı',
+        ]);
+
+        $russian = Exam::factory()->published()->russian()->create([
+            'category_id' => $category->id,
+            'title' => 'Rus sınağı',
         ]);
 
         $draft = Exam::factory()->create([
@@ -180,20 +188,49 @@ class SeoTest extends TestCase
         Cache::flush();
         $xml = $this->get('/sitemap.xml')->getContent();
 
-        $this->assertStringContainsString(url('imtahan/'.$published->slug), $xml);
-        $this->assertStringContainsString(url('ru/imtahan/'.$published->slug), $xml);
+        // Az sektoru: yalnız prefikssiz ünvan
+        $this->assertStringContainsString('<loc>'.url('imtahan/'.$azerbaijani->slug).'</loc>', $xml);
+        $this->assertStringNotContainsString(url('ru/imtahan/'.$azerbaijani->slug), $xml);
+
+        // Rus sektoru: yalnız /ru ünvanı
+        $this->assertStringContainsString('<loc>'.url('ru/imtahan/'.$russian->slug).'</loc>', $xml);
+        $this->assertStringNotContainsString('<loc>'.url('imtahan/'.$russian->slug).'</loc>', $xml);
+
         $this->assertStringNotContainsString($draft->slug, $xml);
     }
 
-    /** İmtahan səhifəsi canonical və hər iki dilin hreflang-ını verir. */
-    public function test_the_exam_page_has_canonical_and_hreflang(): void
+    /** İmtahan səhifəsində hreflang yoxdur: canonical sektorun əsas ünvanına göstərir. */
+    public function test_the_exam_page_has_a_single_canonical_without_hreflang(): void
     {
         $exam = Exam::factory()->published()->create(['title' => 'Kanonik sınaq']);
 
         $response = $this->get($exam->publicUrl())->assertOk();
 
         $response->assertSee('rel="canonical" href="'.url('imtahan/'.$exam->slug).'"', false);
-        $response->assertSee('hreflang="ru" href="'.url('ru/imtahan/'.$exam->slug).'"', false);
+        $response->assertDontSee('hreflang=', false);
+    }
+
+    /** Digər dil prefiksi ilə açılanda da canonical DƏYİŞMİR. */
+    public function test_the_other_language_prefix_points_to_the_same_canonical(): void
+    {
+        $exam = Exam::factory()->published()->create(['title' => 'Kanonik sınaq']);
+
+        $this->get($exam->publicUrl('ru'))
+            ->assertOk()
+            ->assertSee('rel="canonical" href="'.url('imtahan/'.$exam->slug).'"', false);
+    }
+
+    /** Rus sektoru imtahanının əsas ünvanı /ru prefiksi ilədir. */
+    public function test_a_russian_sector_exam_is_canonical_under_the_ru_prefix(): void
+    {
+        $exam = Exam::factory()->published()->russian()->create(['title' => 'Русский пробник']);
+
+        $this->assertSame(url('ru/imtahan/'.$exam->slug), $exam->canonicalUrl());
+
+        // Prefikssiz ünvanla açılsa da canonical /ru-ya göstərir
+        $this->get($exam->publicUrl())
+            ->assertOk()
+            ->assertSee('rel="canonical" href="'.url('ru/imtahan/'.$exam->slug).'"', false);
     }
 
     public function test_the_sitemap_is_cached_until_a_category_changes(): void

@@ -160,10 +160,26 @@ class Exam extends Model
             ->where('is_active', true);
     }
 
-    /** İctimai səhifənin tam ünvanı (dil prefiksi ilə) */
+    /** İctimai səhifənin tam ünvanı (verilən dil prefiksi ilə) */
     public function publicUrl(?string $locale = null): string
     {
         return \App\Support\Localization::route('exam.show', ['exam' => $this->slug], true, $locale);
+    }
+
+    /**
+     * İmtahanın TƏK əsas ünvanı — sektoruna görə.
+     *
+     * İmtahan məzmunu tərcümə olunmur: az sektoru imtahanı `/imtahan/{slug}`, rus sektoru
+     * imtahanı `/ru/imtahan/{slug}` ünvanında yaşayır. Digər dil prefiksi ilə də açılır
+     * (interfeys dili üçün), amma canonical həmişə buraya göstərir.
+     */
+    public function canonicalUrl(): string
+    {
+        $locale = \App\Support\Localization::isSupported($this->sector)
+            ? $this->sector
+            : \App\Support\Localization::default();
+
+        return $this->publicUrl($locale);
     }
 
     public function scopeByGroup($query, $groupId)

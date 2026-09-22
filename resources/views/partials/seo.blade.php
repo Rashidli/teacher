@@ -13,5 +13,7 @@
     @foreach ($seo['alternates'] as $lang => $url)
         <link rel="alternate" hreflang="{{ $lang }}" href="{{ $url }}" inertia="hreflang-{{ $lang }}">
     @endforeach
-    <link rel="alternate" hreflang="x-default" href="{{ $seo['x_default'] }}" inertia="hreflang-x-default">
+    @if ($seo['x_default'])
+        <link rel="alternate" hreflang="x-default" href="{{ $seo['x_default'] }}" inertia="hreflang-x-default">
+    @endif
 @endif

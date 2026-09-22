@@ -10,6 +10,30 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-22 — İmtahanın tək əsas ünvanı və panelin sadələşdirilməsi
+
+**SEO.** İmtahan məzmunu tərcümə olunmur, ona görə hər imtahanın **tək əsas ünvanı** var:
+az sektoru üçün `/imtahan/{slug}`, rus sektoru üçün `/ru/imtahan/{slug}`.
+
+- Digər dil prefiksi ilə səhifə açılmağa davam edir (interfeys dili üçün), amma `canonical`
+  həmişə əsas ünvana göstərir və imtahan səhifələrində **`hreflang` alternativi yazılmır** —
+  eyni məzmun iki ünvanda indeksləşməsin.
+- Sitemap-a hər imtahan **bir dəfə**, yalnız əsas ünvanı ilə düşür (`urlNode`-a
+  `withAlternates` parametri əlavə olundu).
+- `Localization::CANONICAL_ATTRIBUTE`: səhifə tək əsas ünvanını bildirəndə `seo` prop-u
+  `alternates: []` və `x_default: null` qaytarır; `SeoHead.vue` və `partials/seo.blade.php`
+  x-default-ı yalnız mövcud olanda yazır.
+
+**Şagird paneli.** Heç vaxt doldurulmayan "Mövcud İmtahanlar" bloku çıxarıldı (controller
+`availableExams` propunu göndərmirdi, blok həmişə "Hazırda mövcud imtahan yoxdur" yazırdı).
+Panel indi **davam edən cəhdləri** (qalan vaxt ilə), **son beş nəticəni** (nisbi bal və düz
+cavab sayı ilə) və başlıqda **"Kataloqa keç"** düyməsini göstərir. Nəticə sətirləri artıq
+mövcud olmayan `attempt.score`/`total_questions` sahələrinə baxmır.
+
+Tövsiyə bloku P3-dəki **"Məqsədim"** funksiyası ilə gələcək — ROADMAP-da həmin bəndə yazıldı.
+
+**Testlər:** 430 test / 2174 assertion.
+
 ### 2026-09-22 — Vahid imtahan axını: kataloq → imtahan səhifəsi → başlama
 
 Şagirdin imtahan tapıb alması üçün iki yarımçıq kataloq var idi: kateqoriya səhifələrindəki

@@ -33,7 +33,13 @@ const robots = computed(() => (props.noindex || page.props.indexable === false ?
                 :hreflang="lang"
                 :href="url"
             />
-            <link head-key="hreflang-x-default" rel="alternate" hreflang="x-default" :href="seo.x_default" />
+            <link
+                v-if="seo.x_default"
+                head-key="hreflang-x-default"
+                rel="alternate"
+                hreflang="x-default"
+                :href="seo.x_default"
+            />
         </template>
     </Head>
 </template>

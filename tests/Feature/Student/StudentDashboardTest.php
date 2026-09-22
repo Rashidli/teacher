@@ -33,20 +33,28 @@ class StudentDashboardTest extends TestCase
         $this->group = Group::factory()->create();
     }
 
-    private function attempt(float $relative, int $correct, int $wrong, int $unanswered = 0): ExamAttempt
-    {
-        $exam = Exam::factory()->create([
+    private function attempt(
+        float $relative,
+        int $correct,
+        int $wrong,
+        int $unanswered = 0,
+        string $status = ExamAttempt::STATUS_COMPLETED,
+        ?Exam $exam = null,
+    ): ExamAttempt {
+        $exam ??= Exam::factory()->create([
             'subject_id' => Subject::factory()->create()->id,
             'group_id' => $this->group->id,
         ]);
+
+        $inProgress = $status === ExamAttempt::STATUS_IN_PROGRESS;
 
         return ExamAttempt::create([
             'user_id' => $this->student->id,
             'exam_id' => $exam->id,
             'group_id' => $this->group->id,
-            'status' => ExamAttempt::STATUS_COMPLETED,
-            'started_at' => '2026-09-01 10:00:00',
-            'finished_at' => '2026-09-01 11:00:00',
+            'status' => $status,
+            'started_at' => $inProgress ? now()->subMinutes(5) : '2026-09-01 10:00:00',
+            'finished_at' => $inProgress ? null : '2026-09-01 11:00:00',
             'time_spent_seconds' => 1800,
             'total_score' => $relative * 1.5,
             'relative_score' => $relative,
@@ -94,6 +102,55 @@ class StudentDashboardTest extends TestCase
         $this->actingAs($this->student)
             ->get(route('student.dashboard'))
             ->assertInertia(fn ($page) => $page->where('stats.averageScore', 55.3));
+    }
+
+    /**
+     * "Mövcud İmtahanlar" bloku çıxarıldı: yeni imtahan kataloqdan tapılır, panelin o yeri
+     * P3-dəki "Məqsədim" tövsiyə bloku üçün saxlanılır.
+     */
+    public function test_the_dashboard_no_longer_ships_a_recommendation_block(): void
+    {
+        $this->actingAs($this->student)
+            ->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->missing('availableExams')
+                ->has('inProgress')
+                ->has('recentResults'));
+    }
+
+    public function test_an_unfinished_attempt_is_shown_with_its_remaining_time(): void
+    {
+        $exam = Exam::factory()->published()->create([
+            'title' => 'Davam edən sınaq',
+            'duration_minutes' => 60,
+            'group_id' => $this->group->id,
+        ]);
+
+        $attempt = $this->attempt(0, 0, 0, 0, ExamAttempt::STATUS_IN_PROGRESS, $exam);
+
+        $this->actingAs($this->student)
+            ->get(route('student.dashboard'))
+            ->assertInertia(fn ($page) => $page
+                ->has('inProgress', 1)
+                ->where('inProgress.0.title', 'Davam edən sınaq')
+                ->where('inProgress.0.url', route('student.exams.attempt', $attempt))
+                ->where('inProgress.0.remaining_minutes', 55));
+    }
+
+    public function test_finished_attempts_are_listed_as_recent_results(): void
+    {
+        $attempt = $this->attempt(72.0, 18, 7);
+
+        $this->actingAs($this->student)
+            ->get(route('student.dashboard'))
+            ->assertInertia(fn ($page) => $page
+                ->has('recentResults', 1)
+                ->where('recentResults.0.url', route('student.exams.result', $attempt))
+                ->where('recentResults.0.relative_score', '72.00')
+                ->where('recentResults.0.correct_answers', 18)
+                ->where('recentResults.0.question_count', 25)
+                ->has('inProgress', 0));
     }
 
     /** Cəhdi olmayan şagird "0" görür, səhifə sınmır. */

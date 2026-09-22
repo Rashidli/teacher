@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\Cache;
  * `/sitemap.xml` — hər səhifə hər iki dildə, xhtml:link ilə qarşılıqlı hreflang.
  *
  * Siyahıya düşənlər: ana səhifə, qaydalar, aktiv kateqoriyalar, imtahanı olan mövzu
- * sınağı/rüb səhifələri və hər dərc olunmuş imtahanın ictimai səhifəsi (`/imtahan/{slug}`).
+ * sınağı/rüb səhifələri və hər dərc olunmuş imtahanın ictimai səhifəsi.
+ *
+ * Kateqoriya səhifələri hər iki dildə verilir (məzmun tərcümə olunur). İmtahan isə YALNIZ
+ * öz sektorunun ünvanı ilə düşür: məzmunu tərcümə olunmur, ona görə dil cütü yoxdur.
  *
  * Nəticə 1 saat keşlənir: kateqoriya ağacı nadir hallarda dəyişir.
  */
@@ -47,7 +50,7 @@ class SitemapController extends Controller
         ];
 
         foreach ($this->entries() as $entry) {
-            $lines[] = $this->urlNode($entry['urls'], $entry['lastmod'] ?? null);
+            $lines[] = $this->urlNode($entry['urls'], $entry['lastmod'] ?? null, $entry['alternates'] ?? true);
         }
 
         $lines[] = '</urlset>';
@@ -59,7 +62,7 @@ class SitemapController extends Controller
      * Hər bənd: dil → tam URL. Bir "url" düyünü hər dil üçün ayrıca yazılır,
      * içində bütün dillərin alternativləri göstərilir (Google belə tələb edir).
      *
-     * @return Collection<int, array{urls: array<string, string>, lastmod?: string}>
+     * @return Collection<int, array{urls: array<string, string>, alternates?: bool, lastmod?: string}>
      */
     private function entries(): Collection
     {
@@ -79,10 +82,11 @@ class SitemapController extends Controller
             ]);
         }
 
-        // Dərc olunmuş imtahanların ictimai səhifələri
+        // Dərc olunmuş imtahanlar: hər biri yalnız öz sektorunun əsas ünvanı ilə
         foreach (Exam::query()->where('is_published', true)->where('is_active', true)->orderBy('id')->get() as $exam) {
             $entries->push([
-                'urls' => $this->localized(fn (string $locale) => $exam->publicUrl($locale)),
+                'urls' => [$exam->canonicalUrl()],
+                'alternates' => false,
                 'lastmod' => $exam->updated_at?->toAtomString(),
             ]);
         }
@@ -157,23 +161,28 @@ class SitemapController extends Controller
         return $urls;
     }
 
-    /** @param  array<string, string>  $urls */
-    private function urlNode(array $urls, ?string $lastmod): string
+    /**
+     * @param  array<string, string>  $urls
+     * @param  bool  $withAlternates  false: səhifənin dil variantı yoxdur (imtahan)
+     */
+    private function urlNode(array $urls, ?string $lastmod, bool $withAlternates = true): string
     {
         $alternates = '';
 
-        foreach ($urls as $locale => $url) {
+        if ($withAlternates) {
+            foreach ($urls as $locale => $url) {
+                $alternates .= sprintf(
+                    "\n        <xhtml:link rel=\"alternate\" hreflang=\"%s\" href=\"%s\"/>",
+                    $locale,
+                    e($url),
+                );
+            }
+
             $alternates .= sprintf(
-                "\n        <xhtml:link rel=\"alternate\" hreflang=\"%s\" href=\"%s\"/>",
-                $locale,
-                e($url),
+                "\n        <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"%s\"/>",
+                e($urls[Localization::default()]),
             );
         }
-
-        $alternates .= sprintf(
-            "\n        <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"%s\"/>",
-            e($urls[Localization::default()]),
-        );
 
         $nodes = '';
 
