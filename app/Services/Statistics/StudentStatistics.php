@@ -35,8 +35,28 @@ class StudentStatistics
             // Nisbi bal (100-lük) fənlər arasında müqayisə oluna bilən yeganə ölçüdür
             'average_relative' => $this->round($completed->avg('relative_score')),
             'best_relative' => $this->round($completed->max('relative_score')),
+            'correct_percentage' => $this->correctPercentage($completed),
             'total_minutes' => (int) round($completed->sum('time_spent_seconds') / 60),
         ];
+    }
+
+    /**
+     * Cavablandırılmış sualların neçə faizi düzdür.
+     *
+     * Məxrəcə boş buraxılanlar da daxildir (şagird onları görüb, cavab verməyib);
+     * heç bir sual yoxdursa null qaytarılır ki, "0%" yanlış təəssürat yaratmasın.
+     *
+     * @param  Collection<int, ExamAttempt>  $attempts
+     */
+    private function correctPercentage(Collection $attempts): ?float
+    {
+        $total = $attempts->sum('correct_answers')
+            + $attempts->sum('wrong_answers')
+            + $attempts->sum('unanswered');
+
+        return $total > 0
+            ? $this->round($attempts->sum('correct_answers') / $total * 100)
+            : null;
     }
 
     /**

@@ -10,6 +10,22 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-22 — Şagird panelindəki göstəricilər düzəldildi
+
+Panel "Orta Bal" sütununda `45.000000` göstərirdi: `StudentDashboardController` xam
+`avg('total_score')` işlədirdi, MySQL isə DECIMAL üçün orta qiyməti dörd əlavə onluqla
+qaytarır. "Ən Yüksək Bal" və "Düzgün Cavab %" isə controller tərəfindən **ümumiyyətlə
+göndərilmirdi** — Vue `|| 0` ilə həmişə sıfır çıxarırdı.
+
+- Panel indi statistika səhifəsi ilə **eyni mənbədən** (`StudentStatistics::overview()`)
+  qidalanır: nisbi bal (100-lük), bir onluğa yuvarlaqlaşdırılmış.
+- `overview()`-a `correct_percentage` əlavə olundu: düz cavabların cavablandırılmış suallara
+  nisbəti (boş buraxılanlar da məxrəcdədir); cəhd yoxdursa `null`.
+- Başlıqlar statistika səhifəsi ilə uyğunlaşdırıldı: "Orta nəticə (100-lük)",
+  "Ən yüksək (100-lük)".
+
+**Testlər:** 368 test / 1778 assertion (yeni `StudentDashboardTest`: 4).
+
 ### 2026-09-22 — Ayrıca müəllim girişi silindi
 
 `TeacherLoginController` və `Teacher/Auth/Login.vue` silindi: vahid `/login` bütün rolları

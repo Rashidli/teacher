@@ -24,19 +24,19 @@ defineProps({
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                     <div class="bg-white overflow-hidden shadow-sm rounded-lg p-6">
-                        <div class="text-sm font-medium text-gray-500">Verilən İmtahanlar</div>
+                        <div class="text-sm font-medium text-gray-500">Verilən imtahanlar</div>
                         <div class="mt-2 text-3xl font-semibold text-gray-900">{{ stats?.totalAttempts || 0 }}</div>
                     </div>
                     <div class="bg-white overflow-hidden shadow-sm rounded-lg p-6">
-                        <div class="text-sm font-medium text-gray-500">Orta Bal</div>
+                        <div class="text-sm font-medium text-gray-500">Orta nəticə (100-lük)</div>
                         <div class="mt-2 text-3xl font-semibold text-indigo-600">{{ stats?.averageScore || 0 }}</div>
                     </div>
                     <div class="bg-white overflow-hidden shadow-sm rounded-lg p-6">
-                        <div class="text-sm font-medium text-gray-500">Ən Yüksək Bal</div>
+                        <div class="text-sm font-medium text-gray-500">Ən yüksək (100-lük)</div>
                         <div class="mt-2 text-3xl font-semibold text-green-600">{{ stats?.highestScore || 0 }}</div>
                     </div>
                     <div class="bg-white overflow-hidden shadow-sm rounded-lg p-6">
-                        <div class="text-sm font-medium text-gray-500">Düzgün Cavab %</div>
+                        <div class="text-sm font-medium text-gray-500">Düzgün cavab %</div>
                         <div class="mt-2 text-3xl font-semibold text-gray-900">{{ stats?.correctPercentage || 0 }}%</div>
                     </div>
                 </div>
