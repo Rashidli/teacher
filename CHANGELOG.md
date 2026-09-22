@@ -10,6 +10,20 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-22 — Auth refaktorunun üç düzəlişi
+
+- **Admin girişi səbəbi açmır.** Admin olmayan hesab düzgün parolla da səhv parolla eyni
+  mesajı alır (`AdminLoginRequest::FAILED_MESSAGE`) — əvvəlki "Bu hesab admin deyil" cavabı
+  parolun tapıldığını bildirirdi.
+- **`/admin/login` daxil olmuş istifadəçini qovmur.** `guest` əvəzinə
+  `RedirectAdminsToDashboard`: yalnız artıq admin olan panelə yönləndirilir, başqa rolla
+  daxil olan formanı görür və oradan admin hesabına keçə bilir.
+- **Paneli olmayan hesab 403 almır.** Müəllim modulu söndürülü olanda yalnız `teacher` rolu
+  olan (və ya heç bir rolu olmayan) hesab `/panel-yoxdur` səhifəsinə düşür: səbəb izah olunur,
+  rollar və "Çıxış" göstərilir. `Panel::hasPanel()` bu halı bir yerdə müəyyən edir.
+
+**Testlər:** 364 test / 1725 assertion (9 yeni bənd `RolePanelTest`-də).
+
 ### 2026-09-22 — Auth sadələşdirilməsi: tək guard, bir hesab / bir neçə rol
 
 Ayrı `admin`, `teacher`, `student` guard-ları **silindi**. İndi tək `web` guard-ı və tək `users`

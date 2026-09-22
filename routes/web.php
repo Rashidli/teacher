@@ -29,6 +29,7 @@ use App\Http\Controllers\Payments\FakeGatewayController;
 use App\Http\Controllers\Payments\PaymentCallbackController;
 use App\Http\Controllers\Student\StudentPaymentController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\NoPanelController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SectorController;
@@ -70,8 +71,9 @@ $auth['account']();
 // ADMIN ROUTES
 // =====================================================
 Route::prefix('admin')->name('admin.')->group(function () {
-    // Ayrıca giriş səhifəsi, amma eyni "web" guard-ı: yalnız admin rolu buraxılır
-    Route::middleware('guest')->group(function () {
+    // Ayrıca giriş səhifəsi, amma eyni "web" guard-ı: yalnız admin rolu buraxılır.
+    // Başqa rolla daxil olmuş istifadəçi formanı görür və bu formadan admin hesabına keçə bilir.
+    Route::middleware('guest.admin')->group(function () {
         Route::get('/login', [AdminLoginController::class, 'create'])->name('login');
         Route::post('/login', [AdminLoginController::class, 'store']);
     });
@@ -262,6 +264,9 @@ if (config('payments.driver') === 'fake' && ! app()->isProduction()) {
 
 // Profil: rolundan asılı olmayaraq daxil olmuş hər istifadəçi üçün
 Route::middleware('auth')->group(function () {
+    // Hesabın açıq paneli olmayanda (məs. müəllim modulu söndürülü, yalnız teacher rolu)
+    Route::get('/panel-yoxdur', NoPanelController::class)->name('no-panel');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 355 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 364 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
@@ -17,12 +17,13 @@ Sayt **tək sessiya (web guard) + rollar** üzərində işləyir: admin, müəll
 
 - Vahid `/login` heç bir rolu rədd etmir — girişdən sonra hesab öz panelinə düşür:
   admin → `/admin/dashboard`, müəllim (modul açıq olanda) → müəllim paneli, qalanlar →
-  `/student/dashboard`.
+  `/student/dashboard`. Heç bir paneli olmayan hesab izahlı `/panel-yoxdur` səhifəsini görür.
 - `/admin/login` ayrıca səhifə kimi qalır: yalnız admin rolunu buraxır və sürət limiti var.
+  Uğursuz girişin səbəbi (səhv parol, yoxsa rol çatışmazlığı) **açıqlanmır**.
 - Başqa rolun panelinə girmək cəhdi **403** verir (giriş səhifəsinə yönləndirmə yox).
 
-Hesablar: bir admin, bir şagird və **çox rollu bir hesab** lazımdır.
-`rashidliseymur@gmail.com` — `teacher` + `student` rolları var.
+Hesablar: bir admin, bir şagird, **çox rollu bir hesab** və L19 üçün **yalnız müəllim rolu olan**
+bir hesab lazımdır. `rashidliseymur@gmail.com` — `teacher` + `student` rolları var.
 
 | # | Addım | Gözlənilən nəticə |
 |---|---|---|
@@ -32,14 +33,20 @@ Hesablar: bir admin, bir şagird və **çox rollu bir hesab** lazımdır.
 | L4 | Çox rollu hesabla `/admin/dashboard` aç | **403** (bu hesabın admin rolu yoxdur) |
 | L5 | Şagird hesabı ilə `/admin/dashboard` aç | **403** |
 | L6 | Yalnız admin rolu olan hesabla `/student/dashboard` aç | **403** |
-| L7 | `/admin/login`-ə şagird hesabının email/parolu ilə gir | "Bu hesab admin deyil" xətası; geri qayıdanda **hələ də qonaqsan** (sessiya açılmır) |
-| L8 | `/admin/login`-də yanlış parolla **5 dəfə** cəhd et (hər dəfə "Daxil edilən məlumatlar yanlışdır"), sonra **düzgün** parol yaz | "… saniyə ərzində yenidən cəhd edin" mesajı, düzgün parolla da giriş açılmır. Limit bitəndən sonra normal işləyir |
-| L9 | Qonaq kimi `/admin/dashboard` və `/student/dashboard` aç | Uyğun olaraq `/admin/login` və `/login`-ə yönləndirilir (403 yox) |
-| L10 | Daxil olduqdan sonra `/login` və ya `/admin/login` aç | Öz panelinə qaytarılır, giriş forması göstərilmir |
-| L11 | Köhnə ünvanlar: `/student/login`, `/student/register` | **301** ilə `/login` və `/register`-ə yönləndirilir |
-| L12 | `/teacher/login`, `/teacher/register` | **404** — müəllim modulu söndürülüb (`FEATURE_TEACHERS=false`) |
-| L13 | İstənilən paneldən "Çıxış" | Sessiya bağlanır; geri düyməsi ilə panelə qayıtmaq olmur |
-| L14 | `/register`-dən yeni hesab aç | Hesab **həmişə şagird** olur: qeydiyyatdan sonra şagird kabineti açılır, admin/müəllim bölmələri görünmür |
+| L7 | `/admin/login`-ə şagird hesabının email və **düzgün** parolu ilə gir | "Daxil edilən məlumatlar yanlışdır" xətası; geri qayıdanda **hələ də qonaqsan** (sessiya açılmır) |
+| L8 | Eyni hesabla, bu dəfə **səhv** parolla | **Tam eyni mesaj** — cavabdan parolun düz olub-olmadığı bilinmir |
+| L9 | Şagird kimi daxil olub `/admin/login` aç | Giriş forması görünür (şagird kabinetinə atılmır) |
+| L10 | Həmin formadan admin hesabının məlumatları ilə gir | Admin panelinə keçir, sessiya admin hesabına dəyişir |
+| L11 | Admin kimi daxil olub `/admin/login` aç | `/admin/dashboard`-a yönləndirilir, forma göstərilmir |
+| L12 | `/admin/login`-də səhv parolla **5 dəfə** cəhd et, sonra **düzgün** parol yaz | "… saniyə ərzində yenidən cəhd edin" mesajı, düzgün parolla da giriş açılmır. Limit bitəndən sonra normal işləyir |
+| L13 | Qonaq kimi `/admin/dashboard` və `/student/dashboard` aç | Uyğun olaraq `/admin/login` və `/login`-ə yönləndirilir (403 yox) |
+| L14 | Daxil olduqdan sonra `/login` aç | Öz panelinə qaytarılır, giriş forması göstərilmir |
+| L15 | Köhnə ünvanlar: `/student/login`, `/student/register` | **301** ilə `/login` və `/register`-ə yönləndirilir |
+| L16 | `/teacher/login`, `/teacher/register` | **404** — müəllim modulu söndürülüb (`FEATURE_TEACHERS=false`) |
+| L17 | İstənilən paneldən "Çıxış" | Sessiya bağlanır; geri düyməsi ilə panelə qayıtmaq olmur |
+| L18 | `/register`-dən yeni hesab aç | Hesab **həmişə şagird** olur: qeydiyyatdan sonra şagird kabineti açılır, admin/müəllim bölmələri görünmür |
+| L19 | **Yalnız `teacher` rolu olan** hesabla `/login` (modul söndürülü) | 403 **yox**: `/panel-yoxdur` səhifəsi açılır — müəllim modulunun bağlı olduğu izah olunur, hesabın rolları və "Çıxış" düyməsi görünür |
+| L20 | Şagird hesabı ilə `/panel-yoxdur` aç | Öz kabinetinə qaytarılır (səhifə yalnız paneli olmayanlar üçündür) |
 
 ---
 

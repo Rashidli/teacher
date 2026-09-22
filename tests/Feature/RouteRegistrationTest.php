@@ -40,6 +40,7 @@ class RouteRegistrationTest extends TestCase
             'email təsdiqi' => ['/verify-email', 'verification.notice'],
             'parol təsdiqi' => ['/confirm-password', 'password.confirm'],
             'profil' => ['/profile', 'profile.edit'],
+            'panel yoxdur' => ['/panel-yoxdur', 'no-panel'],
             'admin giriş' => ['/admin/login', 'admin.login'],
             'admin panel' => ['/admin/dashboard', 'admin.dashboard'],
             'admin kateqoriyalar' => ['/admin/categories', 'admin.categories.index'],

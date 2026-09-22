@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'teacher' => \App\Http\Middleware\EnsureUserIsTeacher::class,
             'teacher.verified' => \App\Http\Middleware\EnsureTeacherIsVerified::class,
             'student' => \App\Http\Middleware\EnsureUserIsStudent::class,
+            // /admin/login: daxil olmuş şagird də formanı görə bilsin
+            'guest.admin' => \App\Http\Middleware\RedirectAdminsToDashboard::class,
         ]);
 
         // Qonaq səhifəsinə daxil olmamış istifadəçi hansı giriş formasına göndərilir

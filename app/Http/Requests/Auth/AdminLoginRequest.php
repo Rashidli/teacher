@@ -12,11 +12,17 @@ use Illuminate\Validation\ValidationException;
 /**
  * Admin girişi: eyni "web" guard, amma yalnız admin rolu buraxılır.
  * Ehtimal seçmə cəhdlərinə qarşı email+IP üzrə sürət limiti var.
+ *
+ * Admin olmayan hesab səhv parolla EYNİ mesajı alır: fərqli mesaj parolun
+ * düz olduğunu açardı (hansı hesabın parolunu tapdığını bildirərdi).
  */
 class AdminLoginRequest extends FormRequest
 {
     /** Bir email + IP üçün icazə verilən uğursuz cəhd sayı */
     public const MAX_ATTEMPTS = 5;
+
+    /** Uğursuz girişin yeganə mesajı — səbəb (parol, yoxsa rol) açıqlanmır */
+    public const FAILED_MESSAGE = 'Daxil edilən məlumatlar yanlışdır.';
 
     public function authorize(): bool
     {
@@ -42,11 +48,7 @@ class AdminLoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
-
-            throw ValidationException::withMessages([
-                'email' => 'Daxil edilən məlumatlar yanlışdır.',
-            ]);
+            $this->fail();
         }
 
         // Parol düz olsa da, admin olmayan hesab admin panelinə buraxılmır:
@@ -56,14 +58,22 @@ class AdminLoginRequest extends FormRequest
             $this->session()->invalidate();
             $this->session()->regenerateToken();
 
-            RateLimiter::hit($this->throttleKey());
-
-            throw ValidationException::withMessages([
-                'email' => 'Bu hesab admin deyil.',
-            ]);
+            $this->fail();
         }
 
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    private function fail(): never
+    {
+        RateLimiter::hit($this->throttleKey());
+
+        throw ValidationException::withMessages([
+            'email' => self::FAILED_MESSAGE,
+        ]);
     }
 
     /**

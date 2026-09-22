@@ -8,7 +8,8 @@ use App\Models\User;
  * Rola görə panel seçimi.
  *
  * Bir hesabın bir neçə rolu ola bilər: girişdən sonra ən yüksək səlahiyyətli panel açılır
- * (admin → müəllim → şagird). Müəllim modulu söndürülübsə müəllim paneli yoxdur.
+ * (admin → müəllim → şagird). Müəllim modulu söndürülübsə müəllim paneli yoxdur — yalnız
+ * müəllim rolu olan hesabın gedəcəyi yer qalmır, o da "panel yoxdur" səhifəsinə düşür.
  */
 class Panel
 {
@@ -23,12 +24,31 @@ class Panel
             return route('admin.dashboard');
         }
 
-        if (config('features.teachers') && $user->hasRole('teacher')) {
+        if (self::teacherPanelIsOpen($user)) {
             return $user->teacherProfile?->is_verified
                 ? route('teacher.dashboard')
                 : route('teacher.awaiting-verification');
         }
 
-        return route('student.dashboard');
+        if ($user->hasRole('student')) {
+            return route('student.dashboard');
+        }
+
+        return route('no-panel');
+    }
+
+    /** Hesabın girə biləcəyi panel varmı? */
+    public static function hasPanel(?User $user): bool
+    {
+        return $user !== null && (
+            $user->hasRole('admin')
+            || $user->hasRole('student')
+            || self::teacherPanelIsOpen($user)
+        );
+    }
+
+    private static function teacherPanelIsOpen(User $user): bool
+    {
+        return (bool) config('features.teachers') && $user->hasRole('teacher');
     }
 }
