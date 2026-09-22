@@ -283,6 +283,12 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 
 ## P3: Vizyondan qalan, sonraya saxlanılan
 
+- [ ] **"Məqsədim"**: şagirdin hazırlaşdığı kateqoriya avtomatik yadda saxlanılır (kataloq
+      gəzintisindən və ilk imtahanlardan çıxarılır, profildən dəyişilə bilir). Kabinetdə
+      **"Sənin üçün imtahanlar"** bloku həmin kateqoriyanın yeni və tövsiyə olunan
+      imtahanlarını göstərir; kataloq da o kateqoriyadan açılır.
+- [ ] `/imtahanlar` kataloq kök səhifəsi: hazırda kataloq ağacın kök kateqoriyalarından
+      (ana səhifə) başlayır, ayrıca giriş nöqtəsi yoxdur.
 - [ ] Yeni sual növləri: uyğunluq (matching), mətn/situasiya əsaslı sual qrupu, esse.
 - [ ] `open_written` cavabında şagirdin həll şəklini yükləməsi.
 - [ ] Məhsul növləri: fənn paketi, qrup paketi, abunə (hazırda yalnız tək imtahan satılır).

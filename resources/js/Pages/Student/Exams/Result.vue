@@ -10,6 +10,8 @@ const props = defineProps({
     attempt: Object,
     sections: { type: Array, default: () => [] },
     exam: Object,
+    // İctimai imtahan səhifəsi: "Yenidən imtahan ver" ora aparır
+    examUrl: { type: String, default: null },
     answers: Array,
     // Eyni imtahanın əvvəlki cəhdləri və bu cəhdin mövzu bölgüsü
     comparison: { type: Object, default: () => ({ history: [], previous: null, change: null }) },
@@ -262,7 +264,7 @@ const getAnswerStatus = (answer) => {
                 <!-- Actions -->
                 <div class="mt-6 flex justify-center gap-4">
                     <Link
-                        :href="route('student.exams.show', exam.id)"
+                        :href="examUrl"
                         class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                     >
                         Yenidən İmtahan Ver
@@ -271,7 +273,7 @@ const getAnswerStatus = (answer) => {
                         :href="route('student.exams.index')"
                         class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
                     >
-                        Digər İmtahanlar
+                        Mənim imtahanlarım
                     </Link>
                 </div>
             </div>

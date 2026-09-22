@@ -161,6 +161,41 @@ class SeoTest extends TestCase
         $this->assertStringContainsString(url('ru/abiturient/1-ya-gruppa/movzu-sinagi/2-ci-rub'), $xml);
     }
 
+    /** Dərc olunmuş imtahanın ictimai səhifəsi sitemap-a düşür, qaralama düşmür. */
+    public function test_published_exams_appear_in_the_sitemap(): void
+    {
+        $category = Category::where('path', 'abituriyent/1-ci-qrup')->firstOrFail();
+
+        $published = Exam::factory()->published()->create([
+            'category_id' => $category->id,
+            'title' => 'Dərc olunmuş sınaq',
+        ]);
+
+        $draft = Exam::factory()->create([
+            'category_id' => $category->id,
+            'title' => 'Qaralama sınaq',
+            'is_published' => false,
+        ]);
+
+        Cache::flush();
+        $xml = $this->get('/sitemap.xml')->getContent();
+
+        $this->assertStringContainsString(url('imtahan/'.$published->slug), $xml);
+        $this->assertStringContainsString(url('ru/imtahan/'.$published->slug), $xml);
+        $this->assertStringNotContainsString($draft->slug, $xml);
+    }
+
+    /** İmtahan səhifəsi canonical və hər iki dilin hreflang-ını verir. */
+    public function test_the_exam_page_has_canonical_and_hreflang(): void
+    {
+        $exam = Exam::factory()->published()->create(['title' => 'Kanonik sınaq']);
+
+        $response = $this->get($exam->publicUrl())->assertOk();
+
+        $response->assertSee('rel="canonical" href="'.url('imtahan/'.$exam->slug).'"', false);
+        $response->assertSee('hreflang="ru" href="'.url('ru/imtahan/'.$exam->slug).'"', false);
+    }
+
     public function test_the_sitemap_is_cached_until_a_category_changes(): void
     {
         $this->get('/sitemap.xml');

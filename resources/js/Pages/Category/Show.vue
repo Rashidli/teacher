@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 import SiteFooter from '@/Components/Site/SiteFooter.vue';
@@ -11,6 +12,10 @@ const props = defineProps({
     children: { type: Array, default: () => [] },
     subjects: { type: Array, default: () => [] },
     exams: { type: Array, default: () => [] },
+    // Filtr variantları sayğaclarla (yalnız bu düyündə mövcud olanlar)
+    filterOptions: { type: Object, default: () => ({ kinds: [], quarters: [], subjects: [], prices: [] }) },
+    // Cari seçim: URL query-dən gəlir və orada qalır
+    filters: { type: Object, default: () => ({}) },
     meta: { type: Object, default: () => ({}) },
     // 'topic_trial' → rüb seçimi / rüb imtahanları səhifəsi
     view: { type: String, default: null },
@@ -25,6 +30,29 @@ const props = defineProps({
 });
 
 const { lroute } = useLocale();
+
+// Filtr seçimi URL-də query kimi saxlanılır ki, süzülmüş səhifə paylaşıla bilsin.
+// Boş dəyər açarı URL-dən tamamilə çıxarır.
+const applyFilter = (key, value) => {
+    const next = { ...props.filters, [key]: value };
+
+    // Rüb yalnız mövzu sınağı üçün mənalıdır
+    if (key === 'nov' && value !== 'topic_trial') {
+        next.rub = null;
+    }
+
+    router.get(
+        window.location.pathname,
+        Object.fromEntries(Object.entries(next).filter(([, item]) => item !== null && item !== '')),
+        { preserveState: true, preserveScroll: true, replace: true },
+    );
+};
+
+const hasFilters = computed(() => props.filterOptions.kinds.length > 1
+    || props.filterOptions.subjects.length > 1
+    || props.filterOptions.prices.length > 1);
+
+const activeFilters = computed(() => Object.values(props.filters).filter((item) => item !== null && item !== '').length);
 
 // Seçim sessiyada saxlanılır və qeydiyyat formasında defolt olur (SectorController).
 const switchSector = (value) => {
@@ -128,14 +156,104 @@ const switchSector = (value) => {
             </section>
 
             <!-- Satışdakı imtahanlar (bu düyün və alt düyünlər) -->
-            <section v-if="exams.length" class="block" aria-labelledby="exams-title">
+            <section v-if="exams.length || activeFilters" class="block" aria-labelledby="exams-title">
                 <h2 id="exams-title" class="block-title">{{ $t('category_page.exams') }}</h2>
-                <ul class="cards">
+
+                <!-- Filtrlər: seçim URL-də qalır, paylaşıla bilir -->
+                <div v-if="hasFilters" class="filters">
+                    <div v-if="filterOptions.kinds.length > 1" class="filter" role="group" :aria-label="$t('category_page.filter_kind')">
+                        <span class="filter-label">{{ $t('category_page.filter_kind') }}</span>
+                        <button
+                            type="button"
+                            class="chip"
+                            :class="{ 'chip--on': !filters.nov }"
+                            :aria-pressed="!filters.nov"
+                            @click="applyFilter('nov', null)"
+                        >{{ $t('category_page.filter_all') }}</button>
+                        <button
+                            v-for="option in filterOptions.kinds"
+                            :key="option.value"
+                            type="button"
+                            class="chip"
+                            :class="{ 'chip--on': filters.nov === option.value }"
+                            :aria-pressed="filters.nov === option.value"
+                            @click="applyFilter('nov', option.value)"
+                        >{{ $t(`category_page.kinds.${option.value}`) }} ({{ option.count }})</button>
+                    </div>
+
+                    <div
+                        v-if="filters.nov === 'topic_trial' && filterOptions.quarters.length"
+                        class="filter"
+                        role="group"
+                        :aria-label="$t('category_page.filter_quarter')"
+                    >
+                        <span class="filter-label">{{ $t('category_page.filter_quarter') }}</span>
+                        <button
+                            type="button"
+                            class="chip"
+                            :class="{ 'chip--on': !filters.rub }"
+                            :aria-pressed="!filters.rub"
+                            @click="applyFilter('rub', null)"
+                        >{{ $t('category_page.filter_all') }}</button>
+                        <button
+                            v-for="option in filterOptions.quarters"
+                            :key="option.value"
+                            type="button"
+                            class="chip"
+                            :class="{ 'chip--on': filters.rub === option.value }"
+                            :aria-pressed="filters.rub === option.value"
+                            @click="applyFilter('rub', option.value)"
+                        >{{ option.value }}-ci rüb ({{ option.count }})</button>
+                    </div>
+
+                    <div v-if="filterOptions.subjects.length > 1" class="filter" role="group" :aria-label="$t('category_page.filter_subject')">
+                        <span class="filter-label">{{ $t('category_page.filter_subject') }}</span>
+                        <button
+                            type="button"
+                            class="chip"
+                            :class="{ 'chip--on': !filters.fenn }"
+                            :aria-pressed="!filters.fenn"
+                            @click="applyFilter('fenn', null)"
+                        >{{ $t('category_page.filter_all') }}</button>
+                        <button
+                            v-for="option in filterOptions.subjects"
+                            :key="option.value"
+                            type="button"
+                            class="chip"
+                            :class="{ 'chip--on': filters.fenn === option.value }"
+                            :aria-pressed="filters.fenn === option.value"
+                            @click="applyFilter('fenn', option.value)"
+                        >{{ option.name }} ({{ option.count }})</button>
+                    </div>
+
+                    <div v-if="filterOptions.prices.length > 1" class="filter" role="group" :aria-label="$t('category_page.filter_price')">
+                        <span class="filter-label">{{ $t('category_page.filter_price') }}</span>
+                        <button
+                            type="button"
+                            class="chip"
+                            :class="{ 'chip--on': !filters.qiymet }"
+                            :aria-pressed="!filters.qiymet"
+                            @click="applyFilter('qiymet', null)"
+                        >{{ $t('category_page.filter_all') }}</button>
+                        <button
+                            v-for="option in filterOptions.prices"
+                            :key="option.value"
+                            type="button"
+                            class="chip"
+                            :class="{ 'chip--on': filters.qiymet === option.value }"
+                            :aria-pressed="filters.qiymet === option.value"
+                            @click="applyFilter('qiymet', option.value)"
+                        >{{ $t(`category_page.prices.${option.value}`) }} ({{ option.count }})</button>
+                    </div>
+                </div>
+
+                <ul v-if="exams.length" class="cards">
                     <li v-for="exam in exams" :key="exam.id">
-                        <Link :href="lroute('login')" class="card">
+                        <Link :href="exam.url" class="card">
                             <span class="card-name">{{ exam.title }}</span>
                             <span class="card-short">
-                                {{ exam.subject }} · {{ exam.questions_count }} {{ $t('category_page.questions') }}
+                                <template v-if="exam.subjects.length">{{ exam.subjects.join(', ') }} · </template>
+                                {{ exam.questions_count }} {{ $t('category_page.questions') }}
                                 · {{ exam.duration_minutes }} {{ $t('category_page.minutes') }}
                             </span>
                             <span class="card-price">
@@ -144,9 +262,10 @@ const switchSector = (value) => {
                         </Link>
                     </li>
                 </ul>
+                <p v-else class="empty">{{ $t('category_page.no_match') }}</p>
             </section>
 
-            <p v-if="!children.length && !exams.length" class="empty">
+            <p v-if="!children.length && !exams.length && !activeFilters" class="empty">
                 {{ category.has_exams ? $t('category_page.lead') : $t('category_page.info_only') }}
             </p>
 
@@ -231,6 +350,41 @@ const switchSector = (value) => {
 .block-title {
     font-size: 1.15rem;
     margin: 0 0 14px;
+}
+
+.filters {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-label {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    min-width: 80px;
+}
+
+.chip {
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid rgba(22, 19, 14, 0.25);
+    border-radius: 999px;
+    background: none;
+    font: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.chip--on {
+    border-color: rgba(22, 19, 14, 0.7);
+    font-weight: 600;
 }
 
 .cards {

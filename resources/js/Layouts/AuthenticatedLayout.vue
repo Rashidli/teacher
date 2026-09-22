@@ -115,7 +115,7 @@ const dashboardRoute = computed(() => {
                                         :href="route('student.exams.index')"
                                         :active="route().current('student.exams.*')"
                                     >
-                                        İmtahanlar
+                                        Mənim imtahanlarım
                                     </NavLink>
                                     <NavLink
                                         :href="route('student.results.index')"
@@ -276,7 +276,7 @@ const dashboardRoute = computed(() => {
                                 :href="route('student.exams.index')"
                                 :active="route().current('student.exams.*')"
                             >
-                                İmtahanlar
+                                Mənim imtahanlarım
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 :href="route('student.results.index')"

@@ -4,17 +4,14 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
+use App\Models\ExamAccess;
 use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\SubjectGroupScore;
-use App\Models\Subject;
-use App\Models\Group;
 use App\Services\Payment\ExamAccessService;
-use App\Services\Payment\PaymentGatewayFactory;
 use App\Services\Scoring\AttemptScorer;
 use App\Services\Statistics\StudentStatistics;
-use App\Support\Sector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -24,87 +21,94 @@ class StudentExamController extends Controller
 {
     public function __construct(
         private readonly ExamAccessService $access,
-        private readonly PaymentGatewayFactory $gateways,
         private readonly AttemptScorer $scorer,
         private readonly StudentStatistics $statistics,
     ) {
     }
 
-    public function index(Request $request)
+    /**
+     * "Mənim imtahanlarım": davam edən cəhdlər, giriş hüququ olan imtahanlar və nəticələr.
+     *
+     * Burada kataloq YOXDUR — yeni imtahan kateqoriya ağacından tapılır (ictimai səhifələr).
+     * Köhnə fənn/qrup filtrli siyahı bu səbəbdən silinib.
+     */
+    public function index()
     {
         $student = auth()->user();
 
-        $query = Exam::with(['subject', 'teacher', 'group'])
-            ->withCount('questions')
-            // Şagird yalnız öz sektorunun imtahanlarını görür
-            ->where('sector', $student->sector ?? Sector::AZ)
-            ->published()
-            ->active();
+        $attempts = $student->examAttempts()
+            ->with('exam:id,slug,title,duration_minutes')
+            ->latest()
+            ->get()
+            ->filter(fn (ExamAttempt $attempt) => $attempt->exam !== null);
 
-        if ($request->subject_id) {
-            $query->where('subject_id', $request->subject_id);
-        }
+        $inProgress = $attempts
+            ->where('status', ExamAttempt::STATUS_IN_PROGRESS)
+            ->filter(fn (ExamAttempt $attempt) => $attempt->remaining_time > 0)
+            ->map(fn (ExamAttempt $attempt) => [
+                'attempt_id' => $attempt->id,
+                'title' => $attempt->exam->title,
+                'url' => route('student.exams.attempt', $attempt),
+                'exam_url' => $attempt->exam->publicUrl(),
+                'remaining_minutes' => (int) ceil($attempt->remaining_time / 60),
+            ])
+            ->values();
 
-        if ($request->group_id) {
-            $query->where('group_id', $request->group_id);
-        }
+        $completed = $attempts
+            ->whereIn('status', [ExamAttempt::STATUS_COMPLETED, ExamAttempt::STATUS_TIMED_OUT])
+            ->map(fn (ExamAttempt $attempt) => [
+                'attempt_id' => $attempt->id,
+                'title' => $attempt->exam->title,
+                'url' => route('student.exams.result', $attempt),
+                'exam_url' => $attempt->exam->publicUrl(),
+                'relative_score' => $attempt->relative_score,
+                'finished_at' => $attempt->finished_at?->format('d.m.Y'),
+            ])
+            ->values();
 
-        $exams = $query->latest()->paginate(12);
+        // Girişi olan, amma hazırda davam edən cəhdi olmayan imtahanlar
+        $startedExamIds = $attempts
+            ->where('status', ExamAttempt::STATUS_IN_PROGRESS)
+            ->filter(fn (ExamAttempt $attempt) => $attempt->remaining_time > 0)
+            ->pluck('exam_id');
 
-        // Kataloqda "Alınıb" / "Pulsuz" / "Al" statusu üçün
-        $exams->getCollection()->transform(function (Exam $exam) use ($student) {
-            $exam->setAttribute('has_access', $this->access->allows($student, $exam));
+        $available = ExamAccess::query()
+            ->with('exam:id,slug,title,duration_minutes,is_free,sector,is_published,is_active')
+            ->where('user_id', $student->id)
+            ->active()
+            ->latest()
+            ->get()
+            ->filter(fn (ExamAccess $access) => $access->exam !== null
+                && ! $startedExamIds->contains($access->exam_id))
+            ->map(fn (ExamAccess $access) => [
+                'title' => $access->exam->title,
+                'url' => $access->exam->publicUrl(),
+                'source' => $access->source,
+                'expires_at' => $access->expires_at?->format('d.m.Y'),
+            ])
+            ->values();
 
-            return $exam;
-        });
-
-        return Inertia::render('Student/Exams/Index', [
-            'exams' => $exams,
-            'purchasesEnabled' => $this->gateways->available(),
-            'subjects' => Subject::active()->get(),
-            'groups' => Group::active()->orderBy('number')->get(),
-            'filters' => $request->only(['subject_id', 'group_id']),
+        return Inertia::render('Student/Exams/MyExams', [
+            'inProgress' => $inProgress,
+            'available' => $available,
+            'completed' => $completed,
         ]);
     }
 
+    /**
+     * Köhnə kabinet imtahan səhifəsi. İctimai `/imtahan/{slug}` onu əvəz etdi:
+     * yadda qalmış keçidlər və köhnə ödəniş bildirişləri sınmasın deyə 301 verilir.
+     */
     public function show(Exam $exam)
     {
-        // Başqa sektorun imtahanı açıla bilməz
-        abort_unless($exam->sector === (auth()->user()->sector ?? Sector::AZ), 404);
-
-        $exam->load(['subject', 'teacher', 'group']);
-        $exam->loadCount('questions');
-
-        // Şagirdin bu imtahanda aktiv cəhdi varmı?
-        $activeAttempt = auth()->user()->examAttempts()
-            ->where('exam_id', $exam->id)
-            ->inProgress()
-            ->first();
-
-        // Tamamlanmış cəhdlər
-        $completedAttempts = auth()->user()->examAttempts()
-            ->where('exam_id', $exam->id)
-            ->completed()
-            ->latest()
-            ->get();
-
-        $access = $this->access->activeAccess(auth()->user(), $exam);
-
-        return Inertia::render('Student/Exams/Show', [
-            'exam' => $exam,
-            'activeAttempt' => $activeAttempt,
-            'completedAttempts' => $completedAttempts,
-            'hasAccess' => $exam->is_free || $access !== null,
-            'access' => $access,
-            'purchasesEnabled' => $this->gateways->available(),
-        ]);
+        return redirect()->to($exam->publicUrl(), 301);
     }
 
     public function start(Request $request, Exam $exam)
     {
         // Pullu imtahan: aktiv giriş olmadan cəhd yaradıla bilməz
         if (! $this->access->allows(auth()->user(), $exam)) {
-            return redirect()->route('student.exams.show', $exam)
+            return redirect()->to($exam->publicUrl())
                 ->with('error', 'Bu imtahan ödənişlidir. Başlamaq üçün əvvəlcə alın.');
         }
 
@@ -311,6 +315,9 @@ class StudentExamController extends Controller
 
         $attempt->load(['exam.subject', 'exam.teacher', 'group', 'answers.question.options', 'answers.selectedOption']);
 
+        // "Yenidən imtahan ver" ictimai imtahan səhifəsinə aparır (kabinetdə ayrıca səhifə yoxdur)
+        $examUrl = $attempt->exam->publicUrl();
+
         // Nəticə cəhdin dondurulmuş sual siyahısından qurulur, imtahanın cari dəstindən yox
         $totalQuestions = $attempt->questions()->count();
 
@@ -360,6 +367,7 @@ class StudentExamController extends Controller
         return Inertia::render('Student/Exams/Result', [
             'attempt' => $attemptData,
             'exam' => $attempt->exam,
+            'examUrl' => $examUrl,
             'answers' => $questionsWithAnswers,
             // Eyni imtahanın əvvəlki cəhdləri ilə müqayisə və mövzu bölgüsü (Mərhələ 7)
             'comparison' => $this->statistics->examComparison(auth()->user(), $attempt),

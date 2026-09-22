@@ -10,6 +10,34 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-22 — Vahid imtahan axını: kataloq → imtahan səhifəsi → başlama
+
+Şagirdin imtahan tapıb alması üçün iki yarımçıq kataloq var idi: kateqoriya səhifələrindəki
+kartlar hamısı `/login`-ə aparırdı, `/student/exams` isə yalnız fənn/qrup filtri ilə işləyirdi.
+İndi axın birdir.
+
+- **İctimai imtahan səhifəsi `/imtahan/{slug}`** (`ExamController`, `Exam/Show.vue`): kateqoriya
+  zənciri, bölmələr üzrə fənn və sual sayı, müddət, bal, qiymət. Qonağa da açıqdır.
+  Kabinetdəki `student.exams.show` **silindi** və 301 ilə bura yönləndirilir.
+- **Düymə vəziyyətə görə dəyişir**: qonaq → giriş, girişi olan şagird → "Başla", girişi olmayan
+  → "Al", davam edən cəhd → "Davam et". Qonaq girişdən sonra **həmin imtahan səhifəsinə**
+  qayıdır (`exam.enter` route-u `auth` altındadır, intended URL-i Laravel saxlayır) və
+  **cəhd avtomatik başlamır** — taymer yalnız şagird "Başla"nı təsdiqləyəndə işə düşür.
+- **Kateqoriya səhifəsi əsas kataloqdur**: növ, rüb, fənn və qiymət filtrləri əlavə olundu,
+  seçim URL-də query kimi qalır (`?nov=topic_trial&rub=2&fenn=3&qiymet=pulsuz`), hər variantın
+  yanında sayğac var. **Fənn filtri `exam_sections.subject_id`-ə baxır** — çoxfənli imtahan
+  içindəki hər fənnə görə tapılır.
+- **Kabinet "Mənim imtahanlarım"a çevrildi**: davam edən cəhdlər, girişi olan imtahanlar və
+  tamamlanmış nəticələr; köhnə filtrli siyahı silindi, boş halda "Kataloqa keç" düyməsi var.
+- **`exams.slug`**: `App\Support\Slug` açıq AZ hərf xəritəsi ilə (ə→e, ı→i, ö→o, ü→u, ş→s,
+  ç→c, ğ→g) — `Str::slug`-ın defolt davranışına güvənilmir. Slug yalnız imtahan yaradılanda
+  qurulur: başlıq düzəldiləndə paylaşılmış ünvan sınmır.
+- **SEO**: imtahan səhifəsi canonical/hreflang və `BreadcrumbList` JSON-LD alır, sitemap-a düşür
+  və `SEO_INDEXING` bayrağına tabedir.
+
+**Testlər:** 425 test / 2119 assertion (yeni `Catalog/ExamPageTest`: 9, `Catalog/CatalogFilterTest`: 11,
+`Catalog/MyExamsTest`: 8, `Unit/SlugTest`: 22).
+
 ### 2026-09-22 — Şagird panelindəki göstəricilər düzəldildi
 
 Panel "Orta Bal" sütununda `45.000000` göstərirdi: `StudentDashboardController` xam

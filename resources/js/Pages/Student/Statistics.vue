@@ -164,7 +164,7 @@ const changeLabel = (change) => (change > 0 ? `+${change}` : `${change}`);
                         <li v-for="item in purchases" :key="`${item.exam_id}-${item.granted_at}`" class="flex flex-wrap items-center justify-between gap-2 py-3">
                             <div>
                                 <Link
-                                    :href="route('student.exams.show', item.exam_id)"
+                                    :href="item.url"
                                     class="font-medium text-indigo-600 hover:text-indigo-800"
                                 >{{ item.title }}</Link>
                                 <div class="text-xs text-gray-500">

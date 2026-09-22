@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Slug;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -30,10 +31,28 @@ class Exam extends Model
 
     protected $fillable = [
         'teacher_id', 'created_by', 'subject_id', 'group_id', 'category_id', 'kind', 'sector', 'quarter', 'is_cumulative',
-        'title', 'description',
+        'slug', 'title', 'description',
         'duration_minutes', 'options_per_question', 'price', 'is_free', 'is_active', 'is_published',
         'published_at', 'created_by_admin'
     ];
+
+    /**
+     * İctimai ünvan (`/imtahan/{slug}`) yalnız YARADILANDA qurulur.
+     *
+     * Başlıq sonradan düzəldiləndə slug dəyişmir: dərc olunmuş imtahanın ünvanı
+     * paylaşılmış, indeksləşmiş və yadda saxlanılmış ola bilər.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Exam $exam) {
+            if (blank($exam->slug)) {
+                $exam->slug = Slug::unique(
+                    (string) $exam->title,
+                    fn (string $candidate) => static::withTrashed()->where('slug', $candidate)->exists(),
+                );
+            }
+        });
+    }
 
     protected $casts = [
         'price' => 'decimal:2',
@@ -120,6 +139,31 @@ class Exam extends Model
     public function scopeBySubject($query, $subjectId)
     {
         return $query->where('subject_id', $subjectId);
+    }
+
+    /**
+     * Kataloq fənn filtri: imtahanın BÖLMƏLƏRİNƏ baxır, `exams.subject_id`-ə yox.
+     *
+     * Çoxfənli imtahan (məs. I qrup mövzu sınağı) içindəki istənilən fənnə görə tapılmalıdır;
+     * `exams.subject_id` isə yalnız birinci bölmənin fənnidir.
+     */
+    public function hasSubject(int $subjectId): bool
+    {
+        return $this->sections->contains(fn (ExamSection $section) => (int) $section->subject_id === $subjectId);
+    }
+
+    /** Kataloqda və ictimai səhifədə görünən imtahanlar */
+    public function scopeVisible($query, string $sector)
+    {
+        return $query->where('sector', $sector)
+            ->where('is_published', true)
+            ->where('is_active', true);
+    }
+
+    /** İctimai səhifənin tam ünvanı (dil prefiksi ilə) */
+    public function publicUrl(?string $locale = null): string
+    {
+        return \App\Support\Localization::route('exam.show', ['exam' => $this->slug], true, $locale);
     }
 
     public function scopeByGroup($query, $groupId)

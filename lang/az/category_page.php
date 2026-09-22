@@ -24,4 +24,22 @@ return [
     'sector_switch' => 'Tədris dili',
     'sector_az' => 'Azərbaycan',
     'sector_ru' => 'Rus',
+
+    // Kataloq filtrləri (seçim URL-də query kimi qalır)
+    'filter_kind' => 'Növ',
+    'filter_quarter' => 'Rüb',
+    'filter_subject' => 'Fənn',
+    'filter_price' => 'Qiymət',
+    'filter_all' => 'Hamısı',
+    'no_match' => 'Seçilmiş filtrlərə uyğun imtahan yoxdur.',
+    'kinds' => [
+        'general' => 'Ümumi sınaq',
+        'topic_trial' => 'Mövzu sınağı',
+        'subject' => 'Fənn sınağı',
+        'practice' => 'Məşq testi',
+    ],
+    'prices' => [
+        'pulsuz' => 'Pulsuz',
+        'pullu' => 'Ödənişli',
+    ],
 ];

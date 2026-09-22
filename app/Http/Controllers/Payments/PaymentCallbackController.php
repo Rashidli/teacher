@@ -38,7 +38,7 @@ class PaymentCallbackController extends Controller
 
         $exam = $payment->purchasable;
         $target = $exam instanceof Exam
-            ? route('student.exams.show', $exam)
+            ? $exam->publicUrl()
             : route('student.exams.index');
 
         return redirect()->to($target)->with(

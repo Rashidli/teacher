@@ -47,7 +47,7 @@ class ExamPurchaseTest extends TestCase
     {
         $this->actingAs($this->student)
             ->post(route('student.exams.start', $this->exam))
-            ->assertRedirect(route('student.exams.show', $this->exam));
+            ->assertRedirect($this->exam->publicUrl());
 
         $this->assertSame(0, ExamAttempt::count());
     }
@@ -85,7 +85,7 @@ class ExamPurchaseTest extends TestCase
         $this->actingAs($this->student)->post(route('student.exams.purchase', $this->exam));
         $payment = Payment::firstOrFail();
 
-        $this->sendCallback($payment)->assertRedirect(route('student.exams.show', $this->exam));
+        $this->sendCallback($payment)->assertRedirect($this->exam->publicUrl());
 
         $payment->refresh();
         $this->assertSame(Payment::STATUS_PAID, $payment->status);
@@ -201,7 +201,7 @@ class ExamPurchaseTest extends TestCase
 
         $this->actingAs($this->student)
             ->post(route('student.exams.purchase', $this->exam))
-            ->assertRedirect(route('student.exams.show', $this->exam));
+            ->assertRedirect($this->exam->publicUrl());
 
         $this->assertSame(0, Payment::count());
     }

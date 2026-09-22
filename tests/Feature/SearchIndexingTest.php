@@ -67,6 +67,19 @@ class SearchIndexingTest extends TestCase
         $response->assertDontSee('name="robots"', false);
     }
 
+    /** İctimai imtahan səhifəsi də bayrağa tabedir */
+    public function test_the_exam_page_follows_the_indexing_flag(): void
+    {
+        config(['seo.indexing' => false]);
+
+        $exam = \App\Models\Exam::factory()->published()->create();
+
+        $response = $this->get($exam->publicUrl())->assertOk();
+
+        $response->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+        $response->assertSee('name="robots" content="noindex, nofollow"', false);
+    }
+
     /** Panel səhifələri də bağlı nüsxədə noindex alır */
     public function test_the_header_covers_every_route(): void
     {

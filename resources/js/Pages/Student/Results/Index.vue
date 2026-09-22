@@ -129,7 +129,7 @@ const getScoreColor = (attempt) => {
                             :href="route('student.exams.index')"
                             class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                         >
-                            İmtahanlara Bax
+                            Mənim imtahanlarım
                         </Link>
                     </div>
 

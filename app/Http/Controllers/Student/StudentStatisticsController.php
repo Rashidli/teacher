@@ -40,7 +40,7 @@ class StudentStatisticsController extends Controller
     private function purchases($student): array
     {
         return ExamAccess::query()
-            ->with('exam:id,title,price,is_free')
+            ->with('exam:id,slug,title,price,is_free')
             ->where('user_id', $student->id)
             ->whereNull('revoked_at')
             ->latest()
@@ -49,6 +49,7 @@ class StudentStatisticsController extends Controller
             ->map(fn (ExamAccess $access) => [
                 'exam_id' => $access->exam_id,
                 'title' => $access->exam->title,
+                'url' => $access->exam->publicUrl(),
                 'source' => $access->source,
                 'granted_at' => $access->created_at?->format('d.m.Y'),
                 'expires_at' => $access->expires_at?->format('d.m.Y'),

@@ -12,9 +12,8 @@ use Illuminate\Support\Facades\Cache;
 /**
  * `/sitemap.xml` — hər səhifə hər iki dildə, xhtml:link ilə qarşılıqlı hreflang.
  *
- * Siyahıya düşənlər: ana səhifə, qaydalar, aktiv kateqoriyalar və imtahanı olan
- * mövzu sınağı/rüb səhifələri. İmtahanın özü ictimai deyil (şagird panelindədir),
- * ona görə sitemap-a düşmür.
+ * Siyahıya düşənlər: ana səhifə, qaydalar, aktiv kateqoriyalar, imtahanı olan mövzu
+ * sınağı/rüb səhifələri və hər dərc olunmuş imtahanın ictimai səhifəsi (`/imtahan/{slug}`).
  *
  * Nəticə 1 saat keşlənir: kateqoriya ağacı nadir hallarda dəyişir.
  */
@@ -77,6 +76,14 @@ class SitemapController extends Controller
             $entries->push([
                 'urls' => $this->localized(fn (string $locale) => $category->urlFor($locale)),
                 'lastmod' => $category->updated_at?->toAtomString(),
+            ]);
+        }
+
+        // Dərc olunmuş imtahanların ictimai səhifələri
+        foreach (Exam::query()->where('is_published', true)->where('is_active', true)->orderBy('id')->get() as $exam) {
+            $entries->push([
+                'urls' => $this->localized(fn (string $locale) => $exam->publicUrl($locale)),
+                'lastmod' => $exam->updated_at?->toAtomString(),
             ]);
         }
 

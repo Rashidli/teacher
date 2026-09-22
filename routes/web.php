@@ -28,6 +28,7 @@ use App\Http\Controllers\Payments\FakeGatewayController;
 use App\Http\Controllers\Payments\PaymentCallbackController;
 use App\Http\Controllers\Student\StudentPaymentController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ExamController;
 use App\Http\Controllers\NoPanelController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RobotsController;
@@ -52,6 +53,18 @@ $publicRoutes = function () use ($auth) {
     Route::get('/qaydalar', fn () => Inertia::render('Terms', [
         'content' => __('terms'),
     ]))->name('terms');
+
+    // İctimai imtahan səhifəsi: qonaq da görür, kataloq kartları bura aparır
+    Route::get('/imtahan/{exam:slug}', [ExamController::class, 'show'])->name('exam.show');
+
+    /*
+     * "Başla"/"Al" düyməsinin qonaq üçün hədəfi. `auth` middleware-i intended URL-i özü
+     * saxlayır: girişdən sonra şagird bu ünvana qayıdır, buradan da imtahan səhifəsinə
+     * düşür. Cəhd BURADA başlamır — şagird səhifədə "Başla"nı bir daha basmalıdır.
+     */
+    Route::get('/imtahan/{exam:slug}/giris', [ExamController::class, 'enter'])
+        ->middleware('auth')
+        ->name('exam.enter');
 
     // Giriş, qeydiyyat, parol bərpası
     $auth['guest']();
@@ -219,9 +232,13 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 
-        // İmtahanlar
+        // "Mənim imtahanlarım": alınmış, başladılmış və tamamlanmış imtahanlar.
+        // Yeni imtahan axtarışı kataloqdadır (kateqoriya ağacı) — burada filtr yoxdur.
         Route::get('/exams', [StudentExamController::class, 'index'])->name('exams.index');
+
+        // Köhnə kabinet imtahan səhifəsi: ictimai /imtahan/{slug} onu əvəz etdi
         Route::get('/exams/{exam}', [StudentExamController::class, 'show'])->name('exams.show');
+
         Route::post('/exams/{exam}/start', [StudentExamController::class, 'start'])->name('exams.start');
         Route::post('/exams/{exam}/purchase', [StudentPaymentController::class, 'store'])->name('exams.purchase');
 

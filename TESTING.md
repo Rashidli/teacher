@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 364 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 425 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
@@ -49,6 +49,31 @@ bir hesab lazımdır. `rashidliseymur@gmail.com` — `teacher` + `student` rolla
 | L18 | `/register`-dən yeni hesab aç | Hesab **həmişə şagird** olur: qeydiyyatdan sonra şagird kabineti açılır, admin/müəllim bölmələri görünmür |
 | L19 | **Yalnız `teacher` rolu olan** hesabla `/login` (modul söndürülü) | 403 **yox**: `/panel-yoxdur` səhifəsi açılır — müəllim modulunun bağlı olduğu izah olunur, hesabın rolları və "Çıxış" düyməsi görünür |
 | L20 | Şagird hesabı ilə `/panel-yoxdur` aç | Öz kabinetinə qaytarılır (səhifə yalnız paneli olmayanlar üçündür) |
+
+---
+
+## K. Kataloq və imtahan səhifəsi
+
+Kataloq **kateqoriya ağacıdır**: ana səhifədən kök bölməyə, oradan alt bölmələrə gedilir.
+Hər imtahanın ictimai səhifəsi var: `/imtahan/{slug}` — qonaq da görür.
+
+| # | Addım | Gözlənilən nəticə |
+|---|---|---|
+| K1 | Qonaq kimi `/mekteb/9-cu-sinif-buraxilis` aç | Düyünün **və alt düyünlərinin** imtahanları kart kimi görünür |
+| K2 | İmtahan kartına kliklə | `/imtahan/{slug}` açılır — **giriş formasına atmır** |
+| K3 | İmtahan səhifəsinə bax | Kateqoriya zənciri, müddət, sual sayı, maksimal bal, növ (+rüb), qiymət və bölmələr üzrə fənn siyahısı görünür |
+| K4 | Kataloqda filtrləri işlət (növ, rüb, fənn, qiymət) | Siyahı süzülür, **ünvanda query görünür** (`?nov=…&fenn=…`); səhifəni yeniləyəndə seçim qalır, link paylaşıla bilir |
+| K5 | Çoxfənli imtahanı ikinci fənninə görə süz | İmtahan tapılır (filtr bölmələrə baxır, imtahanın əsas fənninə yox) |
+| K6 | Qonaq kimi pulsuz imtahanda "Başla" bas | Giriş səhifəsi açılır; girişdən sonra **həmin imtahan səhifəsinə** qayıdırsan |
+| K7 | Qayıtdıqdan sonra səhifəyə bax | **Cəhd başlamayıb**, taymer işləmir; "Başla" düyməsi durur. Yalnız onu basanda cəhd yaranır |
+| K8 | Ödənişli imtahanda daxil olmuş şagird kimi bax | "Al" düyməsi (produksiyada alış bağlıdırsa düymə yox, izah var) |
+| K9 | Yarımçıq cəhdi olan imtahanı aç | "Davam et" düyməsi və qalan vaxt görünür |
+| K10 | Rus sektoru seç, sonra az imtahanının ünvanını aç | **404** (sektor qaydası ictimai səhifədə də işləyir) |
+| K11 | Menyu → "Mənim imtahanlarım" | Davam edən, girişi olan və tamamlanmış imtahanlar; **filtr yoxdur** |
+| K12 | Heç bir imtahanı olmayan hesabla həmin səhifə | "Hələ imtahanın yoxdur" + **"Kataloqa keç"** düyməsi ana səhifəyə aparır |
+| K13 | Köhnə ünvan `/student/exams/{id}` | **301** ilə `/imtahan/{slug}`-a yönləndirilir |
+| K14 | `/sitemap.xml` | Dərc olunmuş imtahanların ünvanları var (qaralamalar yoxdur) |
+| K15 | İmtahan səhifəsinin mənbəyi | `canonical` və hər iki dilin `hreflang`-ı var; `SEO_INDEXING=false` olduğu üçün `noindex` də var |
 
 ---
 

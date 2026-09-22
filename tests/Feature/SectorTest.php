@@ -261,21 +261,7 @@ class SectorTest extends TestCase
         $this->assertSame(Sector::RU, $student->fresh()->sector);
     }
 
-    // ---- Şagird kabineti ----
-
-    public function test_a_student_only_sees_exams_of_their_own_sector(): void
-    {
-        $student = User::factory()->student()->create(['sector' => Sector::RU]);
-
-        $russian = Exam::factory()->published()->russian()->create(['title' => 'Русский экзамен']);
-        Exam::factory()->published()->create(['title' => 'Azərbaycan imtahanı']);
-
-        $this->actingAs($student)
-            ->get(route('student.exams.index'))
-            ->assertInertia(fn ($page) => $page
-                ->has('exams.data', 1)
-                ->where('exams.data.0.id', $russian->id));
-    }
+    // ---- İctimai imtahan səhifəsi ----
 
     public function test_an_exam_from_the_other_sector_returns_not_found(): void
     {
@@ -283,8 +269,20 @@ class SectorTest extends TestCase
         $exam = Exam::factory()->published()->russian()->create();
 
         $this->actingAs($student)
-            ->get(route('student.exams.show', $exam))
+            ->get($exam->publicUrl())
             ->assertNotFound();
+    }
+
+    /** Öz sektorundakı imtahan normal açılır. */
+    public function test_an_exam_of_the_students_own_sector_opens(): void
+    {
+        $student = User::factory()->student()->create(['sector' => Sector::RU]);
+        $exam = Exam::factory()->published()->russian()->create(['title' => 'Русский экзамен']);
+
+        $this->actingAs($student)
+            ->get($exam->publicUrl())
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('exam.title', 'Русский экзамен'));
     }
 
     // ---- Kateqoriya ↔ fənn (ana dili) ----

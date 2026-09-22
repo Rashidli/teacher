@@ -28,7 +28,7 @@ class StudentPaymentController extends Controller
         abort_unless($exam->is_published && $exam->is_active, 404);
 
         if ($exam->is_free || $this->access->allows($student, $exam)) {
-            return redirect()->route('student.exams.show', $exam)
+            return redirect()->to($exam->publicUrl())
                 ->with('success', 'Bu imtahan artıq sizə açıqdır.');
         }
 
