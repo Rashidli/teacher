@@ -95,7 +95,7 @@ class AdminGradingController extends Controller
 
         $answer->update([
             'grade_ratio' => $validated['grade_ratio'],
-            'graded_by' => auth('admin')->id(),
+            'graded_by' => auth()->id(),
             'graded_at' => now(),
         ]);
 

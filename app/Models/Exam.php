@@ -29,7 +29,7 @@ class Exam extends Model
 
 
     protected $fillable = [
-        'teacher_id', 'subject_id', 'group_id', 'category_id', 'kind', 'sector', 'quarter', 'is_cumulative',
+        'teacher_id', 'created_by', 'subject_id', 'group_id', 'category_id', 'kind', 'sector', 'quarter', 'is_cumulative',
         'title', 'description',
         'duration_minutes', 'options_per_question', 'price', 'is_free', 'is_active', 'is_published',
         'published_at', 'created_by_admin'
@@ -48,9 +48,16 @@ class Exam extends Model
         'is_cumulative' => 'boolean',
     ];
 
+    /** Müəllim modulunda imtahanın aid olduğu müəllim (modul söndürülübsə NULL) */
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'teacher_id');
+    }
+
+    /** İmtahanı yaradan istifadəçi — rolundan asılı olmayaraq (admin və ya müəllim) */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function subject(): BelongsTo

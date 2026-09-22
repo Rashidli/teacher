@@ -83,7 +83,7 @@ class AdminExamGenerationController extends Controller
             cumulative: (bool) ($validated['is_cumulative'] ?? false),
             variants: (int) $validated['variants'],
             attributes: [
-                'teacher_id' => auth('admin')->id(),
+                'created_by' => $request->user()->id,
                 'title' => $validated['title'],
                 'duration_minutes' => (int) $validated['duration_minutes'],
                 'options_per_question' => (int) $validated['options_per_question'],

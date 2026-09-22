@@ -8,10 +8,4 @@ return [
     */
     'teachers' => (bool) env('FEATURE_TEACHERS', false),
 
-    /*
-    | Müəllim modulu söndürülüb olanda admin tərəfindən yaradılan imtahanların sahibi
-    | (exams.teacher_id). Admin hesabının ID-si.
-    */
-    'exam_owner_id' => env('EXAM_OWNER_ID') ? (int) env('EXAM_OWNER_ID') : null,
-
 ];

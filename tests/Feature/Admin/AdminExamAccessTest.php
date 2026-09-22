@@ -32,7 +32,7 @@ class AdminExamAccessTest extends TestCase
 
     private function grant(array $overrides = []): \Illuminate\Testing\TestResponse
     {
-        return $this->actingAs($this->admin, 'admin')->post(
+        return $this->actingAs($this->admin)->post(
             route('admin.exams.access.store', $this->exam),
             array_merge(['student' => $this->student->email, 'note' => 'Köçürmə, qəbz 12345'], $overrides)
         );
@@ -40,7 +40,7 @@ class AdminExamAccessTest extends TestCase
 
     public function test_admin_can_open_the_access_page(): void
     {
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->get(route('admin.exams.access.index', $this->exam))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('Admin/Exams/Access'));
@@ -115,7 +115,7 @@ class AdminExamAccessTest extends TestCase
         $this->grant();
         $access = ExamAccess::firstOrFail();
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.exams.access.destroy', [$this->exam, $access]))
             ->assertSessionHasNoErrors();
 
@@ -126,7 +126,7 @@ class AdminExamAccessTest extends TestCase
         $this->assertSame('Köçürmə, qəbz 12345', $access->note);
         $this->assertSame($this->admin->id, $access->granted_by);
 
-        $this->actingAs($this->student, 'student')->post(route('student.exams.start', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.start', $this->exam));
         $this->assertSame(0, ExamAttempt::count());
     }
 
@@ -136,7 +136,7 @@ class AdminExamAccessTest extends TestCase
         $this->grant();
         $access = ExamAccess::firstOrFail();
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.exams.access.destroy', [$this->exam, $access]));
 
         $this->grant(['note' => 'Yenidən açıldı']);
@@ -153,7 +153,7 @@ class AdminExamAccessTest extends TestCase
             'exam_id' => $this->exam->id,
         ]);
 
-        $this->actingAs($this->student, 'student')->post(route('student.exams.start', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.start', $this->exam));
 
         $this->assertSame(0, ExamAttempt::count());
     }
@@ -186,7 +186,7 @@ class AdminExamAccessTest extends TestCase
             'exam_id' => $otherExam->id,
         ]);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.exams.access.destroy', [$this->exam, $access]))
             ->assertNotFound();
 
@@ -195,8 +195,8 @@ class AdminExamAccessTest extends TestCase
 
     public function test_students_can_not_manage_access(): void
     {
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->get(route('admin.exams.access.index', $this->exam))
-            ->assertRedirect(route('admin.login'));
+            ->assertForbidden();
     }
 }

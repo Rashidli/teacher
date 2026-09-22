@@ -30,7 +30,7 @@ class RegistrationTest extends TestCase
             'terms' => true,
         ]);
 
-        $this->assertAuthenticated('student');
+        $this->assertAuthenticated();
         $response->assertRedirect(route('student.dashboard', absolute: false));
 
         $user = User::where('email', 'test@example.com')->firstOrFail();
@@ -69,7 +69,7 @@ class RegistrationTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('terms');
-        $this->assertGuest('student');
+        $this->assertGuest();
     }
 
     public function test_phone_number_must_be_unique(): void

@@ -35,7 +35,7 @@ class AdminQuestionBankTest extends TestCase
             'order' => 1,
         ]);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->get(route('admin.questions.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -68,7 +68,7 @@ class AdminQuestionBankTest extends TestCase
         ];
 
         foreach ($filters as $filter) {
-            $this->actingAs($this->admin, 'admin')
+            $this->actingAs($this->admin)
                 ->get(route('admin.questions.index', $filter))
                 ->assertInertia(fn ($page) => $page
                     ->has('questions.data', 1)
@@ -80,7 +80,7 @@ class AdminQuestionBankTest extends TestCase
     {
         $question = Question::factory()->create(['subject_id' => $this->maths->id]);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.questions.destroy', $question))
             ->assertSessionHasNoErrors();
 
@@ -91,7 +91,7 @@ class AdminQuestionBankTest extends TestCase
 
     public function test_an_admin_can_create_and_edit_a_topic(): void
     {
-        $this->actingAs($this->admin, 'admin')->post(route('admin.topics.store'), [
+        $this->actingAs($this->admin)->post(route('admin.topics.store'), [
             'subject_id' => $this->maths->id,
             'name' => 'Kəsrlər',
             'quarter' => 2,
@@ -102,7 +102,7 @@ class AdminQuestionBankTest extends TestCase
         $this->assertSame('kesrler', $topic->slug);
         $this->assertSame(2, $topic->quarter);
 
-        $this->actingAs($this->admin, 'admin')->put(route('admin.topics.update', $topic), [
+        $this->actingAs($this->admin)->put(route('admin.topics.update', $topic), [
             'subject_id' => $this->maths->id,
             'name' => 'Onluq kəsrlər',
             'quarter' => 3,
@@ -114,7 +114,7 @@ class AdminQuestionBankTest extends TestCase
 
     public function test_the_quarter_must_be_between_one_and_four(): void
     {
-        $this->actingAs($this->admin, 'admin')->post(route('admin.topics.store'), [
+        $this->actingAs($this->admin)->post(route('admin.topics.store'), [
             'subject_id' => $this->maths->id,
             'name' => 'Səhv rüb',
             'quarter' => 5,
@@ -124,7 +124,7 @@ class AdminQuestionBankTest extends TestCase
     /** Sürücülük kimi fənlərdə rüb boş qalır. */
     public function test_a_topic_without_a_quarter_is_allowed(): void
     {
-        $this->actingAs($this->admin, 'admin')->post(route('admin.topics.store'), [
+        $this->actingAs($this->admin)->post(route('admin.topics.store'), [
             'subject_id' => $this->maths->id,
             'name' => 'Yol nişanları',
         ])->assertSessionHasNoErrors();
@@ -137,7 +137,7 @@ class AdminQuestionBankTest extends TestCase
         $topic = Topic::factory()->create(['subject_id' => $this->maths->id]);
         Question::factory()->create(['subject_id' => $this->maths->id, 'topic_id' => $topic->id]);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.topics.destroy', $topic))
             ->assertSessionHasErrors('topic');
 
@@ -148,8 +148,8 @@ class AdminQuestionBankTest extends TestCase
     {
         $student = User::factory()->student()->create();
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get(route('admin.questions.index'))
-            ->assertRedirect(route('admin.login'));
+            ->assertForbidden();
     }
 }

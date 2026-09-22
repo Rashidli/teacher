@@ -18,7 +18,7 @@ class AdminExamController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Exam::with(['teacher', 'subject', 'group'])
+        $query = Exam::with(['teacher', 'creator', 'subject', 'group'])
             ->withCount('questions');
 
         if ($request->subject_id) {
@@ -66,8 +66,6 @@ class AdminExamController extends Controller
             'subjects' => Subject::active()->get(),
             'groups' => Group::active()->orderBy('number')->get(),
             'categories' => $this->categoryOptions(),
-            // Forma doldurulmamışdan əvvəl xəbərdarlıq göstərilsin
-            'ownerConfigured' => $this->examOwnerId() !== null,
             'sectors' => Sector::ALL,
         ]);
     }
@@ -137,21 +135,6 @@ class AdminExamController extends Controller
         return $validated;
     }
 
-    /**
-     * Müəllim modulu söndürülüb olanda imtahanın sahibi EXAM_OWNER_ID-dir.
-     * Təyin olunmayıbsa və ya belə istifadəçi yoxdursa null qaytarır.
-     */
-    private function examOwnerId(): ?int
-    {
-        if (config('features.teachers')) {
-            return null;
-        }
-
-        $ownerId = config('features.exam_owner_id');
-
-        return $ownerId && User::whereKey($ownerId)->exists() ? (int) $ownerId : null;
-    }
-
     public function store(Request $request)
     {
         $teachersEnabled = (bool) config('features.teachers');
@@ -172,21 +155,8 @@ class AdminExamController extends Controller
 
         $validated = $this->normalisePrice($this->applyCategoryGroup($validated));
 
-        // Müəllim modulu söndürülüb: imtahanın sahibi EXAM_OWNER_ID (admin hesabı).
-        // Konfiqurasiya yoxdursa 500 yox, formada aydın mesaj göstərilir.
-        if (! $teachersEnabled) {
-            $ownerId = $this->examOwnerId();
-
-            if ($ownerId === null) {
-                throw ValidationException::withMessages([
-                    'exam_owner' => 'İmtahan sahibi təyin olunmayıb: .env faylında EXAM_OWNER_ID '
-                        .'mövcud admin hesabının ID-si olmalıdır. Dəyişiklikdən sonra `php artisan config:clear`.',
-                ]);
-            }
-
-            $validated['teacher_id'] = $ownerId;
-        }
-
+        // İmtahanı yaradan admin hesabıdır. teacher_id yalnız müəllim modulunda doldurulur.
+        $validated['created_by'] = $request->user()->id;
         $validated['created_by_admin'] = true;
 
         $exam = Exam::create($validated);
@@ -203,7 +173,7 @@ class AdminExamController extends Controller
 
     public function show(Exam $exam)
     {
-        $exam->load(['teacher', 'subject', 'group', 'category']);
+        $exam->load(['teacher', 'creator', 'subject', 'group', 'category']);
 
         $sections = $exam->sections()->with(['subject:id,name', 'questions.options', 'questions.topic'])->get();
 

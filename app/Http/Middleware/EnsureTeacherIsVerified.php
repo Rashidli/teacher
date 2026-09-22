@@ -4,19 +4,14 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
+/** `auth` + `teacher`-dən sonra işləyir: profil hələ təsdiqlənməyibsə gözləmə səhifəsi. */
 class EnsureTeacherIsVerified
 {
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::guard('teacher')->user();
-
-        if (!$user) {
-            return redirect()->route('teacher.login');
-        }
-
-        if (!$user->teacherProfile?->is_verified) {
+        if (! $request->user()?->teacherProfile?->is_verified) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Hesabınız hələ təsdiqlənməyib.'], 403);
             }

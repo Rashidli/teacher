@@ -66,7 +66,7 @@ class ExamGenerationTest extends TestCase
 
     private function generate(array $overrides = [])
     {
-        return $this->actingAs($this->admin, 'admin')->post(route('admin.exams.generate.store'), array_merge([
+        return $this->actingAs($this->admin)->post(route('admin.exams.generate.store'), array_merge([
             'category_id' => $this->category->id,
             'sector' => 'az',
             'variants' => 1,
@@ -241,7 +241,7 @@ class ExamGenerationTest extends TestCase
         $exam = Exam::firstOrFail();
         $question = $exam->questions()->first();
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.replace', [$exam, $question]))
             ->assertSessionHasNoErrors();
 
@@ -261,7 +261,7 @@ class ExamGenerationTest extends TestCase
         $exam->update(['is_published' => true, 'is_active' => true]);
         $question = $exam->questions()->first();
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.replace', [$exam, $question]))
             ->assertSessionHasErrors('question');
 
@@ -272,8 +272,8 @@ class ExamGenerationTest extends TestCase
     {
         $student = User::factory()->student()->create();
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get(route('admin.exams.generate'))
-            ->assertRedirect(route('admin.login'));
+            ->assertForbidden();
     }
 }

@@ -31,20 +31,20 @@ return new class extends Migration
 
     public function down(): void
     {
-        // NOT NULL-a qaytarmazdan əvvəl sahibsiz imtahanlara sahib lazımdır.
+        // NOT NULL-a qaytarmazdan əvvəl sahibsiz imtahanlara sahib lazımdır: imtahanı
+        // yaradan istifadəçi (created_by) götürülür, o da yoxdursa geri qaytarmaq olmur.
+        if (Schema::hasColumn('exams', 'created_by')) {
+            DB::table('exams')->whereNull('teacher_id')->whereNotNull('created_by')
+                ->update(['teacher_id' => DB::raw('created_by')]);
+        }
+
         $orphans = DB::table('exams')->whereNull('teacher_id')->count();
 
         if ($orphans > 0) {
-            $ownerId = config('features.exam_owner_id');
-
-            if (! $ownerId || ! DB::table('users')->where('id', $ownerId)->exists()) {
-                throw new RuntimeException(
-                    "exams cədvəlində teacher_id = NULL olan {$orphans} imtahan var. "
-                    .'Geri qaytarmaq üçün .env-də mövcud istifadəçinin ID-si ilə EXAM_OWNER_ID təyin edin.'
-                );
-            }
-
-            DB::table('exams')->whereNull('teacher_id')->update(['teacher_id' => $ownerId]);
+            throw new RuntimeException(
+                "exams cədvəlində teacher_id = NULL olan {$orphans} imtahan var. "
+                .'Geri qaytarmadan əvvəl onlara sahib təyin edin.'
+            );
         }
 
         Schema::table('exams', function (Blueprint $table) {

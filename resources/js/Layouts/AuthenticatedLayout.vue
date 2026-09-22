@@ -12,32 +12,26 @@ const showingNavigationDropdown = ref(false);
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
-const guard = computed(() => page.props.auth.guard);
+// Tək guard: menyu hesabın rollarına görə qurulur (bir hesabın bir neçə rolu ola bilər)
 const roles = computed(() => user.value?.roles || []);
 
 const { teachersEnabled } = useFeatures();
 
-const isAdmin = computed(() => guard.value === 'admin' || roles.value.includes('admin'));
+const isAdmin = computed(() => roles.value.includes('admin'));
 // Müəllim menyusu yalnız müəllim modulu aktiv olanda
-const isTeacher = computed(() => teachersEnabled.value && (guard.value === 'teacher' || roles.value.includes('teacher')));
-const isStudent = computed(() => guard.value === 'student' || roles.value.includes('student'));
+const isTeacher = computed(() => teachersEnabled.value && roles.value.includes('teacher'));
+const isStudent = computed(() => roles.value.includes('student'));
 
 const flash = computed(() => page.props.flash);
 
-// Compute logout route based on guard
-const logoutRoute = computed(() => {
-    if (guard.value === 'admin') return 'admin.logout';
-    if (guard.value === 'teacher') return 'teacher.logout';
-    if (guard.value === 'student') return 'student.logout';
-    return 'logout';
-});
+// Çıxış hər rol üçün eyni sessiyanı bağlayır; admin paneli öz səhifəsinə qaytarır
+const logoutRoute = computed(() => (isAdmin.value ? 'admin.logout' : 'logout'));
 
-// Compute dashboard route based on guard
+// Ən yüksək səlahiyyətli panel (Panel::homeUrl ilə eyni ardıcıllıq)
 const dashboardRoute = computed(() => {
-    if (guard.value === 'admin') return 'admin.dashboard';
-    if (guard.value === 'teacher') return 'teacher.dashboard';
-    if (guard.value === 'student') return 'student.dashboard';
-    return 'dashboard';
+    if (isAdmin.value) return 'admin.dashboard';
+    if (isTeacher.value) return 'teacher.dashboard';
+    return 'student.dashboard';
 });
 </script>
 

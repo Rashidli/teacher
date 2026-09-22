@@ -12,7 +12,8 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 /*
-| Şagird autentifikasiyası (Laravel starter kit controller-ləri, "student" guard).
+| Vahid autentifikasiya (Laravel starter kit controller-ləri, tək "web" guard).
+| Giriş rola görə rədd etmir: hansı rolu varsa, ona uyğun panelə yönləndirilir.
 | routes/web.php bu faylı bir dəfə yükləyir:
 |   - "guest"   hər dil üçün ayrıca çağırılır (/login, /ru/login ...)
 |   - "account" bir dəfə, dil prefiksi olmadan
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 return [
 
     'guest' => function () {
-        Route::middleware('guest:student')->group(function () {
+        Route::middleware('guest')->group(function () {
             Route::get('register', [RegisteredUserController::class, 'create'])
                 ->name('register');
 
@@ -46,7 +47,7 @@ return [
     },
 
     'account' => function () {
-        Route::middleware('auth:student')->group(function () {
+        Route::middleware('auth')->group(function () {
             Route::get('verify-email', EmailVerificationPromptController::class)
                 ->name('verification.notice');
 
@@ -69,7 +70,7 @@ return [
 
         // Profil səhifəsindəki parol dəyişmə forması bütün panellərdə işləyir
         Route::put('password', [PasswordController::class, 'update'])
-            ->middleware('auth:admin,teacher,student')
+            ->middleware('auth')
             ->name('password.update');
     },
 

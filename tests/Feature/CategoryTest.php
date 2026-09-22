@@ -219,7 +219,7 @@ class CategoryTest extends TestCase
         $admin = User::factory()->admin()->create();
         $parent = Category::where('path', 'magistratura')->firstOrFail();
 
-        $this->actingAs($admin, 'admin')->post(route('admin.categories.store'), [
+        $this->actingAs($admin)->post(route('admin.categories.store'), [
             'parent_id' => $parent->id,
             'name' => 'Yeni bölmə',
             'slug' => 'yeni-bolme',
@@ -236,7 +236,7 @@ class CategoryTest extends TestCase
         $this->seedTree();
         $admin = User::factory()->admin()->create();
 
-        $this->actingAs($admin, 'admin')->post(route('admin.categories.store'), [
+        $this->actingAs($admin)->post(route('admin.categories.store'), [
             'parent_id' => null,
             'name' => 'Səhv slug',
             'slug' => 'Səhv Slug',
@@ -250,7 +250,7 @@ class CategoryTest extends TestCase
         $admin = User::factory()->admin()->create();
         $group = Category::where('path', 'abituriyent/1-ci-qrup')->firstOrFail();
 
-        $this->actingAs($admin, 'admin')->put(route('admin.categories.update', $group), [
+        $this->actingAs($admin)->put(route('admin.categories.update', $group), [
             'parent_id' => $group->parent_id,
             'group_id' => $group->group_id,
             'name' => $group->name,
@@ -272,7 +272,7 @@ class CategoryTest extends TestCase
         $group = Category::where('path', 'abituriyent/1-ci-qrup')->firstOrFail();
         $child = Category::where('path', 'abituriyent/1-ci-qrup/rk')->firstOrFail();
 
-        $this->actingAs($admin, 'admin')->put(route('admin.categories.update', $group), [
+        $this->actingAs($admin)->put(route('admin.categories.update', $group), [
             'parent_id' => $child->id,
             'name' => $group->name,
             'slug' => $group->slug,
@@ -285,7 +285,7 @@ class CategoryTest extends TestCase
         $admin = User::factory()->admin()->create();
         $category = Category::where('path', 'abituriyent')->firstOrFail();
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->delete(route('admin.categories.destroy', $category))
             ->assertSessionHasErrors('category');
 
@@ -297,12 +297,12 @@ class CategoryTest extends TestCase
     {
         $this->seedTree();
         $admin = User::factory()->admin()->create();
-        config(['features.teachers' => false, 'features.exam_owner_id' => $admin->id]);
+        config(['features.teachers' => false]);
 
         $category = Category::where('path', 'abituriyent/4-cu-qrup')->firstOrFail();
         $otherGroup = Group::where('code', 'II')->firstOrFail();
 
-        $this->actingAs($admin, 'admin')->post(route('admin.exams.store'), [
+        $this->actingAs($admin)->post(route('admin.exams.store'), [
             'subject_id' => Subject::where('slug', 'fizika')->value('id'),
             // Səhvən başqa qrup seçilib: kateqoriyanınkı üstün gəlməlidir
             'group_id' => $otherGroup->id,
@@ -323,9 +323,9 @@ class CategoryTest extends TestCase
     {
         $student = User::factory()->student()->create();
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get(route('admin.categories.index'))
-            ->assertRedirect(route('admin.login'));
+            ->assertForbidden();
     }
 
     /**

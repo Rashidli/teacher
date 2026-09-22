@@ -10,8 +10,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Admin imtahan yaratma/redaktə axını. Müəllim modulu söndürülüb (features.teachers = false),
- * ona görə imtahanın sahibi EXAM_OWNER_ID ilə göstərilən admin hesabıdır.
+ * Admin imtahan yaratma/redaktə axını. Müəllim modulu söndürülüb (features.teachers = false):
+ * imtahanı yaradan admin `created_by`-da saxlanılır, `teacher_id` boş qalır.
  */
 class AdminExamTest extends TestCase
 {
@@ -19,14 +19,9 @@ class AdminExamTest extends TestCase
 
     private function admin(): User
     {
-        $admin = User::factory()->admin()->create();
+        config(['features.teachers' => false]);
 
-        config([
-            'features.teachers' => false,
-            'features.exam_owner_id' => $admin->id,
-        ]);
-
-        return $admin;
+        return User::factory()->admin()->create();
     }
 
     private function validPayload(array $overrides = []): array
@@ -45,7 +40,7 @@ class AdminExamTest extends TestCase
 
     public function test_admin_can_open_the_create_page(): void
     {
-        $response = $this->actingAs($this->admin(), 'admin')->get(route('admin.exams.create'));
+        $response = $this->actingAs($this->admin())->get(route('admin.exams.create'));
 
         $response->assertOk();
     }
@@ -54,7 +49,7 @@ class AdminExamTest extends TestCase
     {
         $admin = $this->admin();
 
-        $response = $this->actingAs($admin, 'admin')
+        $response = $this->actingAs($admin)
             ->post(route('admin.exams.store'), $this->validPayload());
 
         $exam = Exam::firstOrFail();
@@ -63,8 +58,9 @@ class AdminExamTest extends TestCase
         $this->assertSame('Riyaziyyat sınaq imtahanı', $exam->title);
         $this->assertSame(90, $exam->duration_minutes);
         $this->assertTrue($exam->created_by_admin);
-        // Müəllim modulu söndürülüb: sahib EXAM_OWNER_ID
-        $this->assertSame($admin->id, $exam->teacher_id);
+        // Sahiblik created_by-dadır; müəllim modulu söndürülüb, ona görə teacher_id boşdur
+        $this->assertSame($admin->id, $exam->created_by);
+        $this->assertNull($exam->teacher_id);
         // Yeni imtahan qaralamadır
         $this->assertFalse($exam->is_active);
         $this->assertFalse($exam->is_published);
@@ -74,7 +70,7 @@ class AdminExamTest extends TestCase
     {
         $admin = $this->admin();
 
-        $this->actingAs($admin, 'admin')->post(
+        $this->actingAs($admin)->post(
             route('admin.exams.store'),
             $this->validPayload(['is_free' => false, 'price' => 14.50])
         );
@@ -82,50 +78,12 @@ class AdminExamTest extends TestCase
         $this->assertSame('14.50', Exam::firstOrFail()->price);
     }
 
-    /** EXAM_OWNER_ID yoxdursa 500 yox, formada aydın mesaj görünməlidir. */
-    public function test_creating_an_exam_without_a_configured_owner_shows_a_validation_error(): void
-    {
-        $admin = $this->admin();
-        config(['features.exam_owner_id' => null]);
-
-        $response = $this->actingAs($admin, 'admin')
-            ->post(route('admin.exams.store'), $this->validPayload());
-
-        $response->assertSessionHasErrors('exam_owner');
-        $this->assertSame(0, Exam::count());
-    }
-
-    /** EXAM_OWNER_ID var, amma belə istifadəçi yoxdursa da 500 verilməməlidir. */
-    public function test_creating_an_exam_with_a_missing_owner_user_shows_a_validation_error(): void
-    {
-        $admin = $this->admin();
-        config(['features.exam_owner_id' => 999999]);
-
-        $response = $this->actingAs($admin, 'admin')
-            ->post(route('admin.exams.store'), $this->validPayload());
-
-        $response->assertSessionHasErrors('exam_owner');
-        $this->assertSame(0, Exam::count());
-    }
-
-    public function test_create_page_reports_whether_the_owner_is_configured(): void
-    {
-        $admin = $this->admin();
-        config(['features.exam_owner_id' => null]);
-
-        $this->actingAs($admin, 'admin')
-            ->get(route('admin.exams.create'))
-            ->assertInertia(fn ($page) => $page
-                ->component('Admin/Exams/Create')
-                ->where('ownerConfigured', false));
-    }
-
     public function test_admin_can_open_the_edit_page(): void
     {
         $admin = $this->admin();
-        $exam = Exam::factory()->create(['teacher_id' => $admin->id]);
+        $exam = Exam::factory()->create(['created_by' => $admin->id]);
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->get(route('admin.exams.edit', $exam))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('Admin/Exams/Edit'));
@@ -134,9 +92,9 @@ class AdminExamTest extends TestCase
     public function test_admin_can_update_an_exam(): void
     {
         $admin = $this->admin();
-        $exam = Exam::factory()->create(['teacher_id' => $admin->id, 'duration_minutes' => 60]);
+        $exam = Exam::factory()->create(['created_by' => $admin->id, 'duration_minutes' => 60]);
 
-        $response = $this->actingAs($admin, 'admin')->put(route('admin.exams.update', $exam), [
+        $response = $this->actingAs($admin)->put(route('admin.exams.update', $exam), [
             'title' => 'Yenilənmiş başlıq',
             'description' => null,
             'duration_minutes' => 120,
@@ -158,7 +116,7 @@ class AdminExamTest extends TestCase
     {
         $admin = $this->admin();
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->post(route('admin.exams.store'), $this->validPayload(['duration_minutes' => 5]))
             ->assertSessionHasErrors('duration_minutes');
     }
@@ -172,9 +130,9 @@ class AdminExamTest extends TestCase
     {
         $student = User::factory()->student()->create();
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get(route('admin.exams.create'))
-            ->assertRedirect(route('admin.login'));
+            ->assertForbidden();
     }
 
     public function test_the_exam_list_filters_by_subject(): void
@@ -183,10 +141,10 @@ class AdminExamTest extends TestCase
         $wanted = Subject::factory()->create();
         $other = Subject::factory()->create();
 
-        Exam::factory()->create(['teacher_id' => $admin->id, 'subject_id' => $wanted->id, 'title' => 'Axtarılan']);
-        Exam::factory()->create(['teacher_id' => $admin->id, 'subject_id' => $other->id, 'title' => 'Digəri']);
+        Exam::factory()->create(['created_by' => $admin->id, 'subject_id' => $wanted->id, 'title' => 'Axtarılan']);
+        Exam::factory()->create(['created_by' => $admin->id, 'subject_id' => $other->id, 'title' => 'Digəri']);
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->get(route('admin.exams.index', ['subject_id' => $wanted->id]))
             ->assertInertia(fn ($page) => $page
                 ->has('exams.data', 1)
@@ -200,10 +158,10 @@ class AdminExamTest extends TestCase
         $admin = $this->admin();
         $wanted = Group::factory()->create();
 
-        Exam::factory()->create(['teacher_id' => $admin->id, 'group_id' => $wanted->id, 'title' => 'Axtarılan']);
-        Exam::factory()->create(['teacher_id' => $admin->id, 'title' => 'Digəri']);
+        Exam::factory()->create(['created_by' => $admin->id, 'group_id' => $wanted->id, 'title' => 'Axtarılan']);
+        Exam::factory()->create(['created_by' => $admin->id, 'title' => 'Digəri']);
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->get(route('admin.exams.index', ['group_id' => $wanted->id]))
             ->assertInertia(fn ($page) => $page->has('exams.data', 1)
                 ->where('exams.data.0.title', 'Axtarılan'));
@@ -214,8 +172,8 @@ class AdminExamTest extends TestCase
     {
         $admin = $this->admin();
 
-        Exam::factory()->create(['teacher_id' => $admin->id, 'title' => 'Yayımda', 'is_published' => true, 'is_active' => true]);
-        Exam::factory()->create(['teacher_id' => $admin->id, 'title' => 'Qaralama', 'is_published' => false, 'is_active' => false]);
+        Exam::factory()->create(['created_by' => $admin->id, 'title' => 'Yayımda', 'is_published' => true, 'is_active' => true]);
+        Exam::factory()->create(['created_by' => $admin->id, 'title' => 'Qaralama', 'is_published' => false, 'is_active' => false]);
 
         $expectations = [
             'published' => 'Yayımda',
@@ -225,7 +183,7 @@ class AdminExamTest extends TestCase
         ];
 
         foreach ($expectations as $status => $expectedTitle) {
-            $this->actingAs($admin, 'admin')
+            $this->actingAs($admin)
                 ->get(route('admin.exams.index', ['status' => $status]))
                 ->assertInertia(fn ($page) => $page
                     ->has('exams.data', 1)
@@ -239,9 +197,9 @@ class AdminExamTest extends TestCase
         $admin = $this->admin();
         $subject = Subject::factory()->create();
 
-        Exam::factory()->count(20)->create(['teacher_id' => $admin->id, 'subject_id' => $subject->id]);
+        Exam::factory()->count(20)->create(['created_by' => $admin->id, 'subject_id' => $subject->id]);
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->get(route('admin.exams.index', ['subject_id' => $subject->id]))
             ->assertInertia(function ($page) use ($subject) {
                 $next = collect($page->toArray()['props']['exams']['links'])->firstWhere('label', '2');
@@ -255,11 +213,11 @@ class AdminExamTest extends TestCase
     {
         $admin = $this->admin();
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->post(route('admin.exams.store'), $this->validPayload(['is_free' => false, 'price' => 0]))
             ->assertSessionHasErrors('price');
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->post(route('admin.exams.store'), $this->validPayload(['is_free' => false, 'price' => null]))
             ->assertSessionHasErrors('price');
 
@@ -270,7 +228,7 @@ class AdminExamTest extends TestCase
     {
         $admin = $this->admin();
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->post(route('admin.exams.store'), $this->validPayload(['is_free' => true, 'price' => null]))
             ->assertSessionHasNoErrors();
 
@@ -282,9 +240,9 @@ class AdminExamTest extends TestCase
     public function test_marking_an_exam_free_clears_its_price(): void
     {
         $admin = $this->admin();
-        $exam = Exam::factory()->paid(25.00)->create(['teacher_id' => $admin->id]);
+        $exam = Exam::factory()->paid(25.00)->create(['created_by' => $admin->id]);
 
-        $this->actingAs($admin, 'admin')->put(route('admin.exams.update', $exam), [
+        $this->actingAs($admin)->put(route('admin.exams.update', $exam), [
             'title' => $exam->title,
             'description' => null,
             'duration_minutes' => 60,
@@ -300,9 +258,9 @@ class AdminExamTest extends TestCase
     public function test_updating_an_exam_to_paid_requires_a_price(): void
     {
         $admin = $this->admin();
-        $exam = Exam::factory()->create(['teacher_id' => $admin->id, 'is_free' => true, 'price' => 0]);
+        $exam = Exam::factory()->create(['created_by' => $admin->id, 'is_free' => true, 'price' => 0]);
 
-        $this->actingAs($admin, 'admin')->put(route('admin.exams.update', $exam), [
+        $this->actingAs($admin)->put(route('admin.exams.update', $exam), [
             'title' => $exam->title,
             'description' => null,
             'duration_minutes' => 60,

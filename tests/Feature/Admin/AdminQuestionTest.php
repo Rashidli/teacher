@@ -24,11 +24,11 @@ class AdminQuestionTest extends TestCase
 
         $this->admin = User::factory()->admin()->create();
         $this->exam = Exam::factory()->create([
-            'teacher_id' => $this->admin->id,
+            'created_by' => $this->admin->id,
             'options_per_question' => 5,
         ]);
 
-        config(['features.teachers' => false, 'features.exam_owner_id' => $this->admin->id]);
+        config(['features.teachers' => false]);
     }
 
     private function optionsPayload(int $count = 5, int $correctIndex = 0): array
@@ -42,7 +42,7 @@ class AdminQuestionTest extends TestCase
 
     public function test_admin_can_open_the_create_page(): void
     {
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->get(route('admin.exams.questions.create', $this->exam))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('Admin/Questions/Create'));
@@ -50,7 +50,7 @@ class AdminQuestionTest extends TestCase
 
     public function test_admin_can_add_a_multiple_choice_question(): void
     {
-        $response = $this->actingAs($this->admin, 'admin')
+        $response = $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.store', $this->exam), [
                 'question_text' => 'Tənliyi həll edin: $x^2 = 4$',
                 'type' => Question::TYPE_MULTIPLE_CHOICE,
@@ -76,7 +76,7 @@ class AdminQuestionTest extends TestCase
     {
         $this->exam->update(['options_per_question' => 4]);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.store', $this->exam), [
                 'question_text' => 'Sual',
                 'type' => Question::TYPE_MULTIPLE_CHOICE,
@@ -92,7 +92,7 @@ class AdminQuestionTest extends TestCase
         $options = $this->optionsPayload();
         $options[1]['is_correct'] = true;
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.store', $this->exam), [
                 'question_text' => 'Sual',
                 'type' => Question::TYPE_MULTIPLE_CHOICE,
@@ -103,7 +103,7 @@ class AdminQuestionTest extends TestCase
 
     public function test_admin_can_add_an_open_coded_question(): void
     {
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.store', $this->exam), [
                 'question_text' => 'Kəsri hesablayın',
                 'type' => Question::TYPE_OPEN_CODED,
@@ -120,7 +120,7 @@ class AdminQuestionTest extends TestCase
 
     public function test_an_open_coded_question_needs_at_least_one_answer(): void
     {
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.store', $this->exam), [
                 'question_text' => 'Sual',
                 'type' => Question::TYPE_OPEN_CODED,
@@ -131,7 +131,7 @@ class AdminQuestionTest extends TestCase
 
     public function test_admin_can_add_an_open_written_question(): void
     {
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.store', $this->exam), [
                 'question_text' => 'Həlli izah edin',
                 'type' => Question::TYPE_OPEN_WRITTEN,
@@ -148,7 +148,7 @@ class AdminQuestionTest extends TestCase
     {
         Storage::fake('public');
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.store', $this->exam), [
                 'question_text' => 'Şəkildəki fiquru tapın',
                 'type' => Question::TYPE_OPEN_WRITTEN,
@@ -166,7 +166,7 @@ class AdminQuestionTest extends TestCase
     {
         Storage::fake('public');
 
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.questions.store', $this->exam), [
+        $this->actingAs($this->admin)->post(route('admin.exams.questions.store', $this->exam), [
             'question_text' => 'Sual',
             'type' => Question::TYPE_MULTIPLE_CHOICE,
             'options' => collect($this->optionsPayload())->map(fn ($option, $index) => $index === 0
@@ -179,7 +179,7 @@ class AdminQuestionTest extends TestCase
         $this->assertNotNull($imagePath);
 
         // Yalnız mətn dəyişir, şəkil yenidən yüklənmir
-        $this->actingAs($this->admin, 'admin')->put(
+        $this->actingAs($this->admin)->put(
             route('admin.exams.questions.update', [$this->exam, $question]),
             [
                 'question_text' => 'Yenilənmiş sual',
@@ -194,7 +194,7 @@ class AdminQuestionTest extends TestCase
 
     public function test_changing_the_type_to_open_removes_the_options(): void
     {
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.questions.store', $this->exam), [
+        $this->actingAs($this->admin)->post(route('admin.exams.questions.store', $this->exam), [
             'question_text' => 'Sual',
             'type' => Question::TYPE_MULTIPLE_CHOICE,
             'options' => $this->optionsPayload(),
@@ -202,7 +202,7 @@ class AdminQuestionTest extends TestCase
 
         $question = Question::firstOrFail();
 
-        $this->actingAs($this->admin, 'admin')->put(
+        $this->actingAs($this->admin)->put(
             route('admin.exams.questions.update', [$this->exam, $question]),
             [
                 'question_text' => 'Sual',
@@ -222,7 +222,7 @@ class AdminQuestionTest extends TestCase
         $second = $this->createQuestion('İkinci');
         $third = $this->createQuestion('Üçüncü');
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.exams.questions.destroy', [$this->exam, $second]))
             ->assertRedirect(route('admin.exams.show', $this->exam));
 
@@ -239,7 +239,7 @@ class AdminQuestionTest extends TestCase
     {
         $question = Question::factory()->openWritten()->create(['subject_id' => $this->exam->subject_id]);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.attach', $this->exam), ['question_id' => $question->id])
             ->assertSessionHasNoErrors();
 
@@ -253,7 +253,7 @@ class AdminQuestionTest extends TestCase
         $question = Question::factory()->openWritten()->create(['subject_id' => $this->exam->subject_id]);
 
         foreach (range(1, 2) as $ignored) {
-            $this->actingAs($this->admin, 'admin')
+            $this->actingAs($this->admin)
                 ->post(route('admin.exams.questions.attach', $this->exam), ['question_id' => $question->id]);
         }
 
@@ -270,13 +270,13 @@ class AdminQuestionTest extends TestCase
         $first = $this->createQuestion('Birinci');
         $second = $this->createQuestion('İkinci');
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.move', [$this->exam, $second, 'up']));
 
         $this->assertSame(1, $this->pivotOrder($second));
         $this->assertSame(2, $this->pivotOrder($first));
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.move', [$this->exam, $second, 'down']));
 
         $this->assertSame(2, $this->pivotOrder($second));
@@ -288,7 +288,7 @@ class AdminQuestionTest extends TestCase
         $first = $this->createQuestion('Birinci');
         $second = $this->createQuestion('İkinci');
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.move', [$this->exam, $first, 'up']));
 
         $this->assertSame(1, $this->pivotOrder($first));
@@ -298,10 +298,10 @@ class AdminQuestionTest extends TestCase
     /** URL-dəki sual başqa imtahana aiddirsə 404 qaytarılmalıdır. */
     public function test_a_question_from_another_exam_is_not_reachable(): void
     {
-        $otherExam = Exam::factory()->create(['teacher_id' => $this->admin->id]);
+        $otherExam = Exam::factory()->create(['created_by' => $this->admin->id]);
         $question = $this->createQuestion('Başqa imtahanın sualı', $otherExam);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->get(route('admin.exams.questions.edit', [$this->exam, $question]))
             ->assertNotFound();
     }
@@ -310,16 +310,16 @@ class AdminQuestionTest extends TestCase
     {
         $student = User::factory()->student()->create();
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get(route('admin.exams.questions.create', $this->exam))
-            ->assertRedirect(route('admin.login'));
+            ->assertForbidden();
     }
 
     private function createQuestion(string $text, ?Exam $exam = null): Question
     {
         $exam ??= $this->exam;
 
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.questions.store', $exam), [
+        $this->actingAs($this->admin)->post(route('admin.exams.questions.store', $exam), [
             'question_text' => $text,
             'type' => Question::TYPE_OPEN_WRITTEN,
         ])->assertSessionHasNoErrors();
@@ -333,7 +333,7 @@ class AdminQuestionTest extends TestCase
      */
     public function test_a_multiple_choice_question_is_saved_with_the_payload_the_form_sends(): void
     {
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.store', $this->exam), [
                 'question_text' => 'Forma payload-u',
                 'type' => Question::TYPE_MULTIPLE_CHOICE,
@@ -352,7 +352,7 @@ class AdminQuestionTest extends TestCase
     /** Açıq sualda forma köhnə variantları göndərə bilər — onlar nəzərə alınmamalıdır. */
     public function test_an_open_question_ignores_leftover_options_from_the_form(): void
     {
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.store', $this->exam), [
                 'question_text' => 'Açıq sual',
                 'type' => Question::TYPE_OPEN_WRITTEN,

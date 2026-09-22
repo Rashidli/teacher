@@ -17,7 +17,7 @@ class FakeGatewayController extends Controller
 {
     public function show(Payment $payment): Response
     {
-        abort_unless($payment->user_id === auth('student')->id(), 403);
+        abort_unless($payment->user_id === auth()->id(), 403);
         abort_unless($payment->isPending(), 410, 'Bu ödəniş artıq tamamlanıb.');
 
         $reference = (string) $payment->id;

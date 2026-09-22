@@ -50,9 +50,9 @@ class UsedQuestionEditingTest extends TestCase
 
     private function useInAttempt(): ExamAttempt
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.start', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.start', $this->exam));
         $attempt = ExamAttempt::latest('id')->firstOrFail();
-        $this->actingAs($this->student, 'student')->post(route('student.exams.finish', $attempt));
+        $this->actingAs($this->student)->post(route('student.exams.finish', $attempt));
 
         return $attempt;
     }
@@ -76,7 +76,7 @@ class UsedQuestionEditingTest extends TestCase
 
     private function update(Question $question, array $payload)
     {
-        return $this->actingAs($this->admin, 'admin')
+        return $this->actingAs($this->admin)
             ->put(route('admin.exams.questions.update', [$this->exam, $question]), $payload);
     }
 
@@ -234,7 +234,7 @@ class UsedQuestionEditingTest extends TestCase
         ]));
         $this->useInAttempt();
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.duplicate', [$this->exam, $question]));
 
         $copy = Question::orderByDesc('id')->firstOrFail();

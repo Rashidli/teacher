@@ -114,7 +114,7 @@ class AttemptScoringTest extends TestCase
 
     private function startAttempt(): ExamAttempt
     {
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->post(route('student.exams.start', $this->exam));
 
         return ExamAttempt::latest('id')->firstOrFail();
@@ -122,7 +122,7 @@ class AttemptScoringTest extends TestCase
 
     private function answer(ExamAttempt $attempt, Question $question, array $payload): void
     {
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->postJson(route('student.exams.save-answer', $attempt), $payload + [
                 'question_id' => $question->id,
             ])
@@ -131,7 +131,7 @@ class AttemptScoringTest extends TestCase
 
     private function finish(ExamAttempt $attempt): ExamAttempt
     {
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->post(route('student.exams.finish', $attempt));
 
         return $attempt->refresh();
@@ -169,7 +169,7 @@ class AttemptScoringTest extends TestCase
             ->where('question_id', $this->written->id)
             ->firstOrFail();
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.grading.update', [$attempt, $answer]), ['grade_ratio' => 0.5])
             ->assertSessionHasNoErrors();
 
@@ -239,7 +239,7 @@ class AttemptScoringTest extends TestCase
             'order' => 1,
         ]);
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->postJson(route('student.exams.save-answer', $attempt), [
                 'question_id' => $foreign->id,
                 'open_answer' => 'nəsə',
@@ -253,7 +253,7 @@ class AttemptScoringTest extends TestCase
     {
         $attempt = $this->startAttempt();
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->postJson(route('student.exams.save-answer', $attempt), [
                 'question_id' => $this->closedOne->id,
                 // Variant ikinci sualındır
@@ -269,7 +269,7 @@ class AttemptScoringTest extends TestCase
     {
         $attempt = $this->startAttempt();
 
-        $response = $this->actingAs($this->student, 'student')
+        $response = $this->actingAs($this->student)
             ->get(route('student.exams.attempt', $attempt));
 
         $questions = $response->viewData('page')['props']['questions'];
@@ -292,7 +292,7 @@ class AttemptScoringTest extends TestCase
         $this->answer($completed, $this->closedOne, ['selected_option_id' => $this->optionOf($this->closedOne, 'A')]);
         $this->finish($completed);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->get(route('admin.grading.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -309,8 +309,8 @@ class AttemptScoringTest extends TestCase
 
         $answer = AttemptAnswer::where('question_id', $this->written->id)->firstOrFail();
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->post(route('admin.grading.update', [$attempt, $answer]), ['grade_ratio' => 1])
-            ->assertRedirect(route('admin.login'));
+            ->assertForbidden();
     }
 }

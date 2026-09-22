@@ -24,7 +24,7 @@ use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentExamController;
 use App\Http\Controllers\Student\StudentResultController;
 use App\Http\Controllers\Student\StudentStatisticsController;
-use App\Http\Controllers\Student\Auth\StudentLoginController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Payments\FakeGatewayController;
 use App\Http\Controllers\Payments\PaymentCallbackController;
 use App\Http\Controllers\Student\StudentPaymentController;
@@ -70,14 +70,14 @@ $auth['account']();
 // ADMIN ROUTES
 // =====================================================
 Route::prefix('admin')->name('admin.')->group(function () {
-    // Guest routes - xüsusi middleware ilə
-    Route::middleware('guest.admin')->group(function () {
+    // Ayrıca giriş səhifəsi, amma eyni "web" guard-ı: yalnız admin rolu buraxılır
+    Route::middleware('guest')->group(function () {
         Route::get('/login', [AdminLoginController::class, 'create'])->name('login');
         Route::post('/login', [AdminLoginController::class, 'store']);
     });
 
-    // Authenticated routes
-    Route::middleware('auth:admin')->group(function () {
+    // Daxil olmuş admin: `auth` sessiyanı, `admin` rolu yoxlayır (rolsuz hesaba 403)
+    Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('/logout', [AdminLoginController::class, 'destroy'])->name('logout');
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
@@ -164,16 +164,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // Müəllim modulu MVP-də söndürülüb (FEATURE_TEACHERS=false): route-lar qeydiyyatdan keçmir və 404 qaytarır.
 if (config('features.teachers')) {
     Route::prefix('teacher')->name('teacher.')->group(function () {
-        // Guest routes - xüsusi middleware ilə
-        Route::middleware('guest.teacher')->group(function () {
+        Route::middleware('guest')->group(function () {
             Route::get('/login', [TeacherLoginController::class, 'create'])->name('login');
             Route::post('/login', [TeacherLoginController::class, 'store']);
+        });
+
+        // Müəllimliyə keçid: yeni hesab yaratmır, mövcud hesaba teacher rolu + profil əlavə edir
+        Route::middleware('auth')->group(function () {
             Route::get('/register', [TeacherRegisterController::class, 'create'])->name('register');
             Route::post('/register', [TeacherRegisterController::class, 'store']);
         });
 
-        // Authenticated routes
-        Route::middleware('auth:teacher')->group(function () {
+        // Daxil olmuş müəllim
+        Route::middleware(['auth', 'teacher'])->group(function () {
             Route::post('/logout', [TeacherLoginController::class, 'destroy'])->name('logout');
 
             // Awaiting verification page (no verified middleware)
@@ -206,14 +209,14 @@ Route::prefix('student')->name('student.')->group(function () {
     // Guest routes - xüsusi middleware ilə
     // Köhnə şagird giriş/qeydiyyat ünvanları: vahid /login və /register səhifələrinə yönləndirilir.
     // Route adları saxlanılır ki, route('student.login') istinadları işləsin.
-    Route::middleware('guest.student')->group(function () {
+    Route::middleware('guest')->group(function () {
         Route::permanentRedirect('/login', '/login')->name('login');
         Route::permanentRedirect('/register', '/register')->name('register');
     });
 
-    // Authenticated routes
-    Route::middleware('auth:student')->group(function () {
-        Route::post('/logout', [StudentLoginController::class, 'destroy'])->name('logout');
+    // Daxil olmuş şagird
+    Route::middleware(['auth', 'student'])->group(function () {
+        Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 
         // İmtahanlar
@@ -253,12 +256,12 @@ Route::match(['get', 'post'], '/payments/callback/{provider}', PaymentCallbackCo
 // Sınaq bank səhifəsi: yalnız fake driver seçiləndə və produksiyadan kənarda mövcuddur
 if (config('payments.driver') === 'fake' && ! app()->isProduction()) {
     Route::get('/payments/fake/{payment}', [FakeGatewayController::class, 'show'])
-        ->middleware('auth:student')
+        ->middleware(['auth', 'student'])
         ->name('payments.fake.show');
 }
 
-// Profile routes (shared)
-Route::middleware('auth:admin,teacher,student')->group(function () {
+// Profil: rolundan asılı olmayaraq daxil olmuş hər istifadəçi üçün
+Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

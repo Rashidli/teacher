@@ -194,7 +194,7 @@ class SeoTest extends TestCase
         $admin = User::factory()->admin()->create();
         $category = Category::where('path', 'abituriyent/kollec')->firstOrFail();
 
-        $this->actingAs($admin, 'admin')->put(route('admin.categories.update', $category), [
+        $this->actingAs($admin)->put(route('admin.categories.update', $category), [
             'parent_id' => $category->parent_id,
             'slug' => $category->slug,
             'name' => $category->name,
@@ -228,7 +228,7 @@ class SeoTest extends TestCase
         $admin = User::factory()->admin()->create();
         $category = Category::where('path', 'abituriyent/kollec')->firstOrFail();
 
-        $this->actingAs($admin, 'admin')->put(route('admin.categories.update', $category), [
+        $this->actingAs($admin)->put(route('admin.categories.update', $category), [
             'parent_id' => $category->parent_id,
             'slug' => $category->slug,
             'name' => $category->name,
@@ -242,7 +242,7 @@ class SeoTest extends TestCase
         $admin = User::factory()->admin()->create();
         $group = Category::where('path', 'abituriyent/1-ci-qrup')->firstOrFail();
 
-        $this->actingAs($admin, 'admin')->put(route('admin.categories.update', $group), [
+        $this->actingAs($admin)->put(route('admin.categories.update', $group), [
             'parent_id' => $group->parent_id,
             'slug' => $group->slug,
             'name' => $group->name,

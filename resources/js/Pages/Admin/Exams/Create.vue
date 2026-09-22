@@ -13,8 +13,6 @@ const props = defineProps({
     subjects: { type: Array, default: () => [] },
     groups: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
-    // false: .env-də EXAM_OWNER_ID yoxdur, imtahan yaradıla bilməz
-    ownerConfigured: { type: Boolean, default: true },
 });
 
 const form = useForm({
@@ -63,24 +61,8 @@ const submit = () => {
 
         <div class="py-12">
             <div class="mx-auto max-w-2xl sm:px-6 lg:px-8">
-                <div
-                    v-if="!ownerConfigured && teachers.length === 0"
-                    class="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800"
-                >
-                    <p class="font-semibold">İmtahan sahibi təyin olunmayıb</p>
-                    <p class="mt-1">
-                        Müəllim modulu söndürülüb, ona görə imtahanlar admin hesabına bağlanır.
-                        <code class="rounded bg-amber-100 px-1">.env</code> faylında
-                        <code class="rounded bg-amber-100 px-1">EXAM_OWNER_ID</code> mövcud admin hesabının
-                        ID-si olmalıdır. Dəyişiklikdən sonra
-                        <code class="rounded bg-amber-100 px-1">php artisan config:clear</code>.
-                    </p>
-                </div>
-
                 <div class="bg-white overflow-hidden shadow-sm rounded-lg">
                     <form @submit.prevent="submit" class="p-6 space-y-6">
-                        <InputError :message="form.errors.exam_owner" class="mb-2" />
-
                         <div v-if="teachers.length">
                             <InputLabel for="teacher_id" value="Müəllim" />
                             <select

@@ -61,7 +61,7 @@ class AttemptLifecycleTest extends TestCase
 
     private function startAttempt(): ExamAttempt
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.start', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.start', $this->exam));
 
         return ExamAttempt::latest('id')->firstOrFail();
     }
@@ -74,7 +74,7 @@ class AttemptLifecycleTest extends TestCase
         // İmtahan 30 dəqiqəlikdir: cəhdi 31 dəqiqə əvvələ çəkirik
         $attempt->forceFill(['started_at' => now()->subMinutes(31)])->save();
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->get(route('student.exams.attempt', $attempt))
             ->assertRedirect(route('student.exams.result', $attempt));
 
@@ -91,7 +91,7 @@ class AttemptLifecycleTest extends TestCase
         $expired = $this->startAttempt();
         $expired->forceFill(['started_at' => now()->subMinutes(31)])->save();
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->post(route('student.exams.start', $this->exam));
 
         $this->assertSame(ExamAttempt::STATUS_COMPLETED, $expired->refresh()->status);
@@ -107,7 +107,7 @@ class AttemptLifecycleTest extends TestCase
     {
         $attempt = $this->startAttempt();
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->post(route('student.exams.start', $this->exam))
             ->assertRedirect(route('student.exams.attempt', $attempt));
 
@@ -118,9 +118,9 @@ class AttemptLifecycleTest extends TestCase
     {
         $attempt = $this->startAttempt();
 
-        $this->actingAs($this->student, 'student')->post(route('student.exams.finish', $attempt));
+        $this->actingAs($this->student)->post(route('student.exams.finish', $attempt));
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->post(route('student.exams.finish', $attempt))
             ->assertForbidden();
     }
@@ -129,7 +129,7 @@ class AttemptLifecycleTest extends TestCase
     {
         $attempt = $this->startAttempt();
 
-        $this->actingAs($this->intruder, 'student')
+        $this->actingAs($this->intruder)
             ->get(route('student.exams.attempt', $attempt))
             ->assertForbidden();
     }
@@ -138,7 +138,7 @@ class AttemptLifecycleTest extends TestCase
     {
         $attempt = $this->startAttempt();
 
-        $this->actingAs($this->intruder, 'student')
+        $this->actingAs($this->intruder)
             ->postJson(route('student.exams.save-answer', $attempt), [
                 'question_id' => $this->question->id,
                 'selected_option_id' => $this->question->options->first()->id,
@@ -152,7 +152,7 @@ class AttemptLifecycleTest extends TestCase
     {
         $attempt = $this->startAttempt();
 
-        $this->actingAs($this->intruder, 'student')
+        $this->actingAs($this->intruder)
             ->post(route('student.exams.finish', $attempt))
             ->assertForbidden();
 
@@ -162,9 +162,9 @@ class AttemptLifecycleTest extends TestCase
     public function test_a_student_can_not_see_someone_elses_result(): void
     {
         $attempt = $this->startAttempt();
-        $this->actingAs($this->student, 'student')->post(route('student.exams.finish', $attempt));
+        $this->actingAs($this->student)->post(route('student.exams.finish', $attempt));
 
-        $this->actingAs($this->intruder, 'student')
+        $this->actingAs($this->intruder)
             ->get(route('student.exams.result', $attempt))
             ->assertForbidden();
     }
@@ -173,9 +173,9 @@ class AttemptLifecycleTest extends TestCase
     public function test_answers_can_not_be_saved_after_the_attempt_is_finished(): void
     {
         $attempt = $this->startAttempt();
-        $this->actingAs($this->student, 'student')->post(route('student.exams.finish', $attempt));
+        $this->actingAs($this->student)->post(route('student.exams.finish', $attempt));
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->postJson(route('student.exams.save-answer', $attempt), [
                 'question_id' => $this->question->id,
                 'selected_option_id' => $this->question->options->first()->id,

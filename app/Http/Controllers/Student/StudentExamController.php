@@ -32,7 +32,7 @@ class StudentExamController extends Controller
 
     public function index(Request $request)
     {
-        $student = auth('student')->user();
+        $student = auth()->user();
 
         $query = Exam::with(['subject', 'teacher', 'group'])
             ->withCount('questions')
@@ -70,25 +70,25 @@ class StudentExamController extends Controller
     public function show(Exam $exam)
     {
         // Başqa sektorun imtahanı açıla bilməz
-        abort_unless($exam->sector === (auth('student')->user()->sector ?? Sector::AZ), 404);
+        abort_unless($exam->sector === (auth()->user()->sector ?? Sector::AZ), 404);
 
         $exam->load(['subject', 'teacher', 'group']);
         $exam->loadCount('questions');
 
         // Şagirdin bu imtahanda aktiv cəhdi varmı?
-        $activeAttempt = auth('student')->user()->examAttempts()
+        $activeAttempt = auth()->user()->examAttempts()
             ->where('exam_id', $exam->id)
             ->inProgress()
             ->first();
 
         // Tamamlanmış cəhdlər
-        $completedAttempts = auth('student')->user()->examAttempts()
+        $completedAttempts = auth()->user()->examAttempts()
             ->where('exam_id', $exam->id)
             ->completed()
             ->latest()
             ->get();
 
-        $access = $this->access->activeAccess(auth('student')->user(), $exam);
+        $access = $this->access->activeAccess(auth()->user(), $exam);
 
         return Inertia::render('Student/Exams/Show', [
             'exam' => $exam,
@@ -103,13 +103,13 @@ class StudentExamController extends Controller
     public function start(Request $request, Exam $exam)
     {
         // Pullu imtahan: aktiv giriş olmadan cəhd yaradıla bilməz
-        if (! $this->access->allows(auth('student')->user(), $exam)) {
+        if (! $this->access->allows(auth()->user(), $exam)) {
             return redirect()->route('student.exams.show', $exam)
                 ->with('error', 'Bu imtahan ödənişlidir. Başlamaq üçün əvvəlcə alın.');
         }
 
         // Aktiv cəhd varsa yoxla
-        $activeAttempt = auth('student')->user()->examAttempts()
+        $activeAttempt = auth()->user()->examAttempts()
             ->where('exam_id', $exam->id)
             ->inProgress()
             ->first();
@@ -127,7 +127,7 @@ class StudentExamController extends Controller
         // Yeni cəhd yarat - imtahanın öz qrupunu istifadə et
         $attempt = DB::transaction(function () use ($exam) {
             $attempt = ExamAttempt::create([
-                'user_id' => auth('student')->id(),
+                'user_id' => auth()->id(),
                 'exam_id' => $exam->id,
                 'group_id' => $exam->group_id,
                 'status' => ExamAttempt::STATUS_IN_PROGRESS,
@@ -158,7 +158,7 @@ class StudentExamController extends Controller
     public function attempt(ExamAttempt $attempt)
     {
         // Bu şagirdin cəhdi olduğunu yoxla
-        if ($attempt->user_id !== auth('student')->id()) {
+        if ($attempt->user_id !== auth()->id()) {
             abort(403);
         }
 
@@ -228,7 +228,7 @@ class StudentExamController extends Controller
 
     public function saveAnswer(Request $request, ExamAttempt $attempt)
     {
-        if ($attempt->user_id !== auth('student')->id() || $attempt->status !== 'in_progress') {
+        if ($attempt->user_id !== auth()->id() || $attempt->status !== 'in_progress') {
             abort(403);
         }
 
@@ -264,7 +264,7 @@ class StudentExamController extends Controller
 
     public function finish(ExamAttempt $attempt)
     {
-        if ($attempt->user_id !== auth('student')->id() || $attempt->status !== 'in_progress') {
+        if ($attempt->user_id !== auth()->id() || $attempt->status !== 'in_progress') {
             abort(403);
         }
 
@@ -305,7 +305,7 @@ class StudentExamController extends Controller
 
     public function result(ExamAttempt $attempt)
     {
-        if ($attempt->user_id !== auth('student')->id()) {
+        if ($attempt->user_id !== auth()->id()) {
             abort(403);
         }
 
@@ -362,7 +362,7 @@ class StudentExamController extends Controller
             'exam' => $attempt->exam,
             'answers' => $questionsWithAnswers,
             // Eyni imtahanın əvvəlki cəhdləri ilə müqayisə və mövzu bölgüsü (Mərhələ 7)
-            'comparison' => $this->statistics->examComparison(auth('student')->user(), $attempt),
+            'comparison' => $this->statistics->examComparison(auth()->user(), $attempt),
             'topics' => $this->statistics->attemptTopics($attempt),
             // Fənn-fənn bölgü (hesablama anında dondurulub)
             'sections' => $attempt->sectionResults()->with('subject:id,name')->get()

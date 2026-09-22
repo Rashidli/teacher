@@ -20,7 +20,7 @@ class StudentStatisticsController extends Controller
 
     public function index(): Response
     {
-        $student = auth('student')->user();
+        $student = auth()->user();
 
         return Inertia::render('Student/Statistics', [
             'overview' => $this->statistics->overview($student),

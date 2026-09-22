@@ -21,7 +21,7 @@ const user = page.props.auth.user;
 
 // Tədris sektoru yalnız şagirdə aiddir: imtahanların dilini müəyyən edir.
 // Dəyişdirmək artıq alınmış imtahanlara girişi pozmur — giriş konkret imtahana bağlıdır.
-const isStudent = computed(() => page.props.auth.guard === 'student');
+const isStudent = computed(() => (user.roles || []).includes('student'));
 
 const form = useForm({
     name: user.name,

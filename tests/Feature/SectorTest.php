@@ -60,7 +60,7 @@ class SectorTest extends TestCase
         $exam = Exam::factory()->russian()->create();
         $question = Question::factory()->create(['language' => Sector::AZ]);
 
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($admin)
             ->post(route('admin.exams.questions.attach', $exam), ['question_id' => $question->id])
             ->assertSessionHasErrors('question_id');
 
@@ -87,7 +87,7 @@ class SectorTest extends TestCase
             'options_per_question' => 4,
         ]);
 
-        $this->actingAs($admin, 'admin')->post(route('admin.exams.questions.store', $exam), [
+        $this->actingAs($admin)->post(route('admin.exams.questions.store', $exam), [
             'question_text' => 'Вопрос',
             'type' => Question::TYPE_MULTIPLE_CHOICE,
             'difficulty' => Question::DIFFICULTY_MEDIUM,
@@ -109,7 +109,7 @@ class SectorTest extends TestCase
         $exam = Exam::factory()->create(['sector' => Sector::AZ]);
         app(QuestionService::class)->attach($exam, Question::factory()->create());
 
-        $this->actingAs($admin, 'admin')->patch(route('admin.exams.update', $exam), [
+        $this->actingAs($admin)->patch(route('admin.exams.update', $exam), [
             'title' => $exam->title,
             'duration_minutes' => $exam->duration_minutes,
             'is_free' => true,
@@ -160,7 +160,7 @@ class SectorTest extends TestCase
 
         $student = User::factory()->student()->create(['sector' => Sector::AZ]);
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get('/ru/abiturient')
             ->assertInertia(fn ($page) => $page
                 ->where('sector', Sector::AZ)
@@ -188,7 +188,7 @@ class SectorTest extends TestCase
         $this->seedTree();
         $student = User::factory()->student()->create(['sector' => Sector::AZ]);
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->post(route('sector.update'), ['sector' => Sector::RU])
             ->assertRedirect();
 
@@ -252,7 +252,7 @@ class SectorTest extends TestCase
     {
         $student = User::factory()->student()->create(['sector' => Sector::AZ]);
 
-        $this->actingAs($student, 'student')->patch(route('profile.update'), [
+        $this->actingAs($student)->patch(route('profile.update'), [
             'name' => $student->name,
             'email' => $student->email,
             'sector' => Sector::RU,
@@ -270,7 +270,7 @@ class SectorTest extends TestCase
         $russian = Exam::factory()->published()->russian()->create(['title' => 'Русский экзамен']);
         Exam::factory()->published()->create(['title' => 'Azərbaycan imtahanı']);
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get(route('student.exams.index'))
             ->assertInertia(fn ($page) => $page
                 ->has('exams.data', 1)
@@ -282,7 +282,7 @@ class SectorTest extends TestCase
         $student = User::factory()->student()->create(['sector' => Sector::AZ]);
         $exam = Exam::factory()->published()->russian()->create();
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get(route('student.exams.show', $exam))
             ->assertNotFound();
     }

@@ -54,7 +54,7 @@ class PaymentGatewayFactoryTest extends TestCase
         $student = User::factory()->student()->create();
         $exam = Exam::factory()->published()->paid()->create();
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get(route('student.exams.show', $exam))
             ->assertInertia(fn ($page) => $page->where('purchasesEnabled', false));
     }

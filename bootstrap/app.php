@@ -26,17 +26,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'payments/callback/*',
         ]);
 
+        // Rol middleware-ləri: hamısı tək "web" guard-ı ilə işləyir, `auth`-dan SONRA yazılır
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'teacher' => \App\Http\Middleware\EnsureUserIsTeacher::class,
             'teacher.verified' => \App\Http\Middleware\EnsureTeacherIsVerified::class,
             'student' => \App\Http\Middleware\EnsureUserIsStudent::class,
-            'guest.admin' => \App\Http\Middleware\RedirectIfAuthenticatedAdmin::class,
-            'guest.teacher' => \App\Http\Middleware\RedirectIfAuthenticatedTeacher::class,
-            'guest.student' => \App\Http\Middleware\RedirectIfAuthenticatedStudent::class,
         ]);
 
-        // Configure guest middleware redirect for each guard
+        // Qonaq səhifəsinə daxil olmamış istifadəçi hansı giriş formasına göndərilir
         // Şagird və ümumi hesab səhifələri üçün cari dildəki /login (və ya /ru/login)
         $middleware->redirectGuestsTo(fn ($request) => match(true) {
             $request->routeIs('admin.*') => route('admin.login'),
@@ -44,13 +42,8 @@ return Application::configure(basePath: dirname(__DIR__))
             default => \App\Support\Localization::route('login'),
         });
 
-        // Configure authenticated user redirect for guest pages
-        $middleware->redirectUsersTo(fn ($request) => match(true) {
-            $request->routeIs('admin.*') => route('admin.dashboard'),
-            $request->routeIs('teacher.*') => route('teacher.dashboard'),
-            // Daxil olmuş şagird /login, /register və s. açarsa, panelinə gedir
-            default => route('student.dashboard'),
-        });
+        // Daxil olmuş istifadəçi /login, /register, /admin/login açarsa öz panelinə gedir
+        $middleware->redirectUsersTo(fn ($request) => \App\Support\Panel::homeUrl($request->user()));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -59,12 +59,12 @@ class QuestionBankTest extends TestCase
 
     private function takeExam(): ExamAttempt
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.start', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.start', $this->exam));
 
         $attempt = ExamAttempt::latest('id')->firstOrFail();
 
         foreach ($attempt->questions as $question) {
-            $this->actingAs($this->student, 'student')->postJson(
+            $this->actingAs($this->student)->postJson(
                 route('student.exams.save-answer', $attempt),
                 [
                     'question_id' => $question->id,
@@ -73,7 +73,7 @@ class QuestionBankTest extends TestCase
             )->assertOk();
         }
 
-        $this->actingAs($this->student, 'student')->post(route('student.exams.finish', $attempt));
+        $this->actingAs($this->student)->post(route('student.exams.finish', $attempt));
 
         return $attempt->refresh();
     }
@@ -104,7 +104,7 @@ class QuestionBankTest extends TestCase
     {
         $question = $this->addQuestion('Sual', 1);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.exams.destroy', $this->exam));
 
         $this->assertNotNull(Question::find($question->id));
@@ -114,7 +114,7 @@ class QuestionBankTest extends TestCase
     {
         $topic = Topic::factory()->quarter(2)->create(['subject_id' => $this->exam->subject_id]);
 
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.questions.store', $this->exam), [
+        $this->actingAs($this->admin)->post(route('admin.exams.questions.store', $this->exam), [
             'question_text' => 'Mövzulu sual',
             'type' => Question::TYPE_OPEN_WRITTEN,
             'topic_id' => $topic->id,
@@ -134,7 +134,7 @@ class QuestionBankTest extends TestCase
     {
         $foreignTopic = Topic::factory()->create(['subject_id' => Subject::factory()->create()->id]);
 
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.questions.store', $this->exam), [
+        $this->actingAs($this->admin)->post(route('admin.exams.questions.store', $this->exam), [
             'question_text' => 'Sual',
             'type' => Question::TYPE_OPEN_WRITTEN,
             'topic_id' => $foreignTopic->id,
@@ -163,7 +163,7 @@ class QuestionBankTest extends TestCase
         $attempt = $this->takeExam();
         $scoreBefore = $attempt->relative_score;
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.exams.questions.destroy', [$this->exam, $first]));
 
         // İmtahanda bir sual qaldı, amma cəhd hələ də iki sualı göstərir
@@ -171,7 +171,7 @@ class QuestionBankTest extends TestCase
         $this->assertSame(2, $attempt->refresh()->questions()->count());
         $this->assertSame($scoreBefore, $attempt->relative_score);
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->get(route('student.exams.result', $attempt))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->has('answers', 2));
@@ -185,7 +185,7 @@ class QuestionBankTest extends TestCase
 
         $attempt = $this->takeExam();
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.duplicate', [$this->exam, $original]))
             ->assertSessionHasNoErrors();
 
@@ -197,7 +197,7 @@ class QuestionBankTest extends TestCase
         $this->assertFalse($this->exam->questions()->where('questions.id', $original->id)->exists());
         $this->assertTrue($attempt->questions()->where('questions.id', $original->id)->exists());
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->get(route('student.exams.result', $attempt))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->has('answers', 2)

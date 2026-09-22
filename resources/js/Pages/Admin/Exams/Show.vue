@@ -112,11 +112,15 @@ const toggleActive = () => {
                             </div>
 
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Müəllim & Status</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Sahiblik & Status</h3>
                                 <dl class="space-y-3">
                                     <div>
+                                        <dt class="text-sm font-medium text-gray-500">Yaradan</dt>
+                                        <dd class="text-sm text-gray-900">{{ exam.creator?.full_name ?? '—' }}</dd>
+                                    </div>
+                                    <div v-if="exam.teacher">
                                         <dt class="text-sm font-medium text-gray-500">Müəllim</dt>
-                                        <dd class="text-sm text-gray-900">{{ exam.teacher?.full_name ?? '—' }}</dd>
+                                        <dd class="text-sm text-gray-900">{{ exam.teacher.full_name }}</dd>
                                     </div>
                                     <div>
                                         <dt class="text-sm font-medium text-gray-500">Sual Sayı</dt>

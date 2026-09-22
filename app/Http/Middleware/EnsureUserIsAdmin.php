@@ -4,15 +4,14 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
+/** `auth`-dan sonra işləyir: hesabın admin rolu yoxdursa 403. */
 class EnsureUserIsAdmin
 {
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::guard('admin')->user();
-
-        if (!$user || !$user->hasRole('admin')) {
+        if (! $request->user()?->hasRole('admin')) {
             abort(403, 'Bu səhifəyə giriş icazəniz yoxdur.');
         }
 

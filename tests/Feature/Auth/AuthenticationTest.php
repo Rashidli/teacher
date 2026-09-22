@@ -7,8 +7,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Vahid /login yalnız şagird girişidir ("student" guard).
- * Admin /admin/login-dan, müəllim (modul açıq olanda) /teacher/login-dan daxil olur.
+ * Vahid /login: tək "web" guard, rol yoxlaması yoxdur.
+ * Girişdən sonra hesab öz panelinə yönləndirilir (bax RolePanelTest).
  */
 class AuthenticationTest extends TestCase
 {
@@ -30,8 +30,8 @@ class AuthenticationTest extends TestCase
             'password' => 'password',
         ]);
 
-        $this->assertAuthenticated('student');
-        $response->assertRedirect(route('student.dashboard', absolute: false));
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('student.dashboard'));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
@@ -43,11 +43,11 @@ class AuthenticationTest extends TestCase
             'password' => 'wrong-password',
         ]);
 
-        $this->assertGuest('student');
+        $this->assertGuest();
     }
 
-    /** Şagird rolu olmayan hesab vahid giriş formasından daxil ola bilməz. */
-    public function test_non_student_accounts_can_not_use_the_student_login(): void
+    /** Giriş rola görə rədd etmir: admin də vahid formadan daxil ola bilər. */
+    public function test_any_role_can_use_the_single_login_form(): void
     {
         $admin = User::factory()->admin()->create();
 
@@ -56,17 +56,18 @@ class AuthenticationTest extends TestCase
             'password' => 'password',
         ]);
 
-        $response->assertSessionHasErrors('email');
-        $this->assertGuest('student');
+        $response->assertSessionHasNoErrors();
+        $this->assertAuthenticatedAs($admin);
+        $response->assertRedirect(route('admin.dashboard'));
     }
 
     public function test_users_can_logout(): void
     {
         $user = User::factory()->student()->create();
 
-        $response = $this->actingAs($user, 'student')->post('/logout');
+        $response = $this->actingAs($user)->post('/logout');
 
-        $this->assertGuest('student');
+        $this->assertGuest();
         $response->assertRedirect('/');
     }
 }

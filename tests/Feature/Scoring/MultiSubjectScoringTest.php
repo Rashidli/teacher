@@ -82,7 +82,7 @@ class MultiSubjectScoringTest extends TestCase
     /** @param  array<string, int>  $correctPerSection  bölmə → neçə suala düzgün cavab verilsin */
     private function take(array $correctPerSection): ExamAttempt
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.start', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.start', $this->exam));
         $attempt = ExamAttempt::latest('id')->firstOrFail();
 
         foreach ($this->sections as $key => $section) {
@@ -97,7 +97,7 @@ class MultiSubjectScoringTest extends TestCase
                 // Əvvəlcə düzgün (A), sonra səhv (B) cavablar
                 $letter = $remaining-- > 0 ? 'A' : 'B';
 
-                $this->actingAs($this->student, 'student')->postJson(
+                $this->actingAs($this->student)->postJson(
                     route('student.exams.save-answer', $attempt),
                     [
                         'question_id' => $question->id,
@@ -107,7 +107,7 @@ class MultiSubjectScoringTest extends TestCase
             }
         }
 
-        $this->actingAs($this->student, 'student')->post(route('student.exams.finish', $attempt));
+        $this->actingAs($this->student)->post(route('student.exams.finish', $attempt));
 
         return $attempt->refresh();
     }
@@ -210,11 +210,11 @@ class MultiSubjectScoringTest extends TestCase
             $single->questions()->attach($question->id, ['section_id' => $section->id, 'order' => $index]);
         }
 
-        $this->actingAs($this->student, 'student')->post(route('student.exams.start', $single));
+        $this->actingAs($this->student)->post(route('student.exams.start', $single));
         $attempt = ExamAttempt::latest('id')->firstOrFail();
 
         foreach ($attempt->questions as $question) {
-            $this->actingAs($this->student, 'student')->postJson(
+            $this->actingAs($this->student)->postJson(
                 route('student.exams.save-answer', $attempt),
                 [
                     'question_id' => $question->id,
@@ -223,7 +223,7 @@ class MultiSubjectScoringTest extends TestCase
             );
         }
 
-        $this->actingAs($this->student, 'student')->post(route('student.exams.finish', $attempt));
+        $this->actingAs($this->student)->post(route('student.exams.finish', $attempt));
         $attempt->refresh();
 
         $this->assertSame(1, $attempt->sectionResults()->count());

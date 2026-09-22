@@ -280,7 +280,7 @@ class StudentStatisticsTest extends TestCase
             'source' => ExamAccess::SOURCE_FREE,
         ]);
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->get(route('student.statistics'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -305,7 +305,7 @@ class StudentStatisticsTest extends TestCase
         $this->attempt(50, exam: $exam, finishedAt: '2026-09-01 10:00:00');
         $current = $this->attempt(70, exam: $exam, finishedAt: '2026-09-10 10:00:00');
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->get(route('student.exams.result', $current))
             ->assertOk()
             ->assertInertia(fn ($page) => $page

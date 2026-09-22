@@ -4,14 +4,19 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Support\Localization;
+use App\Support\Panel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Support\Localization;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Vahid giriş/çıxış. Hesabın rolu girişə mane olmur: admin admin panelinə,
+ * müəllim (modul açıq olanda) müəllim panelinə, qalanlar şagird kabinetinə düşür.
+ */
 class AuthenticatedSessionController extends Controller
 {
     /**
@@ -34,7 +39,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('student.dashboard', absolute: false));
+        return redirect()->intended(Panel::homeUrl($request->user()));
     }
 
     /**
@@ -42,7 +47,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('student')->logout();
+        Auth::logout();
 
         $request->session()->invalidate();
 

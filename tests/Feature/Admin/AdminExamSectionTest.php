@@ -24,13 +24,13 @@ class AdminExamSectionTest extends TestCase
         $this->admin = User::factory()->admin()->create();
         $this->exam = Exam::factory()->create();
 
-        config(['features.teachers' => false, 'features.exam_owner_id' => $this->admin->id]);
+        config(['features.teachers' => false]);
     }
 
     /** Yeni imtahan yaradılanda avtomatik bir bölmə açılır — ayrıca "bölməsiz" rejim yoxdur. */
     public function test_a_new_exam_gets_a_default_section(): void
     {
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.store'), [
+        $this->actingAs($this->admin)->post(route('admin.exams.store'), [
             'subject_id' => Subject::factory()->create()->id,
             'group_id' => \App\Models\Group::factory()->create()->id,
             'title' => 'Yeni imtahan',
@@ -49,7 +49,7 @@ class AdminExamSectionTest extends TestCase
     {
         $physics = Subject::factory()->create(['name' => 'Fizika']);
 
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.sections.store', $this->exam), [
+        $this->actingAs($this->admin)->post(route('admin.exams.sections.store', $this->exam), [
             'subject_id' => $physics->id,
             'question_count' => 25,
             'max_score' => 150,
@@ -64,7 +64,7 @@ class AdminExamSectionTest extends TestCase
 
     public function test_the_same_subject_can_not_be_added_twice(): void
     {
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.sections.store', $this->exam), [
+        $this->actingAs($this->admin)->post(route('admin.exams.sections.store', $this->exam), [
             'subject_id' => $this->exam->subject_id,
         ])->assertSessionHasErrors('subject_id');
 
@@ -75,7 +75,7 @@ class AdminExamSectionTest extends TestCase
     {
         $section = $this->exam->sections()->firstOrFail();
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.exams.sections.destroy', [$this->exam, $section]))
             ->assertSessionHasErrors('section');
 
@@ -90,7 +90,7 @@ class AdminExamSectionTest extends TestCase
         $question = Question::factory()->create(['subject_id' => $physics->id]);
         $this->exam->questions()->attach($question->id, ['section_id' => $section->id, 'order' => 1]);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.exams.sections.destroy', [$this->exam, $section]))
             ->assertSessionHasErrors('section');
 
@@ -104,7 +104,7 @@ class AdminExamSectionTest extends TestCase
             'order' => 2,
         ]);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->delete(route('admin.exams.sections.destroy', [$this->exam, $section]))
             ->assertSessionHasNoErrors();
 
@@ -117,7 +117,7 @@ class AdminExamSectionTest extends TestCase
         $physics = Subject::factory()->create();
         $section = $this->exam->sections()->create(['subject_id' => $physics->id, 'order' => 2]);
 
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.questions.store', $this->exam), [
+        $this->actingAs($this->admin)->post(route('admin.exams.questions.store', $this->exam), [
             'question_text' => 'Fizika sualı',
             'type' => Question::TYPE_OPEN_WRITTEN,
             'section_id' => $section->id,
@@ -136,7 +136,7 @@ class AdminExamSectionTest extends TestCase
     {
         $otherSection = Exam::factory()->create()->sections()->firstOrFail();
 
-        $this->actingAs($this->admin, 'admin')->post(route('admin.exams.questions.store', $this->exam), [
+        $this->actingAs($this->admin)->post(route('admin.exams.questions.store', $this->exam), [
             'question_text' => 'Sual',
             'type' => Question::TYPE_OPEN_WRITTEN,
             'section_id' => $otherSection->id,

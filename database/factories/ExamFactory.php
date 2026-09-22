@@ -15,7 +15,9 @@ class ExamFactory extends Factory
     public function definition(): array
     {
         return [
-            'teacher_id' => User::factory()->admin(),
+            // Sahiblik created_by-dadır; teacher_id yalnız müəllim modulunda doldurulur
+            'created_by' => User::factory()->admin(),
+            'teacher_id' => null,
             'subject_id' => Subject::factory(),
             'group_id' => Group::factory(),
             'title' => 'Sınaq imtahanı '.fake()->unique()->numberBetween(1, 9999),

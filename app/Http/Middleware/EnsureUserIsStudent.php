@@ -4,15 +4,14 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
+/** `auth`-dan sonra işləyir: hesabın şagird rolu yoxdursa 403. */
 class EnsureUserIsStudent
 {
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::guard('student')->user();
-
-        if (!$user || !$user->hasRole('student')) {
+        if (! $request->user()?->hasRole('student')) {
             abort(403, 'Bu səhifəyə yalnız şagirdlər daxil ola bilər.');
         }
 

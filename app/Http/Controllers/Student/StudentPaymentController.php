@@ -23,7 +23,7 @@ class StudentPaymentController extends Controller
 
     public function store(Exam $exam): RedirectResponse
     {
-        $student = auth('student')->user();
+        $student = auth()->user();
 
         abort_unless($exam->is_published && $exam->is_active, 404);
 

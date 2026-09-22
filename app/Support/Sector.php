@@ -58,12 +58,6 @@ class Sector
 
     private static function authenticatedUser()
     {
-        foreach (['student', 'admin', 'teacher'] as $guard) {
-            if (Auth::guard($guard)->check()) {
-                return Auth::guard($guard)->user();
-            }
-        }
-
-        return null;
+        return Auth::user();
     }
 }

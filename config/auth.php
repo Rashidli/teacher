@@ -1,5 +1,12 @@
 <?php
 
+/*
+| Tək guard ("web"), tək istifadəçi cədvəli (users).
+|
+| Rol ayrı guard deyil: admin/teacher/student spatie rolları ilə verilir və panellər
+| `auth` + rol middleware-i ilə qorunur (EnsureUserIsAdmin/Teacher/Student).
+| Bir hesabın eyni anda bir neçə rolu ola bilər.
+*/
 return [
 
     'defaults' => [
@@ -12,36 +19,12 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
-        'admin' => [
-            'driver' => 'session',
-            'provider' => 'admins',
-        ],
-        'teacher' => [
-            'driver' => 'session',
-            'provider' => 'teachers',
-        ],
-        'student' => [
-            'driver' => 'session',
-            'provider' => 'students',
-        ],
     ],
 
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
-        ],
-        'admins' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\User::class,
-        ],
-        'teachers' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\User::class,
-        ],
-        'students' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\User::class,
         ],
     ],
 

@@ -23,7 +23,7 @@ class AdminQuestionImportTest extends TestCase
 
         $this->admin = User::factory()->admin()->create();
         $this->exam = Exam::factory()->create([
-            'teacher_id' => $this->admin->id,
+            'created_by' => $this->admin->id,
             'options_per_question' => 4,
         ]);
     }
@@ -48,13 +48,13 @@ class AdminQuestionImportTest extends TestCase
 
     private function preview(UploadedFile $file)
     {
-        return $this->actingAs($this->admin, 'admin')
+        return $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.import.preview', $this->exam), ['file' => $file]);
     }
 
     public function test_admin_can_open_the_import_page(): void
     {
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->get(route('admin.exams.questions.import', $this->exam))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('Admin/Questions/Import')->where('rows', null));
@@ -62,7 +62,7 @@ class AdminQuestionImportTest extends TestCase
 
     public function test_admin_can_download_the_template(): void
     {
-        $response = $this->actingAs($this->admin, 'admin')
+        $response = $this->actingAs($this->admin)
             ->get(route('admin.exams.questions.import.template', $this->exam));
 
         $response->assertOk();
@@ -118,7 +118,7 @@ class AdminQuestionImportTest extends TestCase
         $token = $this->preview($file)->viewData('page')['props']['token'] ?? null;
         $this->assertNotNull($token);
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.import.store', $this->exam), ['token' => $token])
             ->assertRedirect(route('admin.exams.show', $this->exam));
 
@@ -149,7 +149,7 @@ class AdminQuestionImportTest extends TestCase
         $file = $this->csv([['Yeni sual', 'aciq', '', '', '', '', '', '']]);
         $token = $this->preview($file)->viewData('page')['props']['token'];
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.import.store', $this->exam), ['token' => $token]);
 
         $new = Question::where('question_text', 'Yeni sual')->firstOrFail();
@@ -166,7 +166,7 @@ class AdminQuestionImportTest extends TestCase
 
         $token = $this->preview($file)->viewData('page')['props']['token'];
 
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.import.store', $this->exam), ['token' => $token])
             ->assertSessionHasErrors('file');
 
@@ -192,7 +192,7 @@ class AdminQuestionImportTest extends TestCase
 
     public function test_an_unknown_token_does_not_import_anything(): void
     {
-        $this->actingAs($this->admin, 'admin')
+        $this->actingAs($this->admin)
             ->post(route('admin.exams.questions.import.store', $this->exam), ['token' => 'yoxdur.xlsx'])
             ->assertSessionHasErrors('file');
 
@@ -203,8 +203,8 @@ class AdminQuestionImportTest extends TestCase
     {
         $student = User::factory()->student()->create();
 
-        $this->actingAs($student, 'student')
+        $this->actingAs($student)
             ->get(route('admin.exams.questions.import', $this->exam))
-            ->assertRedirect(route('admin.login'));
+            ->assertForbidden();
     }
 }

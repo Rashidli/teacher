@@ -10,6 +10,30 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-22 — Auth sadələşdirilməsi: tək guard, bir hesab / bir neçə rol
+
+Ayrı `admin`, `teacher`, `student` guard-ları **silindi**. İndi tək `web` guard-ı və tək `users`
+cədvəli var; rol spatie ilə verilir, panellər `auth` + rol middleware-i ilə qorunur
+(`EnsureUserIsAdmin/Teacher/Student` — hamısı `$request->user()` ilə işləyir).
+
+- **Bir hesabın bir neçə rolu ola bilər.** Vahid `/login` artıq rola görə rədd etmir: girişdən
+  sonra hesab öz panelinə düşür — admin → `/admin/dashboard`, müəllim (modul açıq olanda) →
+  müəllim paneli, qalanlar → şagird kabineti (`App\Support\Panel::homeUrl()`).
+- **Başqa rolun panelinə girəndə 403** (əvvəl giriş səhifəsinə yönləndirilirdi).
+- **`/admin/login` ayrıca səhifə kimi qalır**, amma eyni `web` sessiyası ilə işləyir, yalnız admin
+  rolunu buraxır və **sürət limiti** var (`AdminLoginRequest`, email+IP üzrə 5 cəhd). Parol düz
+  olsa da admin olmayan hesabın sessiyası dərhal bağlanır.
+- **Qeydiyyat:** `/register` həmişə `student` rolu verir. Müəllim qeydiyyatı (modul açılanda)
+  artıq **yeni hesab yaratmır** — daxil olmuş hesaba `teacher` rolu, `teacher_profile` və fənlər
+  əlavə edir, şagird rolu isə qalır.
+- **`EXAM_OWNER_ID` silindi.** İmtahanın sahibi `exams.created_by` sütunudur (istənilən rolda
+  istifadəçi); `teacher_id` nullable qalır və yalnız müəllim modulunda işlənir. Köhnə imtahanlar
+  üçün `created_by` migration zamanı `teacher_id`-dən doldurulur.
+- `HandleInertiaRequests` və `SetLocale` artıq guard-ları bir-bir yoxlamır: `auth()->user()` və
+  rolları paylaşır. Frontend menyusu da `auth.guard` yerinə rollara baxır.
+
+**Testlər:** 355 test / 1667 assertion (yeni `RolePanelTest`: 10, `TeacherModuleAuthTest`: 8).
+
 ### 2026-09-21 — `SEO_INDEXING` bayrağı: sayt müvəqqəti domendə indeksləşmir
 
 `.env`-də bir bayraq bütün SEO davranışını idarə edir (`config/seo.php`). **Produksiyada

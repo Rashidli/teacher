@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Support\Localization;
 use App\Support\Seo;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 
@@ -21,50 +20,9 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
-        $user = null;
-        $guard = null;
-        $teachersEnabled = (bool) config('features.teachers');
-
-        // Route prefix-ə əsasən müvafiq guard-ı yoxla
-        if ($request->is('admin/*') || $request->is('admin')) {
-            if (Auth::guard('admin')->check()) {
-                $user = Auth::guard('admin')->user();
-                if ($user && $user->hasRole('admin')) {
-                    $guard = 'admin';
-                } else {
-                    $user = null;
-                }
-            }
-        } elseif ($teachersEnabled && ($request->is('teacher/*') || $request->is('teacher'))) {
-            if (Auth::guard('teacher')->check()) {
-                $user = Auth::guard('teacher')->user();
-                if ($user && $user->hasRole('teacher')) {
-                    $guard = 'teacher';
-                } else {
-                    $user = null;
-                }
-            }
-        } elseif ($request->is('student/*') || $request->is('student')) {
-            if (Auth::guard('student')->check()) {
-                $user = Auth::guard('student')->user();
-                if ($user && $user->hasRole('student')) {
-                    $guard = 'student';
-                } else {
-                    $user = null;
-                }
-            }
-        } else {
-            // Digər route-lar üçün (profile və s.) - hər hansı authenticated guard
-            // Müəllim modulu söndürülüb olanda köhnə müəllim sessiyası nəzərə alınmır
-            $guards = $teachersEnabled ? ['admin', 'teacher', 'student'] : ['admin', 'student'];
-            foreach ($guards as $g) {
-                if (Auth::guard($g)->check()) {
-                    $user = Auth::guard($g)->user();
-                    $guard = $g;
-                    break;
-                }
-            }
-        }
+        // Tək guard: kimin daxil olduğunu route prefiksi deyil, sessiya müəyyən edir.
+        // Panel seçimi frontend-də rollara görə aparılır (bir hesabın bir neçə rolu ola bilər).
+        $user = $request->user();
 
         return [
             ...parent::share($request),
@@ -80,7 +38,6 @@ class HandleInertiaRequests extends Middleware
                     'sector' => $user->sector,
                     'roles' => $user->roles->pluck('name'),
                 ] : null,
-                'guard' => $guard,
             ],
             // Dil (SetLocale middleware-i tərəfindən müəyyən olunur) və SEO (canonical, hreflang)
             'locale' => fn () => app()->getLocale(),
@@ -93,7 +50,7 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'features' => [
-                'teachers' => $teachersEnabled,
+                'teachers' => (bool) config('features.teachers'),
             ],
             // Kök kateqoriyalar: ana səhifə və altlıq hər səhifədə işlədir.
             // Lazy (closure) — yalnız istifadə olunanda sorğu gedir.

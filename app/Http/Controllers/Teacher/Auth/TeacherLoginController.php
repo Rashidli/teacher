@@ -3,12 +3,17 @@
 namespace App\Http\Controllers\Teacher\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\Panel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Müəllim üçün ayrıca giriş səhifəsi (modul açıq olanda). Guard vahiddir ("web"),
+ * burada yalnız müəllim rolu tələb olunur.
+ */
 class TeacherLoginController extends Controller
 {
     public function create(): Response
@@ -23,33 +28,34 @@ class TeacherLoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (Auth::guard('teacher')->attempt($credentials, $request->boolean('remember'))) {
-            $user = Auth::guard('teacher')->user();
-
-            if (!$user->hasRole('teacher')) {
-                Auth::guard('teacher')->logout();
-                return back()->withErrors([
-                    'email' => 'Bu hesab müəllim deyil.',
-                ]);
-            }
-
-            $request->session()->regenerate();
-
-            if (!$user->teacherProfile?->is_verified) {
-                return redirect()->route('teacher.awaiting-verification');
-            }
-
-            return redirect()->intended(route('teacher.dashboard'));
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            return back()->withErrors([
+                'email' => 'Daxil edilən məlumatlar yanlışdır.',
+            ])->onlyInput('email');
         }
 
-        return back()->withErrors([
-            'email' => 'Daxil edilən məlumatlar yanlışdır.',
-        ])->onlyInput('email');
+        $user = $request->user();
+
+        if (! $user->hasRole('teacher')) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'email' => 'Bu hesab müəllim deyil.',
+            ]);
+        }
+
+        $request->session()->regenerate();
+
+        return redirect()->intended(Panel::homeUrl($user));
     }
 
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('teacher')->logout();
+        Auth::logout();
+
+        $request->session()->invalidate();
 
         $request->session()->regenerateToken();
 

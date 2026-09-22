@@ -45,12 +45,6 @@ class SetLocale
 
     private function userLocale(): ?string
     {
-        foreach (['student', 'admin', 'teacher', 'web'] as $guard) {
-            if (Auth::guard($guard)->check()) {
-                return Auth::guard($guard)->user()->locale;
-            }
-        }
-
-        return null;
+        return Auth::user()?->locale;
     }
 }

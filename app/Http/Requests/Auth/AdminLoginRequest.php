@@ -9,19 +9,21 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-class LoginRequest extends FormRequest
+/**
+ * Admin girişi: eyni "web" guard, amma yalnız admin rolu buraxılır.
+ * Ehtimal seçmə cəhdlərinə qarşı email+IP üzrə sürət limiti var.
+ */
+class AdminLoginRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    /** Bir email + IP üçün icazə verilən uğursuz cəhd sayı */
+    public const MAX_ATTEMPTS = 5;
+
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
@@ -33,20 +35,31 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Attempt to authenticate the request's credentials.
-     *
      * @throws \Illuminate\Validation\ValidationException
      */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        // Vahid giriş: rol yoxlanılmır. Hansı rolu varsa, girişdən sonra ona uyğun panel açılır.
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => 'Daxil edilən məlumatlar yanlışdır.',
+            ]);
+        }
+
+        // Parol düz olsa da, admin olmayan hesab admin panelinə buraxılmır:
+        // sessiya açıq qalmasın deyə dərhal çıxarılır.
+        if (! $this->user()->hasRole('admin')) {
+            Auth::logout();
+            $this->session()->invalidate();
+            $this->session()->regenerateToken();
+
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Bu hesab admin deyil.',
             ]);
         }
 
@@ -54,13 +67,11 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Ensure the login request is not rate limited.
-     *
      * @throws \Illuminate\Validation\ValidationException
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), self::MAX_ATTEMPTS)) {
             return;
         }
 
@@ -76,11 +87,8 @@ class LoginRequest extends FormRequest
         ]);
     }
 
-    /**
-     * Get the rate limiting throttle key for the request.
-     */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return 'admin|'.Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
     }
 }

@@ -117,7 +117,9 @@ class ExamGenerator
 
         foreach (range(1, $variants) as $variant) {
             $exam = Exam::create([
-                'teacher_id' => $attributes['teacher_id'],
+                'created_by' => $attributes['created_by'] ?? null,
+                // Müəllim modulu açıq olanda imtahan konkret müəllimə bağlana bilər
+                'teacher_id' => $attributes['teacher_id'] ?? null,
                 'subject_id' => (int) array_key_first($counts),
                 'group_id' => $category->group_id ?? $attributes['group_id'] ?? null,
                 'category_id' => $category->id,

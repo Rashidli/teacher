@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 333 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 355 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
@@ -12,7 +12,14 @@ buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 ## A. Admin paneli
 
-Giriş: `/admin/login`
+Giriş: `/admin/login` (admin rolu olmayan hesab bura buraxılmır; 5 uğursuz cəhddən sonra
+müvəqqəti bloklanır). Admin vahid `/login`-dən də daxil ola bilər — panelə eyni cür düşür.
+
+| # | Addım | Gözlənilən nəticə |
+|---|---|---|
+| A0.1 | Şagird hesabı ilə `/admin/dashboard` aç | **403** (giriş səhifəsinə yönləndirmə yox) |
+| A0.2 | Admin hesabı ilə `/login`-dən daxil ol | Admin panelinə düşür |
+| A0.3 | `/admin/login`-də yanlış parolla 5 dəfə cəhd et, sonra düzgün parol yaz | "Bir neçə saniyədən sonra…" mesajı, giriş açılmır |
 
 ### A1. Sual yaratma (əl ilə)
 

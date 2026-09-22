@@ -45,7 +45,7 @@ class ExamPurchaseTest extends TestCase
 
     public function test_a_paid_exam_can_not_be_started_without_access(): void
     {
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->post(route('student.exams.start', $this->exam))
             ->assertRedirect(route('student.exams.show', $this->exam));
 
@@ -56,7 +56,7 @@ class ExamPurchaseTest extends TestCase
     {
         $free = Exam::factory()->published()->create(['is_free' => true, 'price' => 0]);
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->post(route('student.exams.start', $free));
 
         $this->assertSame(1, ExamAttempt::count());
@@ -64,7 +64,7 @@ class ExamPurchaseTest extends TestCase
 
     public function test_buying_creates_a_pending_payment_and_redirects_to_the_gateway(): void
     {
-        $response = $this->actingAs($this->student, 'student')
+        $response = $this->actingAs($this->student)
             ->post(route('student.exams.purchase', $this->exam));
 
         $payment = Payment::firstOrFail();
@@ -82,7 +82,7 @@ class ExamPurchaseTest extends TestCase
 
     public function test_a_successful_callback_opens_the_exam(): void
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.purchase', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.purchase', $this->exam));
         $payment = Payment::firstOrFail();
 
         $this->sendCallback($payment)->assertRedirect(route('student.exams.show', $this->exam));
@@ -97,14 +97,14 @@ class ExamPurchaseTest extends TestCase
         $this->assertTrue($access->isActive());
 
         // Giriş açıldı: imtahan başladıla bilər
-        $this->actingAs($this->student, 'student')->post(route('student.exams.start', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.start', $this->exam));
         $this->assertSame(1, ExamAttempt::count());
     }
 
     /** Eyni callback iki dəfə gəlsə giriş iki dəfə yaradılmamalıdır. */
     public function test_the_callback_is_idempotent(): void
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.purchase', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.purchase', $this->exam));
         $payment = Payment::firstOrFail();
 
         $this->sendCallback($payment);
@@ -119,7 +119,7 @@ class ExamPurchaseTest extends TestCase
 
     public function test_a_failed_callback_does_not_open_the_exam(): void
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.purchase', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.purchase', $this->exam));
         $payment = Payment::firstOrFail();
 
         $this->sendCallback($payment, 'failed');
@@ -131,7 +131,7 @@ class ExamPurchaseTest extends TestCase
     /** Uğursuz ödəniş sonradan "uğurlu" callback ilə açıla bilməz. */
     public function test_a_failed_payment_can_not_become_paid(): void
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.purchase', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.purchase', $this->exam));
         $payment = Payment::firstOrFail();
 
         $this->sendCallback($payment, 'failed');
@@ -143,7 +143,7 @@ class ExamPurchaseTest extends TestCase
 
     public function test_a_callback_with_a_wrong_signature_is_rejected(): void
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.purchase', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.purchase', $this->exam));
         $payment = Payment::firstOrFail();
 
         $this->post(route('payments.callback', 'fake'), [
@@ -158,7 +158,7 @@ class ExamPurchaseTest extends TestCase
 
     public function test_card_data_is_not_stored_in_the_payload(): void
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.purchase', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.purchase', $this->exam));
         $payment = Payment::firstOrFail();
 
         $this->sendCallback($payment, 'success', [
@@ -182,12 +182,12 @@ class ExamPurchaseTest extends TestCase
 
     public function test_a_student_can_not_open_someone_elses_fake_gateway_page(): void
     {
-        $this->actingAs($this->student, 'student')->post(route('student.exams.purchase', $this->exam));
+        $this->actingAs($this->student)->post(route('student.exams.purchase', $this->exam));
         $payment = Payment::firstOrFail();
 
         $other = User::factory()->student()->create();
 
-        $this->actingAs($other, 'student')
+        $this->actingAs($other)
             ->get(route('payments.fake.show', $payment))
             ->assertForbidden();
     }
@@ -199,7 +199,7 @@ class ExamPurchaseTest extends TestCase
             'exam_id' => $this->exam->id,
         ]);
 
-        $this->actingAs($this->student, 'student')
+        $this->actingAs($this->student)
             ->post(route('student.exams.purchase', $this->exam))
             ->assertRedirect(route('student.exams.show', $this->exam));
 

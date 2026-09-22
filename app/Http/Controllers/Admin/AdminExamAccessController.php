@@ -75,7 +75,7 @@ class AdminExamAccessController extends Controller
         $this->access->grantManually(
             student: $student,
             exam: $exam,
-            admin: auth('admin')->user(),
+            admin: auth()->user(),
             note: $validated['note'] ?? null,
             expiresAt: isset($validated['expires_at']) ? Carbon::parse($validated['expires_at']) : null,
             attemptsAllowed: $validated['attempts_allowed'] ?? null,
