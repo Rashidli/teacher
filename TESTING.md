@@ -10,16 +10,43 @@ buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 ---
 
-## A. Admin paneli
+## Giriş və rollar (əvvəlcə bunu yoxla)
 
-Giriş: `/admin/login` (admin rolu olmayan hesab bura buraxılmır; 5 uğursuz cəhddən sonra
-müvəqqəti bloklanır). Admin vahid `/login`-dən də daxil ola bilər — panelə eyni cür düşür.
+Sayt **tək sessiya (web guard) + rollar** üzərində işləyir: admin, müəllim və şagird eyni
+`users` cədvəlindədir, ayrı giriş sistemi yoxdur. Bir hesabın **bir neçə rolu** ola bilər.
+
+- Vahid `/login` heç bir rolu rədd etmir — girişdən sonra hesab öz panelinə düşür:
+  admin → `/admin/dashboard`, müəllim (modul açıq olanda) → müəllim paneli, qalanlar →
+  `/student/dashboard`.
+- `/admin/login` ayrıca səhifə kimi qalır: yalnız admin rolunu buraxır və sürət limiti var.
+- Başqa rolun panelinə girmək cəhdi **403** verir (giriş səhifəsinə yönləndirmə yox).
+
+Hesablar: bir admin, bir şagird və **çox rollu bir hesab** lazımdır.
+`rashidliseymur@gmail.com` — `teacher` + `student` rolları var.
 
 | # | Addım | Gözlənilən nəticə |
 |---|---|---|
-| A0.1 | Şagird hesabı ilə `/admin/dashboard` aç | **403** (giriş səhifəsinə yönləndirmə yox) |
-| A0.2 | Admin hesabı ilə `/login`-dən daxil ol | Admin panelinə düşür |
-| A0.3 | `/admin/login`-də yanlış parolla 5 dəfə cəhd et, sonra düzgün parol yaz | "Bir neçə saniyədən sonra…" mesajı, giriş açılmır |
+| L1 | Şagird hesabı ilə `/login` | `/student/dashboard` açılır, menyuda yalnız şagird bölmələri |
+| L2 | Admin hesabı ilə **eyni** `/login` | `/admin/dashboard` açılır — "bu hesab şagird deyil" kimi xəta **yoxdur** |
+| L3 | Çox rollu hesabla (`rashidliseymur@gmail.com`) `/login` | Müəllim modulu söndürülü olduğuna görə şagird kabinetinə düşür; menyuda müəllim bölməsi görünmür, şagird rolu işləyir |
+| L4 | Çox rollu hesabla `/admin/dashboard` aç | **403** (bu hesabın admin rolu yoxdur) |
+| L5 | Şagird hesabı ilə `/admin/dashboard` aç | **403** |
+| L6 | Yalnız admin rolu olan hesabla `/student/dashboard` aç | **403** |
+| L7 | `/admin/login`-ə şagird hesabının email/parolu ilə gir | "Bu hesab admin deyil" xətası; geri qayıdanda **hələ də qonaqsan** (sessiya açılmır) |
+| L8 | `/admin/login`-də yanlış parolla **5 dəfə** cəhd et (hər dəfə "Daxil edilən məlumatlar yanlışdır"), sonra **düzgün** parol yaz | "… saniyə ərzində yenidən cəhd edin" mesajı, düzgün parolla da giriş açılmır. Limit bitəndən sonra normal işləyir |
+| L9 | Qonaq kimi `/admin/dashboard` və `/student/dashboard` aç | Uyğun olaraq `/admin/login` və `/login`-ə yönləndirilir (403 yox) |
+| L10 | Daxil olduqdan sonra `/login` və ya `/admin/login` aç | Öz panelinə qaytarılır, giriş forması göstərilmir |
+| L11 | Köhnə ünvanlar: `/student/login`, `/student/register` | **301** ilə `/login` və `/register`-ə yönləndirilir |
+| L12 | `/teacher/login`, `/teacher/register` | **404** — müəllim modulu söndürülüb (`FEATURE_TEACHERS=false`) |
+| L13 | İstənilən paneldən "Çıxış" | Sessiya bağlanır; geri düyməsi ilə panelə qayıtmaq olmur |
+| L14 | `/register`-dən yeni hesab aç | Hesab **həmişə şagird** olur: qeydiyyatdan sonra şagird kabineti açılır, admin/müəllim bölmələri görünmür |
+
+---
+
+## A. Admin paneli
+
+Giriş: `/admin/login` (və ya vahid `/login` — admin hesabı hər ikisindən eyni panelə düşür).
+Rol və limit yoxlamaları yuxarıdakı "Giriş və rollar" bölməsindədir.
 
 ### A1. Sual yaratma (əl ilə)
 
