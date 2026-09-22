@@ -18,7 +18,6 @@ use App\Http\Controllers\Admin\Auth\AdminLoginController;
 use App\Http\Controllers\Teacher\TeacherDashboardController;
 use App\Http\Controllers\Teacher\TeacherExamController;
 use App\Http\Controllers\Teacher\TeacherQuestionController;
-use App\Http\Controllers\Teacher\Auth\TeacherLoginController;
 use App\Http\Controllers\Teacher\Auth\TeacherRegisterController;
 use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentExamController;
@@ -166,9 +165,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // Müəllim modulu MVP-də söndürülüb (FEATURE_TEACHERS=false): route-lar qeydiyyatdan keçmir və 404 qaytarır.
 if (config('features.teachers')) {
     Route::prefix('teacher')->name('teacher.')->group(function () {
+        // Ayrıca müəllim girişi YOXDUR: vahid /login bütün rolları qəbul edir və rola görə
+        // yönləndirir. Köhnə ünvan yalnız yadda qalmış linklər üçün saxlanılır.
         Route::middleware('guest')->group(function () {
-            Route::get('/login', [TeacherLoginController::class, 'create'])->name('login');
-            Route::post('/login', [TeacherLoginController::class, 'store']);
+            Route::permanentRedirect('/login', '/login')->name('login');
         });
 
         // Müəllimliyə keçid: yeni hesab yaratmır, mövcud hesaba teacher rolu + profil əlavə edir
@@ -177,10 +177,8 @@ if (config('features.teachers')) {
             Route::post('/register', [TeacherRegisterController::class, 'store']);
         });
 
-        // Daxil olmuş müəllim
+        // Daxil olmuş müəllim (çıxış vahid /logout-dadır)
         Route::middleware(['auth', 'teacher'])->group(function () {
-            Route::post('/logout', [TeacherLoginController::class, 'destroy'])->name('logout');
-
             // Awaiting verification page (no verified middleware)
             Route::get('/awaiting-verification', function () {
                 return Inertia::render('Teacher/AwaitingVerification');

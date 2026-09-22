@@ -66,27 +66,23 @@ class TeacherModuleAuthTest extends TestCase
         $this->actingAs($teacher)->get(route('teacher.dashboard'))->assertOk();
     }
 
-    /** Ayrıca müəllim giriş səhifəsi də eyni sessiya ilə işləyir. */
-    public function test_the_teacher_login_page_works_with_the_shared_guard(): void
+    /** Ayrıca müəllim giriş səhifəsi yoxdur: köhnə ünvan vahid /login-ə aparır. */
+    public function test_the_old_teacher_login_url_redirects_to_the_single_login(): void
+    {
+        $this->get('/teacher/login')
+            ->assertStatus(301)
+            ->assertRedirect('/login');
+    }
+
+    /** Köhnə formadan gələn POST da qəbul olunmur: sessiya açılmır, /login-ə yönləndirilir. */
+    public function test_the_teacher_login_url_does_not_authenticate_anyone(): void
     {
         $teacher = $this->verifiedTeacher();
 
-        $this->post(route('teacher.login'), [
+        $this->post('/teacher/login', [
             'email' => $teacher->email,
             'password' => 'password',
-        ])->assertRedirect(route('teacher.dashboard'));
-
-        $this->assertAuthenticatedAs($teacher);
-    }
-
-    public function test_the_teacher_login_rejects_a_non_teacher_account(): void
-    {
-        $student = User::factory()->student()->create();
-
-        $this->post(route('teacher.login'), [
-            'email' => $student->email,
-            'password' => 'password',
-        ])->assertSessionHasErrors('email');
+        ])->assertRedirect('/login');
 
         $this->assertGuest();
     }
@@ -140,6 +136,6 @@ class TeacherModuleAuthTest extends TestCase
         $subject = Subject::factory()->create();
 
         $this->post(route('teacher.register'), ['subjects' => [$subject->id]])
-            ->assertRedirect(route('teacher.login'));
+            ->assertRedirect(route('login'));
     }
 }

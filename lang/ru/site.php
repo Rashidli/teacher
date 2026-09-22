@@ -28,7 +28,6 @@ return [
         'account' => 'Аккаунт',
         'login' => 'Вход',
         'register' => 'Регистрация',
-        'tutor_login' => 'Вход для репетиторов',
         'tutor_register' => 'Регистрация репетитора',
         'terms' => 'Условия и правила',
         'copyright' => '© :year İmtahan Platforması',

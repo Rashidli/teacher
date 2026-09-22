@@ -28,7 +28,6 @@ return [
         'account' => 'Hesab',
         'login' => 'Giriş',
         'register' => 'Qeydiyyat',
-        'tutor_login' => 'Repetitor girişi',
         'tutor_register' => 'Repetitor qeydiyyatı',
         'terms' => 'Şərtlər və qaydalar',
         'copyright' => '© :year İmtahan Platforması',

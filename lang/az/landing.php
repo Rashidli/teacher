@@ -102,7 +102,6 @@ return [
         'title' => 'Şagirdlərinə testi A4 vərəqində yox, onlayn ver',
         'lead' => 'Repetitorlar üçün: sualları bir dəfə yığ, testi bir şagirdə və ya bütün qrupa təyin et. Şagirdlər telefondan işləyir, yoxlamanı platforma edir.',
         'register' => 'Repetitor kimi qeydiyyatdan keç',
-        'login' => 'Repetitor girişi',
         'compare_caption' => 'Testi A4 kağızda və platformada keçirməyin müqayisəsi',
         'paper' => 'A4 kağızda',
         'online' => 'Platformada',

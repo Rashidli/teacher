@@ -2,7 +2,8 @@
 import { Link } from '@inertiajs/vue3';
 
 // Ana səhifədəki repetitor bölməsi. Welcome.vue-da yalnız müəllim modulu aktiv olanda
-// (features.teachers) göstərilir, çünki linkləri teacher.* route-larına aparır.
+// (features.teachers) göstərilir, çünki linki teacher.register route-una aparır.
+// Ayrıca "repetitor girişi" linki yoxdur: giriş vahid /login-dədir.
 // Mətnlər: lang/{az,ru}/landing.php → tutors. Müqayisə cədvəlində 5 sətir var.
 const rows = [0, 1, 2, 3, 4];
 </script>
@@ -15,7 +16,6 @@ const rows = [0, 1, 2, 3, 4];
                 <p class="tutors-lead">{{ $t('landing.tutors.lead') }}</p>
                 <div class="tutors-actions">
                     <Link :href="route('teacher.register')" class="button-paper">{{ $t('landing.tutors.register') }}</Link>
-                    <Link :href="route('teacher.login')" class="tutors-login">{{ $t('landing.tutors.login') }}</Link>
                 </div>
             </div>
 
@@ -103,18 +103,6 @@ const rows = [0, 1, 2, 3, 4];
 .button-paper:hover {
     background: #fff;
     box-shadow: 0 0 0 2px #fff;
-}
-
-.tutors-login {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    padding-inline: 2px;
-    color: #fff;
-    font-size: 1rem;
-    font-weight: 500;
-    text-decoration: underline;
-    text-underline-offset: 4px;
 }
 
 .tutors :focus-visible {

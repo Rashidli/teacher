@@ -10,6 +10,22 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-22 — Ayrıca müəllim girişi silindi
+
+`TeacherLoginController` və `Teacher/Auth/Login.vue` silindi: vahid `/login` bütün rolları
+qəbul etdiyi üçün ikinci giriş forması lazım deyil.
+
+- Modul açıq olanda `/teacher/login` (GET və POST) **301** ilə `/login`-ə yönləndirilir —
+  yadda qalmış linklər və köhnə formalar sınmır, sessiya isə orada açılmır.
+- `teacher.logout` route-u silindi; çıxış vahid `/logout`-dadır.
+- `redirectGuestsTo`-dan `teacher.*` budağı çıxarıldı: müəllim səhifəsinə girən qonaq birbaşa
+  `/login`-ə gedir (əvvəl `/teacher/login` üzərindən iki hop olurdu).
+- Altlıqdakı və ana səhifədəki "Repetitor girişi" linkləri götürüldü (`site.footer.tutor_login`,
+  `landing.tutors.login` açarları və işlənməyən CSS ilə birlikdə). "Repetitor qeydiyyatı"
+  linki qalır — o, daxil olmuş hesaba müəllim rolu əlavə edir.
+
+**Testlər:** 364 test / 1723 assertion.
+
 ### 2026-09-22 — Auth refaktorunun üç düzəlişi
 
 - **Admin girişi səbəbi açmır.** Admin olmayan hesab düzgün parolla da səhv parolla eyni

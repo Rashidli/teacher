@@ -40,7 +40,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // Şagird və ümumi hesab səhifələri üçün cari dildəki /login (və ya /ru/login)
         $middleware->redirectGuestsTo(fn ($request) => match(true) {
             $request->routeIs('admin.*') => route('admin.login'),
-            $request->routeIs('teacher.*') => route('teacher.login'),
             default => \App\Support\Localization::route('login'),
         });
 

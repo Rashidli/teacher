@@ -18,8 +18,10 @@ Sayt **tək sessiya (web guard) + rollar** üzərində işləyir: admin, müəll
 - Vahid `/login` heç bir rolu rədd etmir — girişdən sonra hesab öz panelinə düşür:
   admin → `/admin/dashboard`, müəllim (modul açıq olanda) → müəllim paneli, qalanlar →
   `/student/dashboard`. Heç bir paneli olmayan hesab izahlı `/panel-yoxdur` səhifəsini görür.
-- `/admin/login` ayrıca səhifə kimi qalır: yalnız admin rolunu buraxır və sürət limiti var.
-  Uğursuz girişin səbəbi (səhv parol, yoxsa rol çatışmazlığı) **açıqlanmır**.
+- `/admin/login` **yeganə** ayrıca giriş səhifəsidir: yalnız admin rolunu buraxır və sürət
+  limiti var. Uğursuz girişin səbəbi (səhv parol, yoxsa rol çatışmazlığı) **açıqlanmır**.
+- Ayrıca müəllim girişi **yoxdur**: modul açılanda `/teacher/login` 301 ilə `/login`-ə aparır,
+  müəllim də vahid formadan daxil olur.
 - Başqa rolun panelinə girmək cəhdi **403** verir (giriş səhifəsinə yönləndirmə yox).
 
 Hesablar: bir admin, bir şagird, **çox rollu bir hesab** və L19 üçün **yalnız müəllim rolu olan**
@@ -42,7 +44,7 @@ bir hesab lazımdır. `rashidliseymur@gmail.com` — `teacher` + `student` rolla
 | L13 | Qonaq kimi `/admin/dashboard` və `/student/dashboard` aç | Uyğun olaraq `/admin/login` və `/login`-ə yönləndirilir (403 yox) |
 | L14 | Daxil olduqdan sonra `/login` aç | Öz panelinə qaytarılır, giriş forması göstərilmir |
 | L15 | Köhnə ünvanlar: `/student/login`, `/student/register` | **301** ilə `/login` və `/register`-ə yönləndirilir |
-| L16 | `/teacher/login`, `/teacher/register` | **404** — müəllim modulu söndürülüb (`FEATURE_TEACHERS=false`) |
+| L16 | `/teacher/login`, `/teacher/register` | **404** — müəllim modulu söndürülüb (`FEATURE_TEACHERS=false`). Modul açılanda `/teacher/login` **301** ilə `/login`-ə yönləndirilir, ayrıca müəllim giriş forması yoxdur |
 | L17 | İstənilən paneldən "Çıxış" | Sessiya bağlanır; geri düyməsi ilə panelə qayıtmaq olmur |
 | L18 | `/register`-dən yeni hesab aç | Hesab **həmişə şagird** olur: qeydiyyatdan sonra şagird kabineti açılır, admin/müəllim bölmələri görünmür |
 | L19 | **Yalnız `teacher` rolu olan** hesabla `/login` (modul söndürülü) | 403 **yox**: `/panel-yoxdur` səhifəsi açılır — müəllim modulunun bağlı olduğu izah olunur, hesabın rolları və "Çıxış" düyməsi görünür |

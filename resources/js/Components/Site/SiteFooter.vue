@@ -36,7 +36,6 @@ const year = new Date().getFullYear();
                     <li><Link :href="lroute('login')">{{ $t('site.footer.login') }}</Link></li>
                     <li><Link :href="lroute('register')">{{ $t('site.footer.register') }}</Link></li>
                     <template v-if="teachersEnabled">
-                        <li><Link :href="route('teacher.login')">{{ $t('site.footer.tutor_login') }}</Link></li>
                         <li><Link :href="route('teacher.register')">{{ $t('site.footer.tutor_register') }}</Link></li>
                     </template>
                     <li><Link :href="lroute('terms')">{{ $t('site.footer.terms') }}</Link></li>
