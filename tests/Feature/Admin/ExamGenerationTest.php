@@ -77,6 +77,26 @@ class ExamGenerationTest extends TestCase
         ], $overrides));
     }
 
+    /** Ad boş qoyulanda kateqoriya və növdən avtomatik qurulur. */
+    public function test_an_empty_title_is_generated_from_the_category_and_kind(): void
+    {
+        $this->bank($this->maths, 5, $this->q2);
+
+        $this->generate(['title' => null])->assertSessionHasNoErrors();
+
+        $this->assertSame('I qrup RK — Ümumi sınaq', Exam::firstOrFail()->title);
+    }
+
+    /** Rüb seçiləndə avtomatik ad mövzu sınağı olur və rübü göstərir. */
+    public function test_a_generated_title_carries_the_quarter(): void
+    {
+        $this->bank($this->maths, 5, $this->q2);
+
+        $this->generate(['title' => '', 'quarter' => 2])->assertSessionHasNoErrors();
+
+        $this->assertSame('I qrup RK — Mövzu sınağı (2-ci rüb)', Exam::firstOrFail()->title);
+    }
+
     public function test_it_creates_a_draft_exam_with_sections_and_questions(): void
     {
         $this->bank($this->maths, 5, $this->q2);

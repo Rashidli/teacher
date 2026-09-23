@@ -10,6 +10,7 @@ use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Subject;
 use App\Models\User;
+use App\Services\Scoring\AttemptScorer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -128,6 +129,26 @@ class ResultSheetTest extends TestCase
         $this->assertArrayHasKey('trail', $props['attempt']);
         // Yazılı cavab yoxlanmayıb: vərəqdə "ilkin" nişanı bundan asılıdır
         $this->assertTrue($props['attempt']['awaiting_review']);
+    }
+
+    /**
+     * İlkin bal yekun sanılmasın: səhifə neçə sualın yoxlanıldığını və ən çoxu nə qədər
+     * bal gələ biləcəyini konkret deyir.
+     */
+    public function test_the_result_says_how_much_the_pending_answers_can_still_add(): void
+    {
+        app(AttemptScorer::class)->score($this->attempt);
+
+        $attempt = $this->props()['attempt'];
+
+        $this->assertTrue($attempt['awaiting_review']);
+        $this->assertSame(1, $attempt['pending_review_count']);
+
+        /*
+         * Bölmənin maksimumu 100-dür, xam məxrəc isə 3 (qapalı 1 + yazılı 2):
+         * yoxlanılmamış yazılı cavab ən çoxu 2 × 100/3 ≈ 66,7 bal gətirə bilər.
+         */
+        $this->assertSame(66.7, $attempt['pending_max_relative']);
     }
 
     /** Cavab kartı variant HƏRFİ ilə qurulur, id ilə yox. */

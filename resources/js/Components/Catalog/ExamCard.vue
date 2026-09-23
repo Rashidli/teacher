@@ -30,14 +30,26 @@ const trailText = computed(
     () => [trail.value.root, trail.value.leaf].filter(Boolean).join(' › '),
 );
 
-// Başlıq: növ (+ rüb). İmtahanın öz adı kartda təkrarlanmır — o, imtahan səhifəsindədir.
-const heading = computed(() => {
+/*
+ * Növ etiketi: "Mövzu sınağı — 2-ci rüb". Başlıq imtahanın ÖZ ADIDIR, bu isə onun altında
+ * kiçik etiket kimi durur.
+ */
+const kindLabel = computed(() => {
     const kind = trans(`category_page.kinds.${props.exam.kind}`);
 
     return props.exam.quarter
         ? `${kind} — ${trans('category_page.quarter', { number: props.exam.quarter })}`
         : kind;
 });
+
+/*
+ * Ad avtomatik qurulub və kateqoriya + növdən başqa heç nə demirsə server `title`-ı null
+ * göndərir (`ExamTitle::isGeneric()`): belə kartda başlıq elə növ etiketidir, eyni söz
+ * iki dəfə yazılmır.
+ */
+const heading = computed(() => props.exam.title || kindLabel.value);
+
+const showKindTag = computed(() => Boolean(props.exam.title));
 
 // Ekran oxuyucusunda linklər bir-birindən seçilsin deyə yol da adın içindədir
 const ariaLabel = computed(
@@ -76,6 +88,10 @@ const hasDetails = computed(
                 {{ heading }}
             </Link>
         </h3>
+
+        <p v-if="showKindTag" class="card-kind">
+            <span class="tag tag--kind" :class="`tag--kind-${exam.kind}`">{{ kindLabel }}</span>
+        </p>
 
         <p class="card-meta">
             <template v-if="exam.subjects.length">{{ exam.subjects.join(', ') }} · </template>
@@ -207,6 +223,11 @@ const hasDetails = computed(
     outline: none;
 }
 
+/* Növ etiketi: başlığın altında, kiçik və neytral — başlıqla yarışmır */
+.card-kind {
+    margin: 0;
+}
+
 .card-meta {
     margin: 0;
     font-size: 0.9375rem;
@@ -231,6 +252,17 @@ const hasDetails = computed(
     font-weight: 600;
     line-height: 1.4;
 }
+
+/* Növ nişanı: neytral, kənarındakı rəngli zolaqla tanınır (rəng tək göstərici deyil) */
+.tag--kind {
+    border: 1px solid rgba(22, 19, 14, 0.2);
+    color: var(--muted);
+}
+
+.tag--kind-general { border-left: 3px solid var(--graphite); }
+.tag--kind-topic_trial { border-left: 3px solid var(--pen); }
+.tag--kind-subject { border-left: 3px solid #6B3FA0; }
+.tag--kind-practice { border-left: 3px solid #0F766E; }
 
 /* Rəng tək göstərici deyil: nişanın mətni də var */
 .tag--free {

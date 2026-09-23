@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Subject;
 use App\Support\CatalogFilters;
+use App\Support\ExamTitle;
 use App\Support\Localization;
 use App\Support\Sector;
 use Illuminate\Database\Eloquent\Builder;
@@ -317,6 +318,12 @@ class CategoryController extends Controller
             'id' => $exam->id,
             'slug' => $exam->slug,
             'url' => $exam->publicUrl(),
+            /*
+             * Kartın başlığı imtahanın ÖZ ADIDIR. Ad avtomatik qurulubsa və kateqoriya +
+             * növdən başqa heç nə demirsə null gedir — kartda yalnız növ etiketi qalır,
+             * eyni söz iki dəfə yazılmır (`ExamTitle::isGeneric()`).
+             */
+            'title' => ExamTitle::isGeneric($exam) ? null : $exam->title,
             // Bölmə yolu və rəngi: "Sürücülük › DE kateqoriyası"
             'trail' => $exam->category?->trail() ?? ['root' => null, 'leaf' => null, 'color' => null],
             'kind' => $exam->kind,

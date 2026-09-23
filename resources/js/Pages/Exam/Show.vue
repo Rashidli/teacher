@@ -60,8 +60,15 @@ const purchase = useForm({});
 
             <p v-if="exam.description" class="intro">{{ exam.description }}</p>
 
+            <!--
+                İki sütun: solda faktlar və bölmələr, sağda qiymət/düymə.
+                Əvvəl "Bölmələr" paneldən SONRA, bütün enin altında gəlirdi: sağ sütun (qiymət
+                bloku) soldan uzun olduğu üçün tək bölməli imtahanda aralarında böyük boşluq
+                qalırdı. İndi bölmələr sol sütunun davamıdır — boşluq qalmır.
+            -->
             <div class="panel">
-                <!-- Fakt sətri: ikon + mətn (ikon tək göstərici deyil) -->
+                <div class="panel-main">
+                    <!-- Fakt sətri: ikon + mətn (ikon tək göstərici deyil) -->
                 <ul class="facts">
                     <li>
                         <svg class="fact-icon" viewBox="0 0 20 20" aria-hidden="true">
@@ -87,6 +94,23 @@ const purchase = useForm({});
                         <span class="fact-value">{{ exam.max_score }}</span>
                     </li>
                 </ul>
+
+                <!-- Bölmələr: hansı fənndən neçə sual -->
+                <section v-if="exam.sections.length" class="block" aria-labelledby="sections-title">
+                    <h2 id="sections-title" class="block-title">{{ $t('exam_page.sections') }}</h2>
+                    <ul class="subjects">
+                        <li v-for="(section, index) in exam.sections" :key="index">
+                            <span class="subject-name">{{ section.subject || section.title }}</span>
+                            <span class="subject-meta">
+                                {{ section.question_count }} {{ $t('exam_page.questions') }}
+                                <template v-if="section.max_score">
+                                    · {{ $t('exam_page.max_score') }}: {{ section.max_score }}
+                                </template>
+                            </span>
+                        </li>
+                    </ul>
+                </section>
+                </div>
 
                 <!-- Qiymət və əsas düymə: vurğulu blok -->
                 <section class="cta" aria-labelledby="cta-title">
@@ -145,22 +169,6 @@ const purchase = useForm({});
                     </Link>
                 </section>
             </div>
-
-            <!-- Bölmələr: hansı fənndən neçə sual -->
-            <section v-if="exam.sections.length" class="block" aria-labelledby="sections-title">
-                <h2 id="sections-title" class="block-title">{{ $t('exam_page.sections') }}</h2>
-                <ul class="subjects">
-                    <li v-for="(section, index) in exam.sections" :key="index">
-                        <span class="subject-name">{{ section.subject || section.title }}</span>
-                        <span class="subject-meta">
-                            {{ section.question_count }} {{ $t('exam_page.questions') }}
-                            <template v-if="section.max_score">
-                                · {{ $t('exam_page.max_score') }}: {{ section.max_score }}
-                            </template>
-                        </span>
-                    </li>
-                </ul>
-            </section>
         </main>
 
         <SiteFooter />
@@ -267,6 +275,13 @@ const purchase = useForm({});
     display: grid;
     gap: 16px;
     margin-top: 24px;
+}
+
+.panel-main {
+    display: grid;
+    gap: 24px;
+    min-width: 0;
+    align-content: start;
 }
 
 .facts {
@@ -394,8 +409,9 @@ const purchase = useForm({});
     display: block;
 }
 
+/* Bölmələr sol sütunun davamıdır: aralığı `.panel-main` verir */
 .block {
-    margin-top: 40px;
+    margin-top: 0;
 }
 
 .block-title {
@@ -446,7 +462,7 @@ const purchase = useForm({});
 }
 
 @media (min-width: 900px) {
-    /* Faktlar solda, qiymət və düymə sağda vurğulu blokda */
+    /* Faktlar və bölmələr solda, qiymət və düymə sağda vurğulu blokda */
     .panel {
         grid-template-columns: minmax(0, 1fr) 300px;
         align-items: start;

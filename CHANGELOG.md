@@ -10,6 +10,34 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — İmtahan səhifəsinin layout-u, ilkin bal və kartda imtahanın adı
+
+**İmtahan səhifəsində boşluq.** Tək bölməli imtahanda ("Magistratura tam sınaq") əsas
+məlumatla "Bölmələr" arasında böyük boş sahə qalırdı: sağ sütun (qiymət və düymə) soldan
+uzun idi, "Bölmələr" isə bütün enin altında başlayırdı. İndi bölmələr sol sütunun
+davamıdır (`.panel-main`) — boşluq qalmır, çoxbölməli imtahanda da düzgün axır.
+
+**Nəticədə ilkin bal.** Kiçik "ilkin" nişanı yekun bal kimi oxunurdu. İndi nişan "ilkin bal"
+yazır, altında isə konkret rəqəm var: *"Bu ilkin baldır: yoxlanılan 2 sual üçün əlavə
+20 bala qədər gələ bilər. Cavab kartında həmin suallar ? ilə işarələnib."* Rəqəm balın öz
+düsturu ilə hesablanır (`StudentExamController::pendingPotential()`): bölmədə bir xam bal
+vahidi `max_score / rawMax` qədər fənn balı verir, gözləyən sualların çəkisi həmin əmsalla
+vurulur. Cavab kartında yoxlanılan suallar əvvəlki kimi `?` ilə qalır.
+
+**Kartda imtahanın öz adı.** Kataloq kartında başlıq imtahanın adıdır, altında kiçik etiket
+kimi növ və rüb ("Mövzu sınağı — 2-ci rüb"). Ad avtomatik qurulubsa və kateqoriya + növdən
+başqa heç nə demirsə server `title`-ı null göndərir (`App\Support\ExamTitle::isGeneric()`)
+və başlıq elə növ etiketi olur — eyni söz iki dəfə yazılmır. Bankdan generasiyada **başlıq
+artıq məcburi deyil**: boş qoyulanda `ExamTitle::generate()` "I qrup RK — Mövzu sınağı
+(2-ci rüb)" kimi ad qurur, forma isə nümunəni əvvəlcədən göstərir.
+
+**ROADMAP P3-ə əlavə olundu** (işlənmir, yalnız plan): nəticənin ictimai linki və paylaşma
+düymələri, imtahanın ulduzla qiymətləndirilməsi; domen alınandan sonra "Hazır ol" səhifəsi,
+"Bitir" təsdiq dialoqu və Google ilə qeydiyyat; "bir ekranda bir sual" rejimi.
+**Cüzdan/balans sistemi plandan çıxarıldı** — ödəniş birbaşa qalır.
+
+---
+
 ### 2026-09-23 — Sinif etiketi ilə kateqoriya arasında iş bölgüsü
 
 Kataloqda "9-cu sinif buraxılış" kateqoriyası ilə "9-cu sinif" etiketi yan-yana düşürdü və

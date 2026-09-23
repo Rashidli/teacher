@@ -399,10 +399,10 @@ class ExamCatalogTest extends TestCase
         $response->assertSee(url('/ru/imtahanlar'), escape: false);
     }
 
-    /** Kartda bölmə yolu və rəngi olur — imtahanın öz başlığı təkrarlanmır. */
+    /** Kartda bölmə yolu, rəngi və imtahanın ÖZ ADI olur. */
     public function test_a_card_carries_the_category_trail_and_colour(): void
     {
-        $this->exam('a', ['kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 3]);
+        $this->exam('a', ['kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 3, 'title' => 'Payız sınağı']);
 
         $card = $this->props()['groups'][0]['exams'][0];
 
@@ -412,6 +412,21 @@ class ExamCatalogTest extends TestCase
         );
         $this->assertSame(Exam::KIND_TOPIC_TRIAL, $card['kind']);
         $this->assertSame(3, $card['quarter']);
-        $this->assertArrayNotHasKey('title', $card);
+        $this->assertSame('Payız sınağı', $card['title']);
+    }
+
+    /**
+     * Ad avtomatik qurulub və kateqoriya + növdən başqa heç nə demirsə kartda
+     * göstərilmir — başlıq elə növ etiketi olur, eyni söz iki dəfə yazılmır.
+     */
+    public function test_a_generic_title_is_not_repeated_on_the_card(): void
+    {
+        $this->exam('a', [
+            'kind' => Exam::KIND_TOPIC_TRIAL,
+            'quarter' => 3,
+            'title' => '9-cu sinif buraxılış — Mövzu sınağı (3-ci rüb)',
+        ]);
+
+        $this->assertNull($this->props()['groups'][0]['exams'][0]['title']);
     }
 }

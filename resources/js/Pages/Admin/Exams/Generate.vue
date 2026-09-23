@@ -31,6 +31,21 @@ const form = useForm({
 
 const category = computed(() => props.categories.find((item) => item.id === form.category_id) ?? null);
 const subjects = computed(() => category.value?.subjects?.[form.sector] ?? []);
+
+/*
+ * Avtomatik ad: serverdəki `ExamTitle::generate()` ilə eyni quruluş. Formada yalnız
+ * NÜMUNƏ kimi göstərilir — ad boş göndəriləndə həqiqi ad serverdə qurulur.
+ */
+const KIND_LABELS = { general: 'Ümumi sınaq', topic_trial: 'Mövzu sınağı' };
+
+const autoTitle = computed(() => {
+    // `label` "yol — ad" formasındadır; kartda yalnız ad işlənir
+    const name = category.value?.label?.split(' — ').slice(1).join(' — ') ?? '';
+    const kind = form.quarter ? KIND_LABELS.topic_trial : KIND_LABELS.general;
+    const base = [name, kind].filter(Boolean).join(' — ');
+
+    return form.quarter ? `${base} (${form.quarter}-ci rüb)` : base;
+});
 const languageSubjects = computed(() => subjects.value.filter((subject) => subject.is_language));
 const plainSubjects = computed(() => subjects.value.filter((subject) => !subject.is_language));
 
@@ -181,9 +196,13 @@ const totalQuestions = computed(() => Object.entries(form.counts)
 
                     <div v-if="category" class="grid gap-4 sm:grid-cols-3">
                         <div class="sm:col-span-3">
-                            <InputLabel for="title" value="Başlıq" />
-                            <TextInput id="title" v-model="form.title" type="text" required class="mt-1 block w-full"
-                                placeholder="Məs: I qrup RK — 2-ci rüb mövzu sınağı" />
+                            <InputLabel for="title" value="Başlıq (istəyə bağlı)" />
+                            <TextInput id="title" v-model="form.title" type="text" class="mt-1 block w-full"
+                                :placeholder="autoTitle" />
+                            <p class="mt-1 text-xs text-gray-500">
+                                Boş qoysanız ad avtomatik qurulur: <b>{{ autoTitle }}</b>.
+                                Kataloq kartında imtahanın adı başlıq kimi görünür.
+                            </p>
                             <InputError :message="form.errors.title" class="mt-2" />
                         </div>
 

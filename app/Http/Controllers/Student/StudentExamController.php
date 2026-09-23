@@ -285,6 +285,52 @@ class StudentExamController extends Controller
         return redirect()->route('student.exams.result', $attempt);
     }
 
+    /**
+     * Yoxlanılmamış yazılı cavabların gətirə biləcəyi ƏLAVƏ bal (100-lük şkalada).
+     *
+     * Şagird ilkin balı yekun bal sanırdı. İndi səhifə konkret rəqəm göstərir:
+     * "yoxlanılan 2 sual üçün əlavə 20 bala qədər gələ bilər".
+     *
+     * Hesablama balın özü ilə eyni yolla gedir: bölmədə bir XAM bal vahidi
+     * `max_score / rawMax` qədər fənn balı verir (bax `ScoringResult::subjectPointsPerRawPoint()`),
+     * ona görə gözləyən sualların xam çəkisi həmin əmsalla vurulur.
+     *
+     * @return array{count: int, max_relative: float}
+     */
+    private function pendingPotential(ExamAttempt $attempt): array
+    {
+        $weight = (float) config('scoring.open_written_weight', 2);
+        $graded = $attempt->answers->keyBy('question_id');
+        $sectionMax = $attempt->sectionResults()->pluck('max_score', 'section_id');
+
+        $count = 0;
+        $extra = 0.0;
+        $total = 0.0;
+
+        foreach ($attempt->questions()->get()->groupBy(fn ($question) => $question->pivot->section_id) as $sectionId => $questions) {
+            $max = (float) ($sectionMax[$sectionId] ?? 0);
+            $total += $max;
+
+            // Bölmənin xam məxrəci: qapalı və qısa cavab 1, yazılı cavab `weight` qədər
+            $rawMax = $questions->sum(fn ($question) => $question->type === Question::TYPE_OPEN_WRITTEN ? $weight : 1.0);
+
+            $pending = $questions
+                ->filter(fn ($question) => $question->type === Question::TYPE_OPEN_WRITTEN
+                    && $graded->get($question->id)?->grade_ratio === null);
+
+            $count += $pending->count();
+
+            if ($rawMax > 0) {
+                $extra += $pending->count() * $weight * $max / $rawMax;
+            }
+        }
+
+        return [
+            'count' => $count,
+            'max_relative' => $total > 0 ? round($extra * 100 / $total, 1) : 0.0,
+        ];
+    }
+
     /** Fənnin bu qrupdakı maksimal balı (nəticə səhifəsində "150-dən" kimi göstərilir) */
     private function subjectMaxScore(ExamAttempt $attempt): float
     {
@@ -415,6 +461,11 @@ class StudentExamController extends Controller
         $attemptData['score'] = $attempt->total_score;
         // Yazılı suallar yoxlanana qədər bal müvəqqətidir
         $attemptData['awaiting_review'] = $attempt->status === ExamAttempt::STATUS_PENDING_REVIEW;
+
+        // "Əlavə N bala qədər gələ bilər" — ilkin bal yekun sanılmasın
+        $pending = $this->pendingPotential($attempt);
+        $attemptData['pending_review_count'] = $pending['count'];
+        $attemptData['pending_max_relative'] = $pending['max_relative'];
         // Ümumi maksimum bölmələrin cəmindən gəlir (sabit rəqəm yazılmır)
         $attemptData['max_subject_score'] = (float) $attempt->sectionResults()->sum('max_score')
             ?: $this->subjectMaxScore($attempt);

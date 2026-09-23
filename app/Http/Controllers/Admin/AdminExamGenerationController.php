@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Exam;
 use App\Models\Subject;
-use App\Services\ExamGeneration\ExamGenerator;
 use App\Models\Tag;
+use App\Services\ExamGeneration\ExamGenerator;
+use App\Support\ExamTitle;
 use App\Support\Sector;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -69,7 +71,8 @@ class AdminExamGenerationController extends Controller
             'quarter' => ['nullable', 'integer', 'min:1', 'max:4'],
             'is_cumulative' => ['boolean'],
             'variants' => ['required', 'integer', 'min:1', 'max:10'],
-            'title' => ['required', 'string', 'max:255'],
+            // Ad ixtiyaridir: boş qoyulsa kateqoriya və növdən avtomatik qurulur
+            'title' => ['nullable', 'string', 'max:255'],
             'duration_minutes' => ['required', 'integer', 'min:10', 'max:300'],
             'options_per_question' => ['required', 'integer', 'in:4,5'],
             'counts' => ['required', 'array', 'min:1'],
@@ -91,7 +94,13 @@ class AdminExamGenerationController extends Controller
             variants: (int) $validated['variants'],
             attributes: [
                 'created_by' => $request->user()->id,
-                'title' => $validated['title'],
+                'title' => filled($validated['title'] ?? null)
+                    ? $validated['title']
+                    : ExamTitle::generate(
+                        $category,
+                        ($validated['quarter'] ?? null) !== null ? Exam::KIND_TOPIC_TRIAL : Exam::KIND_GENERAL,
+                        $validated['quarter'] ?? null,
+                    ),
                 'duration_minutes' => (int) $validated['duration_minutes'],
                 'options_per_question' => (int) $validated['options_per_question'],
                 'sector' => $validated['sector'],

@@ -255,7 +255,7 @@ const getAnswerStatus = (answer) => statusOf(answer);
                         <p class="summary-score">
                             <span :class="['score', getScoreColor]">{{ attempt.relative_score }}</span>
                             <span class="score-max">/ 100</span>
-                            <span v-if="attempt.awaiting_review" class="tag tag--pending">ilkin</span>
+                            <span v-if="attempt.awaiting_review" class="tag tag--pending">ilkin bal</span>
                         </p>
                         <p class="summary-sub">
                             {{ attempt.score }} / {{ attempt.max_subject_score }} bal
@@ -270,8 +270,15 @@ const getAnswerStatus = (answer) => statusOf(answer);
                             <li v-if="tally.pending"><span class="dot dot--pending" aria-hidden="true">?</span> yoxlanılır <b>{{ tally.pending }}</b></li>
                         </ul>
 
+                        <!--
+                            Şagird ilkin balı yekun sanırdı. Ona görə burada konkret rəqəm var:
+                            neçə sual yoxlanılır və ən çoxu nə qədər bal gələ bilər.
+                        -->
                         <p v-if="attempt.awaiting_review" class="summary-note">
-                            Açıq suallar yoxlanılır — bal yoxlamadan sonra dəyişə bilər.
+                            Bu <b>ilkin baldır</b>: yoxlanılan
+                            {{ attempt.pending_review_count }} sual üçün əlavə
+                            <b>{{ attempt.pending_max_relative }} bala</b> qədər gələ bilər.
+                            Cavab kartında həmin suallar <b>?</b> ilə işarələnib.
                         </p>
                     </aside>
                 </div>

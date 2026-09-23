@@ -329,6 +329,15 @@ bütün şəkillər 404 verdi.
       **Hazırdır:** cavabların AI ilə avtomatik qiymətləndirilməsi (`AiAnswerGrader`,
       `GradeOpenAnswer` job-u, DİM şkalası, admin üstünlüyü, şagird etirazı, token logu).
 - [ ] Məhsul növləri: fənn paketi, qrup paketi, abunə (hazırda yalnız tək imtahan satılır).
+      **Cüzdan/balans sistemi PLANDA YOXDUR** — ödəniş birbaşa imtahana gedir (23.09.2026 qərarı).
+- [ ] **Nəticənin paylaşılması:** nəticənin ictimai linki (şəxsi məlumat olmadan) və
+      paylaşma düymələri (WhatsApp, Facebook); imtahanın ulduzla qiymətləndirilməsi.
+- [ ] **Domen alınandan sonra** (indiki ünvan müvəqqətidir):
+      - imtahandan əvvəl "Hazır ol" qaydalar səhifəsi (müddət, cərimə, açıq suallar);
+      - "Bitir" düyməsində təsdiq dialoqu — içində "Cavab kartına bax" keçidi ilə;
+      - Google ilə qeydiyyat/giriş.
+- [ ] **"Bir ekranda bir sual" rejimi** imtahan interfeysində (DİM-in öz interfeysinə daha
+      yaxındır). Şagird rejimi özü seçsin — hazırkı "hamısı bir səhifədə" görünüşü qalır.
 - [ ] **Kateqoriya ağacına "Liseylərə qəbul" və "Olimpiadalar" bölmələri** — ibtidai və orta
       siniflər üçün (hazırda ağac 9-cu sinifdən aşağını demək olar ki, əhatə etmir).
       **Hazırdır:** sinif səviyyəsi etiketləri (2-ci … 11-ci sinif) — həmin bölmələr
