@@ -103,7 +103,8 @@ class QuestionService
 
     /**
      * Cəhdlərdə işlənmiş sualda BAL NƏTİCƏSİNƏ təsir edən dəyişikliklər bloklanır:
-     * sual tipi, düzgün cavab, variant dəsti və qəbul olunan cavablar.
+     * sual tipi, alt növ, düzgün cavab, variant dəsti, variantların SIRASI, uyğunluq
+     * cütləri və qəbul olunan cavablar.
      *
      * Bunlar dəyişsə keçilmiş cəhdlərin nəticəsi mənasını itirər (bal yenidən hesablanmır,
      * amma nəticə səhifəsi yeni "düzgün cavabı" göstərər). Belə hallarda sualın kopyası
@@ -162,10 +163,13 @@ class QuestionService
     }
 
     /**
-     * Variant dəsti və düzgün cavab qorunur.
+     * Variant dəsti, SIRASI və düzgün cavab qorunur.
      *
-     * Düzgün cavab tipdən asılıdır: testdə və seçimdə `is_correct` HƏRFLƏRİ (seçimdə bir
-     * neçəsi ola bilər), ardıcıllıqda isə hərflərin SIRASI. Hər ikisi burada tutuşdurulur.
+     * SIRA niyə: düzgün cavab artıq variantların sırasından hesablanır (`CodedAnswer`),
+     * ona görə variantların yerini dəyişmək köhnə cəhdlərin nəticəsini SƏSSİZCƏ dəyişə
+     * bilər — bal yenidən hesablanmır, amma nəticə səhifəsi başqa "düzgün cavab" göstərər.
+     * Formada variantlar hər dəfə A, B, C … kimi yenidən hərflənir, ona görə tutuşdurma
+     * hərflə yox, MƏTNLƏ aparılır.
      *
      * @return array<string, string>
      */
@@ -179,12 +183,33 @@ class QuestionService
                 .'və ya silinə bilməz.'];
         }
 
-        if ($question->codedSubtype() === Question::CODED_ORDERING) {
-            $currentOrder = $question->options->sortBy('order')->pluck('option_letter')->values()->all();
-            $newOrder = collect($options)->pluck('option_letter')->values()->all();
+        $currentTexts = $question->options->sortBy('order')
+            ->pluck('option_text')->map(fn ($text) => trim((string) $text))->values()->all();
+        $newTexts = collect($options)
+            ->pluck('option_text')->map(fn ($text) => trim((string) $text))->values()->all();
 
-            return $currentOrder === $newOrder ? [] : ['options' => 'Bu sual şagird cəhdlərində '
+        /*
+         * Ardıcıllıq tapşırığında SIRA düzgün cavabın özüdür: burada nə yerdəyişmə, nə də
+         * mətn düzəlişi mümkündür — hər ikisi "hansı bənd birincidir" sualının cavabını
+         * dəyişir.
+         */
+        if ($question->codedSubtype() === Question::CODED_ORDERING) {
+            return $currentTexts === $newTexts ? [] : ['options' => 'Bu sual şagird cəhdlərində '
                 .'istifadə olunub: düzgün ardıcıllıq dəyişdirilə bilməz.'];
+        }
+
+        /*
+         * Digər tiplərdə mətn düzəlişi sərbəstdir (yazı səhvi), amma YERDƏYİŞMƏ deyil:
+         * mətnlər eyni qalıb yerləri dəyişibsə, bu, sıra dəyişikliyidir.
+         */
+        $sortedCurrent = $currentTexts;
+        $sortedNew = $newTexts;
+        sort($sortedCurrent);
+        sort($sortedNew);
+
+        if ($sortedCurrent === $sortedNew && $currentTexts !== $newTexts) {
+            return ['options' => 'Bu sual şagird cəhdlərində istifadə olunub: variantların sırası '
+                .'dəyişdirilə bilməz.'];
         }
 
         $currentCorrect = $question->options->where('is_correct', true)

@@ -336,6 +336,15 @@ bütün şəkillər 404 verdi.
       - imtahandan əvvəl "Hazır ol" qaydalar səhifəsi (müddət, cərimə, açıq suallar);
       - "Bitir" düyməsində təsdiq dialoqu — içində "Cavab kartına bax" keçidi ilə;
       - Google ilə qeydiyyat/giriş.
+- [ ] **PDF/şəkildən AI ilə sual idxalı.** Admin sənədi (PDF, skan, şəkil) yükləyir → AI
+      qaralama suallar qurur (mətn, variantlar, düzgün cavab, alt növ) → admin YAN-YANA
+      görünüşdə mənbə ilə qaralamanı tutuşdurub düzəldir və təsdiqləyir → suallar banka
+      yazılır. Mövcud Excel importu ilə eyni axındır: önizləmə → təsdiq → yazma, ona görə
+      `QuestionImportService`-in iki addımlı quruluşu təkrar işlədilə bilər.
+      **Başlamaq üçün şərt:** API açarı əlavə olunmalıdır (`ANTHROPIC_API_KEY`) — indi
+      işlənmir. Yoxlanılacaq məqamlar: səhifə-səhifə emal və token xərci (loglama
+      `AiAnswerGrader`-dəki kimi), düsturların KaTeX-ə çevrilməsi, şəkilli sualların
+      şəkillərinin sənəddən kəsilib `storage/app/public`-ə yazılması.
 - [ ] **"Bir ekranda bir sual" rejimi** imtahan interfeysində (DİM-in öz interfeysinə daha
       yaxındır). Şagird rejimi özü seçsin — hazırkı "hamısı bir səhifədə" görünüşü qalır.
 - [ ] **Kateqoriya ağacına "Liseylərə qəbul" və "Olimpiadalar" bölmələri** — ibtidai və orta

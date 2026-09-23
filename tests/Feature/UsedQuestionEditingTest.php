@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 /**
  * Cəhdlərdə işlənmiş sualda BAL NƏTİCƏSİNƏ təsir edən dəyişikliklər backend-də bloklanır:
- * sual tipi, düzgün cavab, variant dəsti və qəbul olunan cavablar.
+ * sual tipi, düzgün cavab, variant dəsti, variantların SIRASI və qəbul olunan cavablar.
  *
  * Mətn, izah, mənbə, çətinlik və mövzu dəyişikliyi sərbəstdir (yalnız xəbərdarlıq göstərilir).
  */
@@ -66,12 +66,45 @@ class UsedQuestionEditingTest extends TestCase
             'is_correct' => (bool) $option->is_correct,
         ])->all();
 
+        $keepsOptions = $question->type === Question::TYPE_MULTIPLE_CHOICE
+            || in_array($question->subtype, [Question::CODED_MULTI_SELECT, Question::CODED_ORDERING], true);
+
         return array_merge([
             'question_text' => $question->question_text,
             'type' => $question->type,
-            'options' => $question->type === Question::TYPE_MULTIPLE_CHOICE ? $options : [],
+            'subtype' => $question->subtype,
+            'options' => $keepsOptions ? $options : [],
             'accepted_answers' => $question->accepted_answers ?? [],
         ], $overrides);
+    }
+
+    /**
+     * Kodlaşdırılan tapşırıq (seçim/ardıcıllıq): variantlar verilən sıra ilə yaranır,
+     * `order` düzgün ardıcıllığı bildirir.
+     *
+     * @param  array<int, string>  $texts
+     * @param  array<int, int>  $correct  düzgün variantların indeksləri
+     */
+    private function codedQuestion(string $subtype, array $texts, array $correct = []): Question
+    {
+        $question = Question::create([
+            'subject_id' => $this->exam->subject_id,
+            'question_text' => 'Tapşırıq',
+            'type' => Question::TYPE_OPEN_CODED,
+            'subtype' => $subtype,
+            'language' => $this->exam->sector,
+        ]);
+
+        foreach ($texts as $index => $text) {
+            $question->options()->create([
+                'option_letter' => chr(65 + $index),
+                'option_text' => $text,
+                'is_correct' => in_array($index, $correct, true),
+                'order' => $index + 1,
+            ]);
+        }
+
+        return $question->load('options');
     }
 
     private function update(Question $question, array $payload)
@@ -132,6 +165,100 @@ class UsedQuestionEditingTest extends TestCase
             ['A', 'B', 'C', 'D'],
             $question->refresh()->options->pluck('option_letter')->all()
         );
+    }
+
+    /**
+     * Variantların YERİ dəyişdirilə bilməz.
+     *
+     * Düzgün cavab artıq variantların sırasından hesablanır (ardıcıllıq, uyğunluq), ona görə
+     * yerdəyişmə köhnə cəhdlərin nəticəsini səssizcə dəyişər. Formada variantlar hər dəfə
+     * A, B, C … kimi yenidən hərfləndiyi üçün yoxlama MƏTNLƏ aparılır.
+     */
+    public function test_the_option_order_can_not_be_changed(): void
+    {
+        $question = $this->attach(Question::factory()->withOptions(4, 'A')->create([
+            'subject_id' => $this->exam->subject_id,
+        ]));
+        $this->useInAttempt();
+
+        $before = $question->refresh()->options->sortBy('order')->pluck('option_text')->values()->all();
+
+        $payload = $this->payloadFor($question);
+        // A və B-nin mətnləri yerini dəyişir, hərflər isə olduğu kimi qalır
+        [$payload['options'][0]['option_text'], $payload['options'][1]['option_text']]
+            = [$payload['options'][1]['option_text'], $payload['options'][0]['option_text']];
+
+        $this->update($question, $payload)->assertSessionHasErrors('options');
+
+        $this->assertSame($before, $question->refresh()->options->sortBy('order')->pluck('option_text')->values()->all());
+    }
+
+    /** Ardıcıllıq tapşırığında sıra düzgün cavabın ÖZÜDÜR. */
+    public function test_the_order_of_an_ordering_task_can_not_be_changed(): void
+    {
+        $question = $this->attach($this->codedQuestion(Question::CODED_ORDERING, ['1918', '1920', '1991']));
+        $this->useInAttempt();
+
+        $payload = $this->payloadFor($question, ['options' => [
+            ['option_letter' => 'A', 'option_text' => '1920', 'is_correct' => false],
+            ['option_letter' => 'B', 'option_text' => '1918', 'is_correct' => false],
+            ['option_letter' => 'C', 'option_text' => '1991', 'is_correct' => false],
+        ]]);
+
+        $this->update($question, $payload)->assertSessionHasErrors('options');
+
+        $this->assertSame(
+            ['1918', '1920', '1991'],
+            $question->refresh()->options->sortBy('order')->pluck('option_text')->values()->all(),
+        );
+    }
+
+    /** Seçim tapşırığında da yerdəyişmə bloklanır. */
+    public function test_the_option_order_of_a_multi_select_can_not_be_changed(): void
+    {
+        $question = $this->attach($this->codedQuestion(
+            Question::CODED_MULTI_SELECT,
+            ['Birinci', 'İkinci', 'Üçüncü'],
+            [0, 2],
+        ));
+        $this->useInAttempt();
+
+        $payload = $this->payloadFor($question, ['options' => [
+            ['option_letter' => 'A', 'option_text' => 'İkinci', 'is_correct' => true],
+            ['option_letter' => 'B', 'option_text' => 'Birinci', 'is_correct' => false],
+            ['option_letter' => 'C', 'option_text' => 'Üçüncü', 'is_correct' => true],
+        ]]);
+
+        $this->update($question, $payload)->assertSessionHasErrors('options');
+    }
+
+    /** Uyğunluq cütlərinin sırası da düzgün cavabdır. */
+    public function test_the_order_of_matching_pairs_can_not_be_changed(): void
+    {
+        $question = $this->attach(Question::create([
+            'subject_id' => $this->exam->subject_id,
+            'question_text' => 'Uyğunlaşdırın',
+            'type' => Question::TYPE_OPEN_CODED,
+            'subtype' => Question::CODED_MATCHING,
+            'language' => $this->exam->sector,
+            'pairs' => [
+                ['left' => 'Bakı', 'right' => 'Azərbaycan'],
+                ['left' => 'Ankara', 'right' => 'Türkiyə'],
+            ],
+        ]));
+        $this->useInAttempt();
+
+        $this->update($question, [
+            'question_text' => $question->question_text,
+            'type' => Question::TYPE_OPEN_CODED,
+            'subtype' => Question::CODED_MATCHING,
+            'pairs' => [
+                ['left' => 'Ankara', 'right' => 'Türkiyə'],
+                ['left' => 'Bakı', 'right' => 'Azərbaycan'],
+            ],
+        ])->assertSessionHasErrors('pairs');
+
+        $this->assertSame('Bakı', $question->refresh()->pairs[0]['left']);
     }
 
     public function test_the_question_type_can_not_be_changed(): void

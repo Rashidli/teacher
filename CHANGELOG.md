@@ -10,6 +10,28 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Cəhddə işlənmiş sualda variantların sırası bloklandı
+
+Düzgün cavab artıq variantların SIRASINDAN hesablanır (ardıcıllıq, uyğunluq), ona görə
+yerdəyişmə köhnə cəhdlərin nəticəsini səssizcə dəyişə bilərdi: bal yenidən hesablanmır,
+amma nəticə səhifəsi başqa "düzgün cavab" göstərərdi.
+
+Boşluq ondan ibarət idi ki, yoxlama HƏRFLƏRLƏ aparılırdı: forma variantları hər dəfə
+A, B, C … kimi yenidən hərflədiyi üçün yerdəyişmədən sonra da hərf siyahısı eyni qalırdı
+və mühafizə heç nə tutmurdu. İndi tutuşdurma MƏTNLƏ gedir:
+
+- **ardıcıllıq** tapşırığında sıralı mətn siyahısı ümumiyyətlə dəyişə bilməz (sıra
+  düzgün cavabın özüdür);
+- **test və seçim** tapşırığında mətnlər eyni qalıb yerləri dəyişibsə — bu, sıra
+  dəyişikliyidir və bloklanır; bir mətnin yerindəcə düzəldilməsi (yazı səhvi) sərbəst qalır;
+- **uyğunluq** cütlərinin sırası onsuz da qorunurdu, testlə bağlandı.
+
+**ROADMAP P3-ə əlavə olundu** (indi işlənmir): PDF və ya şəkildən AI ilə sual idxalı —
+admin sənədi yükləyir, AI qaralama suallar qurur, admin yan-yana baxıb təsdiqləyir.
+API açarı əlavə olunandan sonra ediləcək.
+
+---
+
 ### 2026-09-23 — DİM-in açıq tapşırıq növləri (kodlaşdırılan və yazılı)
 
 DİM-də açıq tapşırıqlar iki qrupdur: **kodlaşdırılan** (variantlar verilir, cavab
