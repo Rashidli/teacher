@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreQuestionRequest;
 use App\Models\Exam;
+use App\Models\Passage;
 use App\Models\Question;
-use App\Support\QuestionTypes;
 use App\Models\Topic;
 use App\Services\QuestionService;
+use App\Support\QuestionTypes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -40,7 +41,24 @@ class AdminQuestionController extends Controller
             'topics' => $this->topicOptions($exam),
             // İmtahan növünə görə icazəli sual tipləri (config/questions.php)
             'allowedTypes' => QuestionTypes::forExam($exam),
+            // Mətn/mənbə əsaslı yazılı tapşırıqda seçilə bilən mətnlər
+            'passages' => $this->passageOptions($exam),
         ]);
+    }
+
+    /**
+     * Mətn/mənbə seçimi: yalnız imtahanın sektorunun dilindəki aktiv mətnlər.
+     *
+     * @return array<int, array{id: int, title: string}>
+     */
+    private function passageOptions(Exam $exam): array
+    {
+        return Passage::active()
+            ->language($exam->sector)
+            ->orderBy('title')
+            ->get(['id', 'title'])
+            ->map(fn (Passage $passage) => ['id' => $passage->id, 'title' => $passage->title])
+            ->all();
     }
 
     public function store(StoreQuestionRequest $request, Exam $exam): RedirectResponse
@@ -60,6 +78,7 @@ class AdminQuestionController extends Controller
             'question' => $question->load('options'),
             'topics' => $this->topicOptions($exam),
             'allowedTypes' => QuestionTypes::forExam($exam),
+            'passages' => $this->passageOptions($exam),
             // Redaktə köhnə nəticələrə təsir edə bilər: formada xəbərdarlıq göstərilir
             'attemptUsage' => $question->attemptUsageCount(),
         ]);

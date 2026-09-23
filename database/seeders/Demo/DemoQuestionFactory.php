@@ -35,11 +35,33 @@ class DemoQuestionFactory
         'formula' => Question::TYPE_MULTIPLE_CHOICE,
         'coded' => Question::TYPE_OPEN_CODED,
         'formulaCoded' => Question::TYPE_OPEN_CODED,
+        // DİM-in kodlaşdırılan tapşırıqları: seçim, ardıcıllıq, uyğunluq
+        'codedSelect' => Question::TYPE_OPEN_CODED,
+        'codedOrder' => Question::TYPE_OPEN_CODED,
+        'codedMatch' => Question::TYPE_OPEN_CODED,
         'written' => Question::TYPE_OPEN_WRITTEN,
         'writtenLong' => Question::TYPE_OPEN_WRITTEN,
+        // Mətn/mənbə əsaslı yazılı tapşırıqlar: ikisi EYNİ mətnə bağlanır
+        'writtenText' => Question::TYPE_OPEN_WRITTEN,
+        'writtenSource' => Question::TYPE_OPEN_WRITTEN,
         'pairing' => Question::TYPE_MULTIPLE_CHOICE,
         'quarterClosed' => Question::TYPE_MULTIPLE_CHOICE,
         'passageAlt' => Question::TYPE_MULTIPLE_CHOICE,
+    ];
+
+    /**
+     * Mövzu daxilində slotların tip sırası (mövzuya 8 sual düşür).
+     * Balans qəsdən sabitdir — səbəbi `question()`-dakı izahdadır.
+     */
+    private const TYPE_PATTERN = [
+        Question::TYPE_MULTIPLE_CHOICE,
+        Question::TYPE_MULTIPLE_CHOICE,
+        Question::TYPE_OPEN_CODED,
+        Question::TYPE_OPEN_WRITTEN,
+        Question::TYPE_MULTIPLE_CHOICE,
+        Question::TYPE_MULTIPLE_CHOICE,
+        Question::TYPE_MULTIPLE_CHOICE,
+        Question::TYPE_OPEN_CODED,
     ];
 
     private const DIFFICULTIES = [
@@ -93,24 +115,62 @@ class DemoQuestionFactory
         }
 
         $isMath = in_array($subjectSlug, self::MATH_SUBJECTS, true);
+
         /*
-         * İlk səkkiz çərçivə hər üç tipi qarışdırır. Sondakı üç QAPALI çərçivə yalnız
-         * açıq sualın icazəli olmadığı imtahanlarda (sürücülük, MİQ …) işə düşür: orada
-         * süzgəcdən sonra yenə səkkiz FƏRQLİ çərçivə qalır, sual mətni təkrarlanmır.
+         * Çərçivələr TİPƏ görə qruplaşdırılır və hər slotun tipi sabit ŞABLONDAN gəlir
+         * (bax `TYPE_PATTERN`). Bu, iki şeyi eyni anda təmin edir:
+         *
+         *  1. Mövzu daxilində tip balansı həmişə eynidir (5 qapalı + 2 kodlaşdırılan +
+         *     1 yazılı). Bank tipə görə hesablandığı üçün bu vacibdir: balans sürüşsə,
+         *     yalnız qapalı sual qəbul edən imtahanda (sürücülük, dövlət qulluğu BB/AC)
+         *     hovuz çatmır və imtahan ümumiyyətlə qurulmur.
+         *  2. Eyni tipin çərçivələri mövzudan-mövzuya növbə ilə dəyişir, ona görə dörd
+         *     mövzu boyu BÜTÜN çərçivələr işlənir — DİM-in seçim, ardıcıllıq və uyğunluq
+         *     tapşırıqları demo datada mütləq görünür.
          */
-        $frames = $isMath
-            ? ['choice5', 'choice4', 'coded', 'written', 'passage', 'negative', 'formula', 'formulaCoded',
-                'pairing', 'quarterClosed', 'passageAlt']
-            : ['choice5', 'choice4', 'coded', 'written', 'passage', 'negative', 'passageLong', 'writtenLong',
-                'pairing', 'quarterClosed', 'passageAlt'];
+        $byType = [
+            Question::TYPE_MULTIPLE_CHOICE => ['choice5', 'choice4', 'passage', 'negative',
+                $isMath ? 'formula' : 'passageLong', 'pairing', 'quarterClosed', 'passageAlt'],
+            Question::TYPE_OPEN_CODED => array_values(array_filter([
+                'coded', $isMath ? 'formulaCoded' : null, 'codedSelect', 'codedOrder', 'codedMatch',
+            ])),
+            Question::TYPE_OPEN_WRITTEN => ['written', 'writtenLong', 'writtenText', 'writtenSource'],
+        ];
 
-        // İmtahan növündə icazəsiz tipə aid çərçivələr siyahıdan çıxır
-        $frames = array_values(array_filter(
-            $frames,
-            fn (string $frame) => in_array(self::FRAME_TYPES[$frame], $allowedTypes, true),
-        ));
+        // İcazəsiz tiplər düşür; qapalı tip həmişə qalır (hər imtahanda icazəlidir)
+        foreach (array_keys($byType) as $type) {
+            if (! in_array($type, $allowedTypes, true)) {
+                $byType[$type] = [];
+            }
+        }
 
-        $frame = $frames[$n % count($frames)];
+        $type = $byType[self::TYPE_PATTERN[$n % count(self::TYPE_PATTERN)]] === []
+            ? Question::TYPE_MULTIPLE_CHOICE
+            : self::TYPE_PATTERN[$n % count(self::TYPE_PATTERN)];
+
+        /*
+         * Slotun öz tipi daxilindəki nömrəsi: eyni mövzuda eyni çərçivə iki dəfə düşməsin.
+         * İcazəsiz tip qapalıya düşəndə say da qapalınınkına əlavə olunur.
+         */
+        $position = 0;
+
+        for ($k = 0; $k < $n; $k++) {
+            $slot = self::TYPE_PATTERN[$k % count(self::TYPE_PATTERN)];
+
+            if ($byType[$slot] === []) {
+                $slot = Question::TYPE_MULTIPLE_CHOICE;
+            }
+
+            $position += $slot === $type ? 1 : 0;
+        }
+
+        /*
+         * Sürüşdürmə MÖVZU BAŞINA BİR addımdır. Daha böyük addım (məsələn slot sayı qədər)
+         * siyahının uzunluğuna bölünə bilər və o zaman hər mövzuda eyni çərçivə düşərdi:
+         * dörd yazılı çərçivədən yalnız birincisi işlənirdi.
+         */
+        $frames = $byType[$type];
+        $frame = $frames[($position + $topicIndex) % count($frames)];
 
         return $this->{$frame}($subjectSlug, $topics, $topicIndex, $language, $n);
     }
@@ -277,6 +337,7 @@ class DemoQuestionFactory
                 "В какой четверти учебного года изучается тема «{$topic}»? "
                     .'Запишите ответ только цифрой.'),
             'type' => Question::TYPE_OPEN_CODED,
+            'subtype' => Question::CODED_NUMERIC,
             'accepted_answers' => [(string) $quarter, $quarter.($lang === 'ru' ? '-я четверть' : '-ci rüb')],
             'options' => [],
             'explanation' => $this->t($lang,
@@ -298,6 +359,7 @@ class DemoQuestionFactory
                 "Объясните своими словами понятие «{$term}» и приведите один пример "
                     ."из темы «{$topic}»."),
             'type' => Question::TYPE_OPEN_WRITTEN,
+            'subtype' => Question::WRITTEN_FREE,
             'options' => [],
             'explanation' => $this->t($lang,
                 'Tam cavab: anlayışın tərifi + mövzuya uyğun konkret nümunə.',
@@ -325,6 +387,7 @@ class DemoQuestionFactory
                     .'(3) по одному примеру из повседневной жизни или учебника. '
                     .'Пишите полными предложениями, объёмом 8–10 предложений.'),
             'type' => Question::TYPE_OPEN_WRITTEN,
+            'subtype' => Question::WRITTEN_SITUATION,
             'options' => [],
             'explanation' => $this->t($lang,
                 'Üç bəndin hər biri ayrıca qiymətləndirilir; tam bal üçün hamısı tam açılmalıdır.',
@@ -498,9 +561,185 @@ class DemoQuestionFactory
         return [
             'question_text' => $item['text'],
             'type' => Question::TYPE_OPEN_CODED,
+            'subtype' => Question::CODED_NUMERIC,
             'accepted_answers' => $item['accepted'],
             'options' => [],
             'explanation' => $item['explanation'],
+        ];
+    }
+
+    /* ------------------------------- DİM-in kodlaşdırılan tapşırıqları ---------- */
+
+    /**
+     * SEÇİM: bir neçə düzgün variant.
+     *
+     * Düzgün cavab mövzunun ÖZ anlayışlarıdır, yanlışlar isə başqa mövzulardan gəlir —
+     * yəni cavab taksonomiyadan yoxlanılır, uydurma deyil.
+     */
+    private function codedSelect(string $subject, array $topics, int $i, string $lang, int $n): array
+    {
+        $topic = $this->topicName($topics, $i);
+        $own = $this->ownTerms($topics, $i, $lang, 2, $n);
+        $other = $this->otherTerms($topics, $i, $lang, 2, $n);
+
+        // Düzgünlərin yeri sualdan-suala dəyişir: həmişə əvvəldə olsaydı, cavab görünərdi
+        $options = $n % 2 === 0
+            ? [[$own[0], true], [$other[0], false], [$own[1] ?? $own[0], true], [$other[1] ?? $other[0], false]]
+            : [[$other[0], false], [$own[0], true], [$other[1] ?? $other[0], false], [$own[1] ?? $own[0], true]];
+
+        return [
+            'question_text' => $this->t($lang,
+                "Aşağıdakılardan hansılar «{$topic}» mövzusuna aiddir? Bir neçə variant seçilə bilər.",
+                "Что из перечисленного относится к теме «{$topic}»? Можно выбрать несколько вариантов."),
+            'type' => Question::TYPE_OPEN_CODED,
+            'subtype' => Question::CODED_MULTI_SELECT,
+            'options' => array_map(
+                fn (array $row) => ['option_text' => $row[0], 'is_correct' => $row[1]],
+                $options,
+            ),
+            'explanation' => $this->t($lang,
+                "Düzgün variantlar «{$topic}» mövzusunun anlayışlarıdır, qalanları başqa mövzulara aiddir.",
+                "Верные варианты — понятия темы «{$topic}», остальные относятся к другим темам."),
+        ];
+    }
+
+    /**
+     * ARDICILLIQ: mövzular tədris sırası ilə düzülür.
+     *
+     * Variantlar DÜZGÜN sıra ilə yazılır (`order` düzgün cavabdır) — şagird tərəfdə siyahı
+     * qarışdırılır, ona görə düzgün cavab interfeysdən oxunmur.
+     */
+    private function codedOrder(string $subject, array $topics, int $i, string $lang, int $n): array
+    {
+        $names = array_map(fn (int $index) => $this->topicName($topics, $index), array_keys($topics));
+
+        return [
+            'question_text' => $this->t($lang,
+                'Mövzuları tədris ilində keçilmə ardıcıllığı ilə düzün.',
+                'Расположите темы в порядке их изучения в учебном году.'),
+            'type' => Question::TYPE_OPEN_CODED,
+            'subtype' => Question::CODED_ORDERING,
+            'options' => array_map(
+                fn (string $name) => ['option_text' => $name, 'is_correct' => false],
+                $names,
+            ),
+            'explanation' => $this->t($lang,
+                'Mövzular rüblər üzrə sıralanır: birinci rübdən dördüncüyə doğru.',
+                'Темы расположены по четвертям: от первой к четвёртой.'),
+        ];
+    }
+
+    /**
+     * UYĞUNLUQ: hər mövzu öz anlayışı ilə cütləşdirilir.
+     *
+     * Cütlər SIRALI saxlanılır (1-ci sol 1-ci sağa uyğundur); şagird tərəfdə sağ sütun
+     * qarışdırılır (bax `App\Support\CodedAnswer`).
+     */
+    private function codedMatch(string $subject, array $topics, int $i, string $lang, int $n): array
+    {
+        $pairs = [];
+
+        foreach (array_keys($topics) as $index) {
+            if (count($pairs) === 3) {
+                break;
+            }
+
+            $pairs[] = [
+                'left' => $this->topicName($topics, $index),
+                'right' => $this->term($topics, $index, $n, $lang),
+            ];
+        }
+
+        return [
+            'question_text' => $this->t($lang,
+                'Mövzuları onlara aid anlayışlarla uyğunlaşdırın.',
+                'Установите соответствие между темами и относящимися к ним понятиями.'),
+            'type' => Question::TYPE_OPEN_CODED,
+            'subtype' => Question::CODED_MATCHING,
+            'options' => [],
+            'pairs' => $pairs,
+            'explanation' => $this->t($lang,
+                'Hər anlayış yalnız bir mövzunun proqramındadır.',
+                'Каждое понятие входит в программу только одной темы.'),
+        ];
+    }
+
+    /* ------------------------------- mətn/mənbə əsaslı yazılı tapşırıqlar ------- */
+
+    /**
+     * MƏTNƏ ƏSASLANAN yazılı tapşırıq (DİM: III qrupda dil və ədəbiyyat).
+     *
+     * Mətn sualın içində deyil, ayrıca `passages` sətrindədir: növbəti çərçivə (mənbə)
+     * EYNİ mətnə bağlanır — bir mətnə bir neçə sual düşməsi məhz belə görünür.
+     */
+    private function writtenText(string $subject, array $topics, int $i, string $lang, int $n): array
+    {
+        $topic = $this->topicName($topics, $i);
+
+        return [
+            'question_text' => $this->t($lang,
+                "Mətnə əsaslanaraq «{$topic}» mövzusunun əsas ideyasını iki cümlə ilə yazın "
+                    .'və fikrinizi mətndən bir sitatla əsaslandırın.',
+                "Опираясь на текст, сформулируйте в двух предложениях основную мысль темы «{$topic}» "
+                    .'и подтвердите её цитатой из текста.'),
+            'type' => Question::TYPE_OPEN_WRITTEN,
+            'subtype' => Question::WRITTEN_TEXT,
+            'options' => [],
+            'passage' => $this->passageFor($topics, $i, $lang),
+            'explanation' => $this->t($lang,
+                'Tam cavab: əsas ideya + mətndən konkret sitat.',
+                'Полный ответ: основная мысль + конкретная цитата из текста.'),
+        ];
+    }
+
+    /** MƏNBƏYƏ ƏSASLANAN yazılı tapşırıq (DİM: II–III qrupda tarix). Mətn eynidir. */
+    private function writtenSource(string $subject, array $topics, int $i, string $lang, int $n): array
+    {
+        $term = $this->term($topics, $i, $n, $lang);
+
+        return [
+            'question_text' => $this->t($lang,
+                "Mənbədəki məlumata əsaslanaraq «{$term}» anlayışının hansı şəraitdə "
+                    .'formalaşdığını izah edin.',
+                "Опираясь на источник, объясните, в каких условиях сформировалось понятие «{$term}»."),
+            'type' => Question::TYPE_OPEN_WRITTEN,
+            'subtype' => Question::WRITTEN_SOURCE,
+            'options' => [],
+            'passage' => $this->passageFor($topics, $i, $lang),
+            'explanation' => $this->t($lang,
+                'Cavab yalnız mənbədəki məlumata söykənməlidir.',
+                'Ответ должен опираться только на сведения из источника.'),
+        ];
+    }
+
+    /**
+     * Mətn/mənbə. Açar FƏNN səviyyəsindədir (mövzu deyil): mətn və mənbə çərçivələri
+     * fərqli mövzulara düşür, amma hər ikisi EYNİ `passages` sətrini işlətməlidir —
+     * "bir mətnə bir neçə sual" məhz belə görünür. Mətn də ona uyğun olaraq bütün
+     * mövzuları əhatə edən proqram icmalıdır.
+     *
+     * @return array{key: string, title: string, body: string, source: string}
+     */
+    private function passageFor(array $topics, int $i, string $lang): array
+    {
+        $names = array_map(fn (int $index) => $this->topicName($topics, $index), array_keys($topics));
+        $first = $names[0] ?? '';
+        $terms = $this->ownTerms($topics, 0, $lang, 3, 0);
+
+        return [
+            'key' => 'program',
+            'title' => $this->t($lang, 'Mətn: tədris proqramının icmalı', 'Текст: обзор учебной программы'),
+            'body' => $this->t($lang,
+                'Tədris ili dörd bölmədən ibarətdir: '.implode(', ', $names).'. Birinci bölmədə — '
+                    ."«{$first}» — ".implode(', ', $terms).' kimi anlayışlar öyrənilir. Hər bölmənin '
+                    .'məqsədi şagirdin anlayışları bir-birindən ayırd etməsi və onları gündəlik '
+                    .'nümunələrlə izah edə bilməsidir. Bölmələr bir-birinin üzərində qurulur: '
+                    .'sonrakı mövzu əvvəlkinin anlayışlarına söykənir.',
+                'Учебный год состоит из четырёх разделов: '.implode(', ', $names).'. В первом разделе — '
+                    ."«{$first}» — изучаются такие понятия, как ".implode(', ', $terms).'. Цель каждого '
+                    .'раздела — научить ученика различать понятия и объяснять их на повседневных '
+                    .'примерах. Разделы строятся друг на друге: последующая тема опирается на понятия предыдущей.'),
+            'source' => $this->t($lang, 'Tədris proqramı', 'Учебная программа'),
         ];
     }
 

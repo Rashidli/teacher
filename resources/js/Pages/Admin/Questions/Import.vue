@@ -15,8 +15,47 @@ const props = defineProps({
 
 const TYPE_LABELS = {
     multiple_choice: 'Test',
-    open_coded: 'Qısa cavab',
-    open_written: 'Açıq',
+    open_coded: 'Kodlaşdırılan',
+    open_written: 'Açıq (yazılı)',
+};
+
+/** DİM alt növləri: önizləmədə tip sütununun altında göstərilir */
+const SUBTYPE_LABELS = {
+    numeric: 'hesablama',
+    multi_select: 'seçim',
+    ordering: 'ardıcıllıq',
+    matching: 'uyğunluq',
+    serbest: 'sərbəst',
+    situasiya: 'situasiya',
+    metn: 'mətnə əsaslanan',
+    menbe: 'mənbəyə əsaslanan',
+    isbat: 'isbat',
+};
+
+/** Önizləmədə "düzgün cavab" sütunu: alt növə görə fərqli oxunur */
+const correctAnswer = (row) => {
+    if (row.type === 'multiple_choice') {
+        return row.options.find((option) => option.is_correct)?.option_letter ?? '—';
+    }
+
+    if (row.subtype === 'multi_select') {
+        return row.options.filter((option) => option.is_correct)
+            .map((option) => option.option_letter).join(', ') || '—';
+    }
+
+    if (row.subtype === 'ordering') {
+        return row.options.map((option) => option.option_letter).join(' → ') || '—';
+    }
+
+    if (row.subtype === 'matching') {
+        return (row.pairs ?? []).map((pair) => `${pair.left} → ${pair.right}`).join('; ') || '—';
+    }
+
+    if (row.type === 'open_coded') {
+        return row.accepted_answers.join(' , ') || '—';
+    }
+
+    return null;
 };
 
 const uploadForm = useForm({ file: null });
@@ -128,15 +167,13 @@ const confirmImport = () => {
                                     </td>
                                     <td class="px-3 py-2 align-top whitespace-nowrap">
                                         {{ TYPE_LABELS[row.type] ?? '—' }}
+                                        <span v-if="row.subtype" class="block text-xs text-gray-500">
+                                            {{ SUBTYPE_LABELS[row.subtype] ?? row.subtype }}
+                                        </span>
                                     </td>
                                     <td class="px-3 py-2 align-top">
-                                        <span v-if="row.type === 'multiple_choice'">
-                                            {{ row.options.find((option) => option.is_correct)?.option_letter ?? '—' }}
-                                        </span>
-                                        <span v-else-if="row.type === 'open_coded'">
-                                            {{ row.accepted_answers.join(' , ') }}
-                                        </span>
-                                        <span v-else class="text-gray-400">əl ilə yoxlanır</span>
+                                        <span v-if="correctAnswer(row) !== null">{{ correctAnswer(row) }}</span>
+                                        <span v-else class="text-gray-400">meyarla yoxlanır</span>
                                     </td>
                                     <td class="px-3 py-2 align-top">
                                         <span v-if="!row.errors.length" class="text-green-700">Hazır</span>

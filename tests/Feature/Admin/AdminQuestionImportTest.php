@@ -133,6 +133,74 @@ class AdminQuestionImportTest extends TestCase
         $this->assertSame(['0,5', 'yarım'], $second->accepted_answers);
     }
 
+    /**
+     * DİM-in kodlaşdırılan tapşırıqları fayl tərəfində ayrıca tip adı kimi yazılır:
+     * secim, ardicilliq, uygunluq. Hamısı `open_coded` tipinə düşür, fərq alt növdədir.
+     */
+    public function test_the_import_understands_the_coded_subtypes(): void
+    {
+        $file = $this->csv([
+            ['Hansılar sadədir?', 'secim', '2', '4', '7', '9', 'A|C', ''],
+            ['Sıraya düzün', 'ardicilliq', '1918', '1920', '1991', '1993', '', ''],
+            ['Uyğunlaşdırın', 'uygunluq', '', '', '', '', 'Bakı=Azərbaycan|Ankara=Türkiyə', ''],
+        ]);
+
+        $token = $this->preview($file)->viewData('page')['props']['token'] ?? null;
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.exams.questions.import.store', $this->exam), ['token' => $token])
+            ->assertRedirect(route('admin.exams.show', $this->exam));
+
+        $select = $this->exam->questions()->wherePivot('order', 1)->firstOrFail();
+        $this->assertSame(Question::CODED_MULTI_SELECT, $select->subtype);
+        $this->assertSame('A,C', \App\Support\CodedAnswer::correct($select->load('options')));
+
+        $order = $this->exam->questions()->wherePivot('order', 2)->firstOrFail();
+        $this->assertSame(Question::CODED_ORDERING, $order->subtype);
+        // Variantlar faylda DÜZGÜN sıra ilə yazılır
+        $this->assertSame('A,B,C,D', \App\Support\CodedAnswer::correct($order->load('options')));
+
+        $match = $this->exam->questions()->wherePivot('order', 3)->firstOrFail();
+        $this->assertSame(Question::CODED_MATCHING, $match->subtype);
+        $this->assertSame(
+            [['left' => 'Bakı', 'right' => 'Azərbaycan'], ['left' => 'Ankara', 'right' => 'Türkiyə']],
+            $match->pairs,
+        );
+    }
+
+    /** Səhv yazılmış uyğunluq cütü önizləmədə tutulur. */
+    public function test_a_broken_matching_pair_is_reported(): void
+    {
+        $file = $this->csv([
+            ['Uyğunlaşdırın', 'uygunluq', '', '', '', '', 'Bakı|Ankara=Türkiyə', ''],
+        ]);
+
+        $this->preview($file)->assertOk();
+
+        $rows = $this->preview($file)->viewData('page')['props']['rows'];
+
+        $this->assertNotEmpty($rows[0]['errors']);
+        $this->assertSame(0, Question::count());
+    }
+
+    /** Köhnə fayllar dəyişmir: "qisa" hələ də hesablama tapşırığıdır. */
+    public function test_an_old_file_still_imports_calculations(): void
+    {
+        $file = $this->csv([
+            ['Kəsri yazın', 'qisa', '', '', '', '', '0,5', ''],
+        ]);
+
+        $token = $this->preview($file)->viewData('page')['props']['token'] ?? null;
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.exams.questions.import.store', $this->exam), ['token' => $token]);
+
+        $question = Question::firstOrFail();
+
+        $this->assertSame(Question::CODED_NUMERIC, $question->subtype);
+        $this->assertSame(['0,5'], $question->accepted_answers);
+    }
+
     /** Mövcud suallar varsa, import onların ardınca sıralanmalıdır. */
     public function test_imported_questions_continue_the_existing_order(): void
     {

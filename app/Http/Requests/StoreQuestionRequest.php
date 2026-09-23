@@ -48,8 +48,14 @@ class StoreQuestionRequest extends FormRequest
          * Qaydalar tipdən asılıdır: əks halda variantlı sual göndəriləndə boş `accepted_answers`
          * "min:1" qaydasına ilişirdi (forma onu həmişə göndərir) və sual saxlanıla bilmirdi.
          */
-        $isMultipleChoice = $this->input('type') === Question::TYPE_MULTIPLE_CHOICE;
-        $isOpenCoded = $this->input('type') === Question::TYPE_OPEN_CODED;
+        $type = $this->input('type');
+        $isMultipleChoice = $type === Question::TYPE_MULTIPLE_CHOICE;
+        $isOpenCoded = $type === Question::TYPE_OPEN_CODED;
+        $subtype = $isOpenCoded ? ($this->input('subtype') ?: Question::CODED_NUMERIC) : $this->input('subtype');
+
+        // Kodlaşdırılan alt növlərdən hansıları variant siyahısı tələb edir
+        $needsOptions = in_array($subtype, [Question::CODED_MULTI_SELECT, Question::CODED_ORDERING], true);
+        $needsPairs = $subtype === Question::CODED_MATCHING;
 
         return [
             'question_text' => ['required', 'string'],
@@ -63,6 +69,13 @@ class StoreQuestionRequest extends FormRequest
              * Qayda `config/questions.php`-dədir.
              */
             'type' => ['required', Rule::in(QuestionTypes::forExam($this->exam()))],
+            /*
+             * Alt növ: kodlaşdırılanda yoxlama qaydasını seçir, yazılıda isə yalnız
+             * məlumat üçündür (bal qaydası dəyişmir). Tipə uyğun olmalıdır.
+             */
+            'subtype' => ['nullable', Rule::in(Question::subtypesFor($type))],
+            // Mətn/mənbə əsaslı yazılı tapşırıq: bir mətnə bir neçə sual bağlana bilər
+            'passage_id' => ['nullable', Rule::exists('passages', 'id')],
             'difficulty' => ['nullable', Rule::in(Question::DIFFICULTIES)],
             // Mövzu imtahanın fənninə aid olmalıdır
             'topic_id' => [
@@ -81,16 +94,27 @@ class StoreQuestionRequest extends FormRequest
 
             // Variantlı test: variant sayı imtahandakı ilə eyni olmalıdır.
             // Açıq suallarda forma köhnə variantları göndərə bilər — onlar nəzərə alınmır.
-            'options' => $isMultipleChoice
-                ? ['required', 'array', 'size:'.$optionCount]
-                : ['nullable', 'array'],
+            'options' => match (true) {
+                $isMultipleChoice => ['required', 'array', 'size:'.$optionCount],
+                // Seçim və ardıcıllıq: variant sayı sərbəstdir, amma ən azı iki bənd lazımdır
+                $needsOptions => ['required', 'array', 'min:2', 'max:8'],
+                default => ['nullable', 'array'],
+            },
             'options.*.option_letter' => ['required_with:options', 'string', 'size:1'],
             'options.*.option_text' => ['required_with:options', 'string'],
             'options.*.option_image' => ['nullable', 'image', 'max:1024'],
             'options.*.is_correct' => ['required_with:options', 'boolean'],
 
-            // Qısa cavab: ədədi cavablar AnswerNormalizer ilə tutulur, burada ən azı bir etalon lazımdır
-            'accepted_answers' => $isOpenCoded
+            // Uyğunluq: sol-sağ cütlər SIRALI saxlanılır, şagird tərəfdə sağ sütun qarışır
+            'pairs' => $needsPairs ? ['required', 'array', 'min:2', 'max:8'] : ['nullable', 'array'],
+            'pairs.*.left' => ['required_with:pairs', 'string', 'max:255'],
+            'pairs.*.right' => ['required_with:pairs', 'string', 'max:255'],
+
+            /*
+             * Etalon cavab yalnız HESABLAMA alt növündə lazımdır: seçim, ardıcıllıq və
+             * uyğunluqda düzgün cavab variantlardan/cütlərdən hesablanır (`CodedAnswer`).
+             */
+            'accepted_answers' => $isOpenCoded && $subtype === Question::CODED_NUMERIC
                 ? ['required', 'array', 'min:1', 'max:10']
                 : ['nullable', 'array'],
             'accepted_answers.*' => ['required', 'string', 'max:255'],
@@ -100,10 +124,6 @@ class StoreQuestionRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if ($this->input('type') !== Question::TYPE_MULTIPLE_CHOICE) {
-                return;
-            }
-
             $options = $this->input('options');
 
             if (! is_array($options)) {
@@ -115,8 +135,24 @@ class StoreQuestionRequest extends FormRequest
                 FILTER_VALIDATE_BOOLEAN
             ))->count();
 
-            if ($correctCount !== 1) {
-                $validator->errors()->add('options', 'Düz bir düzgün cavab seçilməlidir.');
+            if ($this->input('type') === Question::TYPE_MULTIPLE_CHOICE) {
+                if ($correctCount !== 1) {
+                    $validator->errors()->add('options', 'Düz bir düzgün cavab seçilməlidir.');
+                }
+
+                return;
+            }
+
+            /*
+             * Seçim tapşırığında ən azı iki düzgün variant olmalıdır: bir düzgün variant
+             * adi test sualıdır, hamısı düzgün olanda isə seçim mənasını itirir.
+             */
+            if ($this->input('subtype') === Question::CODED_MULTI_SELECT
+                && ($correctCount < 2 || $correctCount === count($options))) {
+                $validator->errors()->add(
+                    'options',
+                    'Seçim tapşırığında ən azı iki düzgün variant olmalıdır və hamısı düzgün ola bilməz.'
+                );
             }
         });
     }
@@ -134,8 +170,12 @@ class StoreQuestionRequest extends FormRequest
             'options.size' => "Bu imtahanda hər sualda {$optionCount} variant olmalıdır.",
             'topic_id.exists' => 'Seçilmiş mövzu bu imtahanın fənninə aid deyil.',
             'section_id.exists' => 'Seçilmiş bölmə bu imtahana aid deyil.',
-            'accepted_answers.required' => 'Qısa cavablı sual üçün ən azı bir düzgün cavab yazılmalıdır.',
+            'accepted_answers.required' => 'Hesablama tapşırığı üçün ən azı bir düzgün cavab yazılmalıdır.',
             'accepted_answers.min' => 'Ən azı bir düzgün cavab yazılmalıdır.',
+            'subtype.in' => 'Bu sual tipində belə alt növ yoxdur.',
+            'options.min' => 'Ən azı iki bənd olmalıdır.',
+            'pairs.required' => 'Uyğunluq tapşırığı üçün sol-sağ cütləri doldurulmalıdır.',
+            'pairs.min' => 'Ən azı iki cüt olmalıdır.',
         ];
     }
 }

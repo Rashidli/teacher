@@ -8,6 +8,7 @@ use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Models\User;
 use App\Services\Scoring\AttemptScorer;
+use App\Support\CodedAnswer;
 use App\Support\Sector;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -220,10 +221,21 @@ class DemoStudentBuilder
             return $base + ['selected_option_id' => ($option ?? $question->options->first())?->id];
         }
 
+        /*
+         * Kodlaşdırılan tapşırıq: cavab KOD kimi yazılır (bax `App\Support\CodedAnswer`).
+         * Düzgün cavab hesablanır, yanlış cavab isə ondan fərqli olan hər hansı koddur —
+         * belə olmasa demo nəticələrdə bu tapşırıqlar həmişə "düz" görünərdi.
+         */
         if ($question->type === Question::TYPE_OPEN_CODED) {
-            $accepted = (array) ($question->accepted_answers ?? []);
+            if ($question->codedSubtype() === Question::CODED_NUMERIC) {
+                $accepted = (array) ($question->accepted_answers ?? []);
 
-            return $base + ['open_answer' => $correct ? (string) ($accepted[0] ?? '1') : 'demo'];
+                return $base + ['open_answer' => $correct ? (string) ($accepted[0] ?? '1') : 'demo'];
+            }
+
+            $code = (string) CodedAnswer::correct($question);
+
+            return $base + ['open_answer' => $correct ? $code : $this->wrongCode($question, $code)];
         }
 
         // Yazılı cavab: qiymətləndirilməyəndə cəhd `pending_review` olur (admin ekranı üçün)
@@ -233,5 +245,26 @@ class DemoStudentBuilder
             'grade_ratio' => $pendingReview ? null : ($correct ? 1 : 0.5),
             'graded_at' => $pendingReview ? null : now(),
         ];
+    }
+
+    /**
+     * Düzgün koddan zəmanətli fərqlənən cavab: ilk iki bənd yerini dəyişir.
+     * Bir bəndli kod ola bilməz (hər alt növdə ən azı iki bənd var), amma ehtiyat üçün
+     * belə halda sadəcə boş cavab qaytarılır — o da yanlış sayılır.
+     */
+    private function wrongCode(Question $question, string $code): string
+    {
+        $parts = explode(CodedAnswer::SEPARATOR, $code);
+
+        if (count($parts) < 2) {
+            return '';
+        }
+
+        [$parts[0], $parts[1]] = [$parts[1], $parts[0]];
+
+        $wrong = implode(CodedAnswer::SEPARATOR, $parts);
+
+        // Seçimdə sıra əhəmiyyətsizdir: yer dəyişmək cavabı dəyişmir, ona görə bənd atılır
+        return CodedAnswer::matches($question, $wrong) ? $parts[0] : $wrong;
     }
 }

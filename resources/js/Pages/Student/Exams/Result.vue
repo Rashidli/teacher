@@ -100,28 +100,37 @@ const STATUS_MARK = { correct: '✓', wrong: '✗', empty: '—', pending: '?', 
 const letterOf = (answer, optionId) => answer.options
     ?.find((option) => option.id === optionId)?.option_letter ?? null;
 
-/** Şagirdin cavabı — qapalıda hərf, açıqda qısaldılmış mətn */
+const short = (value) => {
+    const text = String(value ?? '');
+
+    return text.length > 8 ? `${text.slice(0, 7)}…` : text;
+};
+
+/**
+ * Şagirdin cavabı — qapalıda hərf, kodlaşdırılan tapşırıqda kod ("A, C" / "1 → 2"),
+ * yazılıda isə yalnız "yazılıb" işarəsi.
+ */
 const givenAnswer = (answer) => {
     if (answer.type === 'multiple_choice') {
         return letterOf(answer, answer.selected_option_id) ?? '—';
     }
+
+    if (answer.given_code) return short(answer.given_code);
 
     if (!answer.open_answer) return '—';
 
     return answer.open_answer.length > 8 ? '✎' : answer.open_answer;
 };
 
-/** Düzgün cavab — qapalıda hərf, qısa cavabda etalon, yazılıda meyar (vərəqdə "—") */
+/** Düzgün cavab — qapalıda hərf, kodlaşdırılanda kod və ya etalon, yazılıda "—" */
 const rightAnswer = (answer) => {
     if (answer.type === 'multiple_choice') {
         return letterOf(answer, answer.correct_option_id) ?? '—';
     }
 
-    if (answer.accepted_answers?.length) {
-        const first = String(answer.accepted_answers[0]);
+    if (answer.correct_code) return short(answer.correct_code);
 
-        return first.length > 8 ? `${first.slice(0, 7)}…` : first;
-    }
+    if (answer.accepted_answers?.length) return short(answer.accepted_answers[0]);
 
     return '—';
 };

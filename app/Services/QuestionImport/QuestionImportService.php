@@ -17,14 +17,56 @@ use Maatwebsite\Excel\Facades\Excel;
  */
 class QuestionImportService
 {
-    /** Fayldakı tip adları → bazadakı tiplər */
+    /**
+     * Fayldakı tip adları → bazadakı tiplər.
+     *
+     * DİM-in kodlaşdırılan tapşırıqları fayl tərəfində AYRI ad kimi yazılır (secim,
+     * ardicilliq, uygunluq): beləcə "tip" sütunu bir sözdür və alt növ üçün əlavə sütun
+     * doldurmaq lazım gəlmir. Hamısı `open_coded` tipinə düşür, fərq alt növdədir.
+     */
     public const TYPE_ALIASES = [
         'test' => Question::TYPE_MULTIPLE_CHOICE,
         'qisa' => Question::TYPE_OPEN_CODED,
         'qısa' => Question::TYPE_OPEN_CODED,
+        'hesablama' => Question::TYPE_OPEN_CODED,
+        'secim' => Question::TYPE_OPEN_CODED,
+        'seçim' => Question::TYPE_OPEN_CODED,
+        'ardicilliq' => Question::TYPE_OPEN_CODED,
+        'ardıcıllıq' => Question::TYPE_OPEN_CODED,
+        'uygunluq' => Question::TYPE_OPEN_CODED,
+        'uyğunluq' => Question::TYPE_OPEN_CODED,
         'aciq' => Question::TYPE_OPEN_WRITTEN,
         'açıq' => Question::TYPE_OPEN_WRITTEN,
     ];
+
+    /** Fayldakı ad → kodlaşdırılan alt növ (yazılmayıbsa hesablama) */
+    public const SUBTYPE_ALIASES = [
+        'qisa' => Question::CODED_NUMERIC,
+        'qısa' => Question::CODED_NUMERIC,
+        'hesablama' => Question::CODED_NUMERIC,
+        'secim' => Question::CODED_MULTI_SELECT,
+        'seçim' => Question::CODED_MULTI_SELECT,
+        'ardicilliq' => Question::CODED_ORDERING,
+        'ardıcıllıq' => Question::CODED_ORDERING,
+        'uygunluq' => Question::CODED_MATCHING,
+        'uyğunluq' => Question::CODED_MATCHING,
+    ];
+
+    /** Yazılı tapşırığın alt növü ("alt_tip" sütunu) */
+    public const WRITTEN_SUBTYPE_ALIASES = [
+        'serbest' => Question::WRITTEN_FREE,
+        'sərbəst' => Question::WRITTEN_FREE,
+        'situasiya' => Question::WRITTEN_SITUATION,
+        'metn' => Question::WRITTEN_TEXT,
+        'mətn' => Question::WRITTEN_TEXT,
+        'menbe' => Question::WRITTEN_SOURCE,
+        'mənbə' => Question::WRITTEN_SOURCE,
+        'isbat' => Question::WRITTEN_PROOF,
+        'isbat/sübut' => Question::WRITTEN_PROOF,
+    ];
+
+    /** Uyğunluq cütlərində sol və sağ bənd bu işarə ilə ayrılır: "Bakı=Azərbaycan" */
+    private const PAIR_SEPARATOR = '=';
 
     public const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
@@ -96,9 +138,12 @@ class QuestionImportService
                     'difficulty' => $row->difficulty,
                     'question_text' => $row->questionText,
                     'type' => $row->type,
-                    'accepted_answers' => $row->type === Question::TYPE_OPEN_CODED
+                    'subtype' => $row->subtype,
+                    'accepted_answers' => $row->subtype === Question::CODED_NUMERIC
                         ? $row->acceptedAnswers
                         : null,
+                    // Cütlərin sırası düzgün cavabdır (bax `App\Support\CodedAnswer`)
+                    'pairs' => $row->subtype === Question::CODED_MATCHING ? $row->pairs : null,
                     'explanation' => $row->explanation,
                     'grading_rubric' => $row->gradingRubric,
                 ]);
@@ -135,21 +180,24 @@ class QuestionImportService
         $type = self::TYPE_ALIASES[$rawType] ?? null;
 
         if ($type === null) {
+            $names = 'test / hesablama / secim / ardicilliq / uygunluq / aciq';
             $errors[] = $rawType === ''
-                ? 'Tip sütunu boşdur (test / qisa / aciq).'
-                : "Tip tanınmadı: \"{$rawType}\" (test / qisa / aciq olmalıdır).";
+                ? "Tip sütunu boşdur ({$names})."
+                : "Tip tanınmadı: \"{$rawType}\" ({$names} olmalıdır).";
         }
 
         $correct = (string) ($row['duzgun'] ?? '');
         $options = [];
         $acceptedAnswers = [];
+        $pairs = [];
+        $subtype = $this->subtype($row, $rawType, $type);
 
         if ($type === Question::TYPE_MULTIPLE_CHOICE) {
             [$options, $optionErrors] = $this->parseOptions($row, $correct, $exam);
             $errors = array_merge($errors, $optionErrors);
         }
 
-        if ($type === Question::TYPE_OPEN_CODED) {
+        if ($subtype === Question::CODED_NUMERIC) {
             $acceptedAnswers = collect(explode(self::ANSWER_SEPARATOR, $correct))
                 ->map(fn (string $value) => trim($value))
                 ->filter(fn (string $value) => $value !== '')
@@ -157,8 +205,23 @@ class QuestionImportService
                 ->all();
 
             if ($acceptedAnswers === []) {
-                $errors[] = 'Qısa cavablı sualda "duzgun" sütunu boş ola bilməz.';
+                $errors[] = 'Hesablama sualında "duzgun" sütunu boş ola bilməz.';
             }
+        }
+
+        /*
+         * Seçim: variantlar variant_a… sütunlarındadır, düzgünlər isə "duzgun" sütununda
+         * hərflə sadalanır ("A|C"). Ardıcıllıq: variantlar DÜZGÜN sıra ilə yazılır,
+         * "duzgun" sütunu isə lazım deyil.
+         */
+        if (in_array($subtype, [Question::CODED_MULTI_SELECT, Question::CODED_ORDERING], true)) {
+            [$options, $listErrors] = $this->parseList($row, $correct, $subtype);
+            $errors = array_merge($errors, $listErrors);
+        }
+
+        if ($subtype === Question::CODED_MATCHING) {
+            [$pairs, $pairErrors] = $this->parsePairs($correct);
+            $errors = array_merge($errors, $pairErrors);
         }
 
         // Mövzu: fayldakı ad imtahanın fənnindəki mövzularla tutuşdurulur
@@ -198,7 +261,119 @@ class QuestionImportService
             topicId: $topicId,
             difficulty: $difficulty,
             topicName: $topicName !== '' ? $topicName : null,
+            subtype: $subtype,
+            pairs: $pairs,
         );
+    }
+
+    /**
+     * Alt növ: kodlaşdırılanda "tip" sütununun özündən (secim, ardicilliq, uygunluq),
+     * yazılıda isə ayrıca "alt_tip" sütunundan gəlir. Yazılmayıbsa kodlaşdırılan sual
+     * HESABLAMA sayılır — köhnə fayllar olduğu kimi işləyir.
+     */
+    private function subtype(array $row, string $rawType, ?string $type): ?string
+    {
+        if ($type === Question::TYPE_OPEN_CODED) {
+            return self::SUBTYPE_ALIASES[$rawType] ?? Question::CODED_NUMERIC;
+        }
+
+        if ($type !== Question::TYPE_OPEN_WRITTEN) {
+            return null;
+        }
+
+        $raw = mb_strtolower((string) ($row['alt_tip'] ?? ''), 'UTF-8');
+
+        return self::WRITTEN_SUBTYPE_ALIASES[$raw] ?? Question::WRITTEN_FREE;
+    }
+
+    /**
+     * Seçim və ardıcıllıq bəndləri: variant_a… sütunlarından oxunur.
+     *
+     * Ardıcıllıqda sıra DÜZGÜN cavabdır (`order`), ona görə "duzgun" sütunu boş qala bilər.
+     * Seçimdə isə düzgün hərflər "A|C" kimi yazılır.
+     *
+     * @return array{0: array<int, array{option_letter: string, option_text: string, is_correct: bool}>, 1: array<int, string>}
+     */
+    private function parseList(array $row, string $correct, string $subtype): array
+    {
+        $errors = [];
+        $options = [];
+
+        foreach (self::LETTERS as $letter) {
+            $text = (string) ($row['variant_'.mb_strtolower($letter)] ?? '');
+
+            if ($text === '') {
+                continue;
+            }
+
+            $options[] = ['option_letter' => $letter, 'option_text' => $text, 'is_correct' => false];
+        }
+
+        if (count($options) < 2) {
+            $errors[] = 'Ən azı iki bənd lazımdır (variant_a, variant_b …).';
+        }
+
+        if ($subtype === Question::CODED_ORDERING) {
+            return [$options, $errors];
+        }
+
+        $letters = collect(explode(self::ANSWER_SEPARATOR, $correct))
+            ->map(fn (string $value) => mb_strtoupper(trim($value), 'UTF-8'))
+            ->filter(fn (string $value) => $value !== '')
+            ->values();
+
+        $known = collect($options)->pluck('option_letter');
+        $unknown = $letters->reject(fn (string $letter) => $known->contains($letter));
+
+        if ($unknown->isNotEmpty()) {
+            $errors[] = 'Düzgün cavabda tanınmayan hərf var: '.$unknown->implode(', ').'.';
+        }
+
+        if ($letters->count() < 2) {
+            $errors[] = 'Seçim tapşırığında ən azı iki düzgün variant göstərilməlidir ("A|C").';
+        }
+
+        foreach ($options as $index => $option) {
+            $options[$index]['is_correct'] = $letters->contains($option['option_letter']);
+        }
+
+        return [$options, $errors];
+    }
+
+    /**
+     * Uyğunluq cütləri: "duzgun" sütununda "sol=sağ" cütləri ayrıcı ilə sadalanır
+     * ("Bakı=Azərbaycan|Ankara=Türkiyə"). Cütlərin SIRASI düzgün cavabdır.
+     *
+     * @return array{0: array<int, array{left: string, right: string}>, 1: array<int, string>}
+     */
+    private function parsePairs(string $correct): array
+    {
+        $pairs = [];
+        $errors = [];
+
+        foreach (explode(self::ANSWER_SEPARATOR, $correct) as $chunk) {
+            $chunk = trim($chunk);
+
+            if ($chunk === '') {
+                continue;
+            }
+
+            $parts = array_map('trim', explode(self::PAIR_SEPARATOR, $chunk, 2));
+
+            if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
+                $errors[] = "Uyğunluq cütü səhvdir: \"{$chunk}\" (düzgün forma: sol=sağ).";
+
+                continue;
+            }
+
+            $pairs[] = ['left' => $parts[0], 'right' => $parts[1]];
+        }
+
+        if (count($pairs) < 2) {
+            $errors[] = 'Uyğunluq tapşırığında ən azı iki cüt olmalıdır ("Bakı=Azərbaycan|Ankara=Türkiyə").';
+        }
+
+        return [$pairs, $errors];
     }
 
     /**

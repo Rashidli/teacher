@@ -26,6 +26,8 @@ const props = defineProps({
     existingImageUrl: { type: String, default: null },
     // İmtahanın kateqoriyasında icazəli sual tipləri (config/questions.php)
     allowedTypes: { type: Array, default: () => ['multiple_choice', 'open_coded', 'open_written'] },
+    // Mətn/mənbə əsaslı yazılı tapşırıqlarda seçilə bilən mətnlər
+    passages: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['submit']);
@@ -51,6 +53,43 @@ const typeChoices = computed(() => props.allowedTypes
 const isMultipleChoice = computed(() => props.form.type === 'multiple_choice');
 const isOpenCoded = computed(() => props.form.type === 'open_coded');
 
+/*
+ * DİM-in açıq tapşırıq alt növləri.
+ *
+ * Kodlaşdırılanda alt növ YOXLAMA QAYDASINI seçir (hamısı avtomatik yoxlanır, bal 1),
+ * yazılıda isə yalnız məlumat/filtr üçündür — bal qaydası dəyişmir.
+ */
+const SUBTYPES = {
+    open_coded: [
+        { value: 'numeric', label: 'Hesablama', hint: 'Rəqəm və ya qısa mətn cavabı' },
+        { value: 'multi_select', label: 'Seçim', hint: 'Bir neçə düzgün variant' },
+        { value: 'ordering', label: 'Ardıcıllıq', hint: 'Xronologiya və ya düzülüş' },
+        { value: 'matching', label: 'Uyğunluq', hint: 'Sol-sağ cütlər' },
+    ],
+    open_written: [
+        { value: 'serbest', label: 'Sərbəst', hint: 'I qrup: riyaziyyat, fizika, kimya, informatika' },
+        { value: 'situasiya', label: 'Situasiya', hint: 'Coğrafiya, biologiya, riyaziyyat II qrup' },
+        { value: 'metn', label: 'Mətnə əsaslanan', hint: 'III qrup: dil və ədəbiyyat' },
+        { value: 'menbe', label: 'Mənbəyə əsaslanan', hint: 'II–III qrup: tarix' },
+        { value: 'isbat', label: 'İsbat', hint: 'I qrup riyaziyyat' },
+    ],
+};
+
+const subtypeChoices = computed(() => SUBTYPES[props.form.type] ?? []);
+
+const subtype = computed(() => (isOpenCoded.value ? (props.form.subtype || 'numeric') : props.form.subtype));
+
+const isNumeric = computed(() => isOpenCoded.value && subtype.value === 'numeric');
+const isMultiSelect = computed(() => subtype.value === 'multi_select');
+const isOrdering = computed(() => subtype.value === 'ordering');
+const isMatching = computed(() => subtype.value === 'matching');
+
+// Seçim və ardıcıllıqda variantlar cavabın özüdür; uyğunluqda isə sol-sağ cütlər
+const usesOptionList = computed(() => isMultiSelect.value || isOrdering.value);
+
+// Mətn/mənbə əsaslı yazılıda bir mətnə bir neçə sual bağlana bilər
+const usesPassage = computed(() => ['metn', 'menbe'].includes(props.form.subtype));
+
 const imagePreview = ref(null);
 const showMathHelp = ref(false);
 const previewMode = ref(false);
@@ -70,37 +109,112 @@ const mathShortcuts = [
     { label: 'H₂SO₄', formula: '\\ce{H2SO4}' },
 ];
 
-// Variantlar həmişə imtahandakı sayda olmalıdır (tip dəyişəndə də)
+const blankOption = (index) => ({
+    option_letter: LETTERS[index],
+    option_text: '',
+    option_image: null,
+    is_correct: false,
+});
+
+/*
+ * Variantlar həmişə lazımi sayda olmalıdır.
+ *
+ * Testdə say imtahandan gəlir (dəyişmir). Seçim və ardıcıllıqda isə say sərbəstdir —
+ * admin bənd əlavə edib silə bilir, ona görə yalnız minimum (2) təmin olunur.
+ */
 const syncOptions = () => {
-    if (!isMultipleChoice.value) {
+    if (!isMultipleChoice.value && !usesOptionList.value) {
         return;
     }
 
     const options = props.form.options ?? [];
+    const target = isMultipleChoice.value ? optionCount.value : Math.max(2, options.length);
 
-    while (options.length < optionCount.value) {
-        options.push({
-            option_letter: LETTERS[options.length],
-            option_text: '',
-            option_image: null,
-            is_correct: false,
-        });
+    while (options.length < target) {
+        options.push(blankOption(options.length));
     }
 
-    options.length = optionCount.value;
+    options.length = target;
     options.forEach((option, index) => { option.option_letter = LETTERS[index]; });
 
-    if (!options.some((option) => option.is_correct)) {
+    // Testdə düz bir düzgün variant olmalıdır; seçimdə isə bir neçəsi ola bilər
+    if (isMultipleChoice.value && !options.some((option) => option.is_correct)) {
         options[0].is_correct = true;
     }
 
     props.form.options = options;
 };
 
-watch(() => props.form.type, syncOptions, { immediate: true });
+watch(() => props.form.type, () => {
+    // Tip dəyişəndə alt növ də tipə uyğunlaşır: köhnə alt növ suala yapışıb qalmasın
+    const choices = SUBTYPES[props.form.type] ?? [];
+
+    if (!choices.some((choice) => choice.value === props.form.subtype)) {
+        props.form.subtype = choices.length ? choices[0].value : null;
+    }
+
+    syncOptions();
+}, { immediate: true });
+
+watch(() => props.form.subtype, () => {
+    syncOptions();
+
+    if (isMatching.value && (props.form.pairs ?? []).length < 2) {
+        props.form.pairs = [{ left: '', right: '' }, { left: '', right: '' }];
+    }
+});
 
 const setCorrectOption = (index) => {
     props.form.options.forEach((option, i) => { option.is_correct = i === index; });
+};
+
+/** Seçimdə bir neçə düzgün variant ola bilər */
+const toggleCorrectOption = (index) => {
+    props.form.options[index].is_correct = !props.form.options[index].is_correct;
+};
+
+const addOption = () => {
+    if (props.form.options.length < LETTERS.length) {
+        props.form.options.push(blankOption(props.form.options.length));
+        syncOptions();
+    }
+};
+
+const removeOption = (index) => {
+    if (props.form.options.length > 2) {
+        props.form.options.splice(index, 1);
+        syncOptions();
+    }
+};
+
+/*
+ * Ardıcıllıqda variantların SIRASI düzgün cavabdır: admin bəndləri burada düzgün sıra ilə
+ * düzür, şagird tərəfdə isə siyahı qarışdırılır.
+ */
+const moveOption = (index, delta) => {
+    const target = index + delta;
+
+    if (target < 0 || target >= props.form.options.length) {
+        return;
+    }
+
+    const options = props.form.options;
+    [options[index], options[target]] = [options[target], options[index]];
+    syncOptions();
+};
+
+/* --------------------------------------------------------- uyğunluq cütləri */
+
+const addPair = () => {
+    if ((props.form.pairs ?? []).length < 8) {
+        props.form.pairs.push({ left: '', right: '' });
+    }
+};
+
+const removePair = (index) => {
+    if (props.form.pairs.length > 2) {
+        props.form.pairs.splice(index, 1);
+    }
 };
 
 const handleImageChange = (event) => {
@@ -224,6 +338,56 @@ const visibleExistingImage = computed(
                     <InputError :message="form.errors.type" class="mt-2" />
                 </div>
 
+                <!--
+                    Alt növ. Kodlaşdırılanda yoxlama qaydasını seçir (hamısı avtomatik
+                    yoxlanır, bal 1), yazılıda isə yalnız məlumat/filtr üçündür.
+                -->
+                <div v-if="subtypeChoices.length">
+                    <InputLabel :value="isOpenCoded ? 'Tapşırığın növü' : 'Yazılı tapşırığın növü'" />
+                    <p v-if="!isOpenCoded" class="mt-1 text-xs text-gray-500">
+                        Bal qaydasını dəyişmir — yalnız məlumat və filtr üçündür.
+                    </p>
+                    <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                        <label
+                            v-for="choice in subtypeChoices"
+                            :key="choice.value"
+                            class="flex items-start gap-2 cursor-pointer rounded-md border border-gray-200 p-3 hover:border-indigo-300"
+                        >
+                            <input
+                                type="radio"
+                                v-model="form.subtype"
+                                :value="choice.value"
+                                class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                            />
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">{{ choice.label }}</span>
+                                <span class="block text-xs text-gray-500">{{ choice.hint }}</span>
+                            </span>
+                        </label>
+                    </div>
+                    <InputError :message="form.errors.subtype" class="mt-2" />
+                </div>
+
+                <!-- Mətn/mənbə: bir mətnə bir neçə sual bağlana bilər -->
+                <div v-if="usesPassage">
+                    <InputLabel for="passage_id" value="Mətn / mənbə" />
+                    <select
+                        id="passage_id"
+                        v-model="form.passage_id"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                    >
+                        <option :value="null">— seçilməyib —</option>
+                        <option v-for="passage in passages" :key="passage.id" :value="passage.id">
+                            {{ passage.title }}
+                        </option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Eyni mətn bir neçə suala bağlana bilər: şagird mətni hər sualın yanında görür.
+                        Yeni mətn “Mətnlər” bölməsindən əlavə olunur.
+                    </p>
+                    <InputError :message="form.errors.passage_id" class="mt-2" />
+                </div>
+
                 <!-- Sual mətni -->
                 <div>
                     <div class="flex items-center justify-between mb-1">
@@ -302,19 +466,37 @@ const visibleExistingImage = computed(
                     </div>
                 </div>
 
-                <!-- Variantlar -->
-                <div v-if="isMultipleChoice">
-                    <InputLabel :value="`Cavab Variantları (${optionCount})`" />
+                <!-- Variantlar: test, seçim və ardıcıllıq -->
+                <div v-if="isMultipleChoice || usesOptionList">
+                    <InputLabel :value="isMultipleChoice
+                        ? `Cavab Variantları (${optionCount})`
+                        : (isOrdering ? 'Bəndlər — DÜZGÜN ardıcıllıqla' : 'Variantlar — düzgün olanları işarələ')" />
+
+                    <p v-if="isOrdering" class="mt-1 text-xs text-gray-500">
+                        Bəndləri burada düzgün sıra ilə düzün. Şagird onları qarışıq görür və
+                        özü sıralayır.
+                    </p>
+                    <p v-else-if="isMultiSelect" class="mt-1 text-xs text-gray-500">
+                        Ən azı iki düzgün variant olmalıdır (hamısı düzgün ola bilməz).
+                    </p>
 
                     <div class="mt-3 space-y-3">
                         <div v-for="(option, index) in form.options" :key="option.option_letter">
                             <div class="flex items-center gap-3">
+                                <!-- Ardıcıllıqda "düzgün variant" yoxdur: sıra özü cavabdır -->
+                                <span
+                                    v-if="isOrdering"
+                                    class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 border-gray-300 bg-gray-50 text-gray-600"
+                                >{{ index + 1 }}</span>
                                 <button
+                                    v-else
                                     type="button"
-                                    @click="setCorrectOption(index)"
+                                    @click="isMultiSelect ? toggleCorrectOption(index) : setCorrectOption(index)"
                                     :title="'Düzgün cavab: ' + option.option_letter"
+                                    :aria-pressed="option.is_correct"
                                     :class="[
-                                        'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 transition',
+                                        'flex-shrink-0 w-8 h-8 flex items-center justify-center text-sm font-medium border-2 transition',
+                                        isMultiSelect ? 'rounded-md' : 'rounded-full',
                                         option.is_correct
                                             ? 'bg-green-500 text-white border-green-500'
                                             : 'bg-white text-gray-500 border-gray-300 hover:border-green-400',
@@ -330,11 +512,37 @@ const visibleExistingImage = computed(
                                     required
                                 />
                                 <input
+                                    v-if="isMultipleChoice"
                                     type="file"
                                     accept="image/*"
                                     @change="(event) => handleOptionImageChange(event, index)"
                                     class="w-40 text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100"
                                 />
+
+                                <!-- Ardıcıllıqda sıra düyməsi, seçimdə isə bənd silmə -->
+                                <template v-if="isOrdering">
+                                    <button
+                                        type="button"
+                                        class="px-2 py-1 text-sm text-gray-500 hover:text-indigo-700 disabled:opacity-30"
+                                        :disabled="index === 0"
+                                        aria-label="Yuxarı"
+                                        @click="moveOption(index, -1)"
+                                    >↑</button>
+                                    <button
+                                        type="button"
+                                        class="px-2 py-1 text-sm text-gray-500 hover:text-indigo-700 disabled:opacity-30"
+                                        :disabled="index === form.options.length - 1"
+                                        aria-label="Aşağı"
+                                        @click="moveOption(index, 1)"
+                                    >↓</button>
+                                </template>
+
+                                <button
+                                    v-if="usesOptionList && form.options.length > 2"
+                                    type="button"
+                                    class="px-2 py-1 text-sm text-red-500 hover:text-red-700"
+                                    @click="removeOption(index)"
+                                >Sil</button>
                             </div>
                             <div v-if="option.option_text && option.option_text.includes('$')" class="ml-11 mt-1 text-xs text-gray-500 flex items-center gap-1">
                                 <span>Önizləmə:</span>
@@ -343,12 +551,53 @@ const visibleExistingImage = computed(
                         </div>
                     </div>
 
-                    <p class="mt-2 text-sm text-gray-500">Düzgün cavabı seçmək üçün hərf düyməsinə klikləyin.</p>
+                    <button
+                        v-if="usesOptionList && form.options.length < 5"
+                        type="button"
+                        class="mt-2 text-sm text-indigo-600 hover:text-indigo-800"
+                        @click="addOption"
+                    >+ Bənd əlavə et</button>
+
+                    <p v-if="!isOrdering" class="mt-2 text-sm text-gray-500">
+                        Düzgün cavabı seçmək üçün hərf düyməsinə klikləyin.
+                    </p>
                     <InputError :message="form.errors.options" class="mt-2" />
                 </div>
 
-                <!-- Qısa cavab -->
-                <div v-if="isOpenCoded">
+                <!-- Uyğunluq: sol-sağ cütlər SIRALI saxlanılır, şagird tərəfdə sağ sütun qarışır -->
+                <div v-if="isMatching">
+                    <InputLabel value="Uyğunluq cütləri" />
+                    <p class="mt-1 text-xs text-gray-500">
+                        Hər sətirdə bir-birinə uyğun gələn cüt yazılır. Şagird sağ sütunu
+                        qarışıq görür və hər sol bəndə uyğun olanı seçir.
+                    </p>
+
+                    <div class="mt-3 space-y-2">
+                        <div v-for="(pair, index) in form.pairs" :key="index" class="flex items-center gap-2">
+                            <span class="w-6 text-sm text-gray-500">{{ index + 1 }}.</span>
+                            <TextInput v-model="pair.left" type="text" class="flex-1 text-sm" placeholder="Sol bənd" />
+                            <span class="text-gray-400" aria-hidden="true">→</span>
+                            <TextInput v-model="pair.right" type="text" class="flex-1 text-sm" placeholder="Sağ bənd" />
+                            <button
+                                v-if="form.pairs.length > 2"
+                                type="button"
+                                class="px-2 py-1 text-sm text-red-500 hover:text-red-700"
+                                @click="removePair(index)"
+                            >Sil</button>
+                        </div>
+                    </div>
+
+                    <button
+                        v-if="form.pairs.length < 8"
+                        type="button"
+                        class="mt-2 text-sm text-indigo-600 hover:text-indigo-800"
+                        @click="addPair"
+                    >+ Cüt əlavə et</button>
+                    <InputError :message="form.errors.pairs" class="mt-2" />
+                </div>
+
+                <!-- Hesablama: etalon cavab(lar). Digər alt növlərdə cavab variantlardan hesablanır -->
+                <div v-if="isNumeric">
                     <InputLabel value="Düzgün cavab(lar)" />
                     <p class="mt-1 text-xs text-gray-500">
                         Rəqəm cavabları ədəd kimi müqayisə olunur: <code>0,5</code> yazsanız

@@ -9,12 +9,18 @@ const props = defineProps({
     sections: { type: Array, default: () => [] },
     sectionId: { type: Number, default: null },
     allowedTypes: { type: Array, default: () => ['multiple_choice', 'open_coded', 'open_written'] },
+    // Mətn/mənbə əsaslı yazılı tapşırıqlarda seçilə bilən mətnlər
+    passages: { type: Array, default: () => [] },
 });
 
 const form = useForm({
     section_id: props.sectionId,
     question_text: '',
     type: 'multiple_choice',
+    // Alt növ: kodlaşdırılanda yoxlama qaydası, yazılıda yalnız məlumat
+    subtype: null,
+    passage_id: null,
+    pairs: [],
     question_image: null,
     question_image_alt: '',
     remove_image: false,
@@ -65,6 +71,7 @@ const submit = () => {
                     :allowed-types="allowedTypes"
                     :exam="exam"
                     :topics="topics"
+                    :passages="passages"
                     submit-label="Sual əlavə et"
                     :cancel-href="route('admin.exams.show', exam.id)"
                     @submit="submit"

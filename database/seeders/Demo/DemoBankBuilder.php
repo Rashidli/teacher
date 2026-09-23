@@ -2,6 +2,7 @@
 
 namespace Database\Seeders\Demo;
 
+use App\Models\Passage;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Subject;
@@ -26,6 +27,9 @@ class DemoBankBuilder
 
     /** @var array<string, Collection<int, Question>> "fənn|dil" → suallar */
     private array $questions = [];
+
+    /** @var array<string, int> "fənn|dil|açar" → mətn id-si (eyni mətn təkrar yaranmasın) */
+    private array $passages = [];
 
     public array $stats = ['topics_created' => 0, 'questions_created' => 0, 'questions_updated' => 0];
 
@@ -145,9 +149,17 @@ class DemoBankBuilder
                 'question_image' => $row['question_image'] ?? null,
                 'question_image_alt' => $row['question_image_alt'] ?? null,
                 'type' => $row['type'],
+                // DİM alt növü: kodlaşdırılanda yoxlama qaydası, yazılıda məlumat
+                'subtype' => $row['subtype'] ?? null,
                 'language' => $language,
                 'difficulty' => $row['difficulty'],
                 'accepted_answers' => $row['accepted_answers'] ?? null,
+                // Uyğunluq cütləri: sıra düzgün cavabdır (bax `App\Support\CodedAnswer`)
+                'pairs' => $row['pairs'] ?? null,
+                // Mətn/mənbə: eyni mətn bir neçə suala bağlanır
+                'passage_id' => isset($row['passage'])
+                    ? $this->passageId($row['passage'], $subject->id, $language)
+                    : null,
                 'explanation' => $row['explanation'] ?? null,
                 'source' => $row['source'],
                 'is_active' => true,
@@ -164,6 +176,42 @@ class DemoBankBuilder
         }
 
         return $result;
+    }
+
+    /**
+     * Mətn/mənbə sətri: fənn + dil + mövzu açarı ilə idempotentdir.
+     *
+     * Eyni mövzunun MƏTN və MƏNBƏ sualları eyni açarı göndərir, ona görə hər ikisi EYNİ
+     * `passages` sətrinə bağlanır — "bir mətnə bir neçə sual" məhz budur.
+     *
+     * @param  array{key: string, title: string, body: string, source: string}  $passage
+     */
+    private function passageId(array $passage, int $subjectId, string $language): int
+    {
+        $cacheKey = $subjectId.'|'.$language.'|'.$passage['key'];
+
+        if (isset($this->passages[$cacheKey])) {
+            return $this->passages[$cacheKey];
+        }
+
+        $row = Passage::firstOrNew([
+            'language' => $language,
+            // Başlıq fənn və mövzu ilə unikallaşır: başqa fənnin eyni adlı mövzusu ayrı sətirdir
+            'title' => $passage['title'].' #'.$subjectId,
+        ]);
+
+        $row->fill([
+            'body' => $passage['body'],
+            'source' => $passage['source'],
+            'is_active' => true,
+            'is_demo' => true,
+        ]);
+
+        if (! $row->exists || $row->isDirty()) {
+            $row->save();
+        }
+
+        return $this->passages[$cacheKey] = $row->id;
     }
 
     /**

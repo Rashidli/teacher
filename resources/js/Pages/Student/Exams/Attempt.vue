@@ -24,6 +24,153 @@ const openAnswers = ref(
 
 let openAnswerTimer = null;
 
+/*
+ * DİM-in KODLAŞDIRILAN açıq tapşırıqları.
+ *
+ * Cavab serverə HƏMİŞƏ mətn kodu kimi gedir (`open_answer`) — interfeys fərqlidir, saxlama
+ * eynidir (bax `App\Support\CodedAnswer`):
+ *   seçim      → "A,C"      (hərflər, sıra əhəmiyyətsiz)
+ *   ardıcıllıq → "C,A,B"    (hərflər, ŞAGİRDİN sırası ilə)
+ *   uyğunluq   → "1-2,2-1"  (sol bəndin nömrəsi - sağ bəndin nömrəsi)
+ */
+const codedSubtype = (question) => (question.type === 'open_coded'
+    ? (question.subtype || 'numeric')
+    : null);
+
+/**
+ * Sabit qarışdırma: eyni cəhddə eyni sual həmişə eyni sıra ilə görünür (səhifə
+ * yeniləndikdə bəndlər yerini dəyişməməlidir), amma düzgün sıra gizli qalır.
+ */
+const shuffled = (items, seed) => {
+    const rows = items.map((item, index) => ({ item, index }));
+    let state = seed || 1;
+
+    // Kiçik determinik PRNG (mulberry32): kitabxana lazım deyil
+    const random = () => {
+        state |= 0;
+        state = (state + 0x6D2B79F5) | 0;
+        let t = Math.imul(state ^ (state >>> 15), 1 | state);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+
+    for (let i = rows.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(random() * (i + 1));
+        [rows[i], rows[j]] = [rows[j], rows[i]];
+    }
+
+    return rows;
+};
+
+const seedFor = (question) => (props.attempt?.id ?? 1) * 1000 + question.id;
+
+/** Seçim və ardıcıllıq: variantlar qarışıq göstərilir */
+const displayOptions = (question) => shuffled(question.options ?? [], seedFor(question))
+    .map((row) => row.item);
+
+/** Uyğunluq: sağ sütun qarışdırılır, dəyər isə KANONİK nömrədir */
+const rightChoices = (question) => shuffled(question.pairs?.right ?? [], seedFor(question))
+    .map((row) => ({ value: row.index + 1, text: row.item }));
+
+/* ------------------------------ kodlaşdırılan cavabların yerli vəziyyəti ---- */
+
+const parseCode = (value) => String(value ?? '')
+    .split(',')
+    .map((part) => part.trim().toUpperCase())
+    .filter((part) => part !== '');
+
+/** Seçim: hansı hərflər işarələnib */
+const selectedLetters = ref({});
+
+/** Ardıcıllıq: şagirdin düzdüyü hərf sırası */
+const orderedLetters = ref({});
+
+/** Uyğunluq: sol bəndin nömrəsi → seçilmiş sağ bəndin nömrəsi */
+const matchedPairs = ref({});
+
+(props.questions || []).forEach((question) => {
+    const subtype = codedSubtype(question);
+    const code = parseCode(question.open_answer);
+
+    if (subtype === 'multi_select') {
+        selectedLetters.value[question.id] = code;
+    } else if (subtype === 'ordering') {
+        // Yarımçıq və ya köhnəlmiş cavab: göstərilən bəndlərlə tamamlanır
+        const letters = displayOptions(question).map((option) => option.option_letter);
+        const kept = code.filter((letter) => letters.includes(letter));
+
+        orderedLetters.value[question.id] = [
+            ...kept,
+            ...letters.filter((letter) => !kept.includes(letter)),
+        ];
+    } else if (subtype === 'matching') {
+        const chosen = {};
+
+        code.forEach((pair) => {
+            const [left, right] = pair.split('-');
+
+            if (left && right) {
+                chosen[Number(left)] = Number(right);
+            }
+        });
+
+        matchedPairs.value[question.id] = chosen;
+    }
+});
+
+const saveCode = (questionId, code) => {
+    openAnswers.value[questionId] = code;
+    saveOpenAnswer(questionId, 0);
+};
+
+const toggleLetter = (question, letter) => {
+    const current = selectedLetters.value[question.id] ?? [];
+
+    selectedLetters.value[question.id] = current.includes(letter)
+        ? current.filter((value) => value !== letter)
+        : [...current, letter];
+
+    // Kod əlifba sırası ilə yazılır: yoxlama sırasından asılı deyil
+    saveCode(question.id, [...selectedLetters.value[question.id]].sort().join(','));
+};
+
+const moveLetter = (question, index, delta) => {
+    const letters = [...(orderedLetters.value[question.id] ?? [])];
+    const target = index + delta;
+
+    if (target < 0 || target >= letters.length) {
+        return;
+    }
+
+    [letters[index], letters[target]] = [letters[target], letters[index]];
+    orderedLetters.value[question.id] = letters;
+
+    saveCode(question.id, letters.join(','));
+};
+
+const setMatch = (question, leftIndex, rightValue) => {
+    const chosen = { ...(matchedPairs.value[question.id] ?? {}) };
+
+    if (rightValue) {
+        chosen[leftIndex] = Number(rightValue);
+    } else {
+        delete chosen[leftIndex];
+    }
+
+    matchedPairs.value[question.id] = chosen;
+
+    saveCode(question.id, Object.keys(chosen)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .map((left) => `${left}-${chosen[left]}`)
+        .join(','));
+};
+
+/** Bəndin mətni hərfə görə (ardıcıllıq siyahısında göstərmək üçün) */
+const optionByLetter = (question, letter) => (question.options ?? [])
+    .find((option) => option.option_letter === letter);
+
 // Fənn bölmələri: çoxfənli imtahanda tablarla keçid
 const sections = computed(() => {
     const seen = new Map();
@@ -91,7 +238,11 @@ onUnmounted(() => {
     clearTimeout(openAnswerTimer);
 });
 
-const saveOpenAnswer = (questionId) => {
+/*
+ * Yazarkən hər hərfdə sorğu getməsin. Kodlaşdırılan tapşırıqlarda isə klik dərhal
+ * yadda saxlanılır (gecikmə 0) — orada "yazma" yoxdur.
+ */
+const saveOpenAnswer = (questionId, delay = 800) => {
     clearTimeout(openAnswerTimer);
 
     openAnswerTimer = setTimeout(async () => {
@@ -107,7 +258,7 @@ const saveOpenAnswer = (questionId) => {
         } finally {
             isSaving.value = false;
         }
-    }, 800);
+    }, delay);
 };
 
 const selectAnswer = async (questionId, optionId) => {
@@ -379,6 +530,17 @@ const getQuestionStatus = (question) => {
                                 </span>
                             </div>
 
+                            <!-- Mətn/mənbə: eyni mətn bir neçə sualda görünə bilər -->
+                            <details v-if="question.passage" class="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3" open>
+                                <summary class="cursor-pointer text-sm font-medium text-gray-700">
+                                    {{ question.passage.title }}
+                                </summary>
+                                <div class="mt-2 whitespace-pre-line text-sm text-gray-800">{{ question.passage.body }}</div>
+                                <p v-if="question.passage.source" class="mt-2 text-xs text-gray-500">
+                                    Mənbə: {{ question.passage.source }}
+                                </p>
+                            </details>
+
                             <!-- Question Text -->
                             <div class="mb-4 sm:mb-6">
                                 <p class="text-base sm:text-lg text-gray-900"><MathText :text="question.question_text" /></p>
@@ -421,7 +583,103 @@ const getQuestionStatus = (question) => {
                                 </button>
                             </div>
 
-                            <!-- Açıq cavab: qısa cavab (open_coded) və ya yazılı həll (open_written) -->
+                            <!--
+                                SEÇİM (multi_select): bir neçə düzgün variant.
+                                Checkbox-lar: seçim sayı göstərilmir — DİM-də də göstərilmir.
+                            -->
+                            <div v-else-if="codedSubtype(question) === 'multi_select'" class="space-y-2">
+                                <label
+                                    v-for="option in displayOptions(question)"
+                                    :key="option.id"
+                                    :class="[
+                                        'flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition',
+                                        (selectedLetters[question.id] || []).includes(option.option_letter)
+                                            ? 'border-indigo-500 bg-indigo-50'
+                                            : 'border-gray-200 hover:border-gray-300',
+                                    ]"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        class="w-5 h-5 rounded text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                                        :checked="(selectedLetters[question.id] || []).includes(option.option_letter)"
+                                        @change="toggleLetter(question, option.option_letter)"
+                                    />
+                                    <span class="flex-1 text-sm sm:text-base">
+                                        <MathText :text="option.option_text" />
+                                    </span>
+                                </label>
+                                <p class="text-xs text-gray-500">Bir neçə variant seçilə bilər.</p>
+                            </div>
+
+                            <!--
+                                ARDICILLIQ (ordering): bəndlər qarışıq gəlir, şagird onları
+                                yuxarı/aşağı sürüşdürərək düzür. Düymələr klaviatura ilə də
+                                işlədiyi üçün sürükləməyə alternativ deyil, əsas üsuldur.
+                            -->
+                            <div v-else-if="codedSubtype(question) === 'ordering'" class="space-y-2">
+                                <div
+                                    v-for="(letter, index) in (orderedLetters[question.id] || [])"
+                                    :key="letter"
+                                    class="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-200"
+                                >
+                                    <span class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-100 text-indigo-800 flex items-center justify-center text-sm font-bold">
+                                        {{ index + 1 }}
+                                    </span>
+                                    <span class="flex-1 text-sm sm:text-base">
+                                        <MathText :text="optionByLetter(question, letter)?.option_text ?? ''" />
+                                    </span>
+                                    <button
+                                        type="button"
+                                        class="w-9 h-9 rounded border border-gray-300 text-gray-600 disabled:opacity-30"
+                                        :disabled="index === 0"
+                                        aria-label="Yuxarı"
+                                        @click="moveLetter(question, index, -1)"
+                                    >↑</button>
+                                    <button
+                                        type="button"
+                                        class="w-9 h-9 rounded border border-gray-300 text-gray-600 disabled:opacity-30"
+                                        :disabled="index === (orderedLetters[question.id] || []).length - 1"
+                                        aria-label="Aşağı"
+                                        @click="moveLetter(question, index, 1)"
+                                    >↓</button>
+                                </div>
+                                <p class="text-xs text-gray-500">Bəndləri düzgün ardıcıllıqla düzün.</p>
+                            </div>
+
+                            <!--
+                                UYĞUNLUQ (matching): sol sütunun hər bəndinə sağdan biri seçilir.
+                                Sağ sütun qarışıqdır, seçim isə kanonik nömrə ilə saxlanılır.
+                            -->
+                            <div v-else-if="codedSubtype(question) === 'matching'" class="space-y-2">
+                                <div
+                                    v-for="(left, index) in (question.pairs?.left || [])"
+                                    :key="index"
+                                    class="flex flex-wrap items-center gap-3 p-3 rounded-lg border-2 border-gray-200"
+                                >
+                                    <span class="flex-shrink-0 w-7 h-7 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-sm font-bold">
+                                        {{ index + 1 }}
+                                    </span>
+                                    <span class="flex-1 min-w-[8rem] text-sm sm:text-base">
+                                        <MathText :text="left" />
+                                    </span>
+                                    <select
+                                        class="rounded-md border-gray-300 text-sm"
+                                        :value="(matchedPairs[question.id] || {})[index + 1] ?? ''"
+                                        :aria-label="`${left} üçün uyğun bənd`"
+                                        @change="setMatch(question, index + 1, $event.target.value)"
+                                    >
+                                        <option value="">— seç —</option>
+                                        <option
+                                            v-for="choice in rightChoices(question)"
+                                            :key="choice.value"
+                                            :value="choice.value"
+                                        >{{ choice.text }}</option>
+                                    </select>
+                                </div>
+                                <p class="text-xs text-gray-500">Hər bəndə uyğun gələni seçin.</p>
+                            </div>
+
+                            <!-- Açıq cavab: hesablama (open_coded) və ya yazılı həll (open_written) -->
                             <div v-else class="mt-4">
                                 <textarea
                                     v-model="openAnswers[question.id]"

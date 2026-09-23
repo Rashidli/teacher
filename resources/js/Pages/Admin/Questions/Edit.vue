@@ -9,6 +9,7 @@ const props = defineProps({
     topics: { type: Array, default: () => [] },
     attemptUsage: { type: Number, default: 0 },
     allowedTypes: { type: Array, default: () => ['multiple_choice', 'open_coded', 'open_written'] },
+    passages: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -16,6 +17,9 @@ const form = useForm({
     _method: 'put',
     question_text: props.question.question_text ?? '',
     type: props.question.type,
+    subtype: props.question.subtype ?? null,
+    passage_id: props.question.passage_id ?? null,
+    pairs: (props.question.pairs ?? []).map((pair) => ({ left: pair.left, right: pair.right })),
     question_image: null,
     question_image_alt: '',
     remove_image: false,
@@ -79,6 +83,7 @@ const submit = () => {
                     :allowed-types="allowedTypes"
                     :exam="exam"
                     :topics="topics"
+                    :passages="passages"
                     :attempt-usage="attemptUsage"
                     :existing-image-url="existingImageUrl"
                     submit-label="Yadda saxla"

@@ -25,6 +25,10 @@ class ImportedQuestionRow
         public readonly ?int $topicId = null,
         public readonly string $difficulty = 'medium',
         public readonly ?string $topicName = null,
+        /** DİM alt növü: hesablama/seçim/ardıcıllıq/uyğunluq və ya yazılının növü */
+        public readonly ?string $subtype = null,
+        /** @var array<int, array{left: string, right: string}> uyğunluq cütləri */
+        public readonly array $pairs = [],
     ) {
     }
 
@@ -46,6 +50,8 @@ class ImportedQuestionRow
             'grading_rubric' => $this->gradingRubric,
             'topic' => $this->topicName,
             'difficulty' => $this->difficulty,
+            'subtype' => $this->subtype,
+            'pairs' => $this->pairs,
             'errors' => $this->errors,
         ];
     }

@@ -134,6 +134,42 @@ class DemoContentTest extends TestCase
         }
     }
 
+    /**
+     * DİM-in bütün açıq tapşırıq alt növləri demo datada olmalıdır: əks halda interfeys
+     * (checkbox, sıralama, uyğunluq seçimi) heç vaxt sınaqdan keçmir.
+     */
+    public function test_every_dim_subtype_is_present_in_the_demo_bank(): void
+    {
+        $this->seed(DemoContentSeeder::class);
+
+        foreach (Question::CODED_SUBTYPES as $subtype) {
+            $this->assertTrue(
+                Question::demo()->where('subtype', $subtype)->exists(),
+                "Kodlaşdırılan alt növ yoxdur: {$subtype}",
+            );
+        }
+
+        foreach ([Question::WRITTEN_FREE, Question::WRITTEN_SITUATION, Question::WRITTEN_TEXT, Question::WRITTEN_SOURCE] as $subtype) {
+            $this->assertTrue(
+                Question::demo()->where('subtype', $subtype)->exists(),
+                "Yazılı alt növ yoxdur: {$subtype}",
+            );
+        }
+
+        // Uyğunluq cütləri sıralı saxlanılır və düzgün cavab onlardan hesablanır
+        $matching = Question::demo()->where('subtype', Question::CODED_MATCHING)->firstOrFail();
+        $this->assertGreaterThanOrEqual(2, count($matching->pairs));
+        $this->assertSame('1-1,2-2,3-3', \App\Support\CodedAnswer::correct($matching));
+
+        // Bir mətnə bir neçə sual bağlanır (mətn və mənbə əsaslı tapşırıqlar)
+        $passage = \App\Models\Passage::demo()
+            ->withCount('questions')
+            ->orderByDesc('questions_count')
+            ->firstOrFail();
+
+        $this->assertGreaterThanOrEqual(2, $passage->questions_count);
+    }
+
     public function test_russian_sector_and_group_rules(): void
     {
         $this->seed(DemoContentSeeder::class);

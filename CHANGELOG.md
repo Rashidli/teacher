@@ -10,6 +10,49 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — DİM-in açıq tapşırıq növləri (kodlaşdırılan və yazılı)
+
+DİM-də açıq tapşırıqlar iki qrupdur: **kodlaşdırılan** (variantlar verilir, cavab
+kodlaşdırılır və avtomatik yoxlanılır) və **yazılı** (variantsız, meyarla qiymətləndirilir).
+İndi hər ikisinin alt növləri var — `questions.subtype`.
+
+**Kodlaşdırılan (`open_coded`)** — hamısı avtomatik yoxlanılır, xam dəyəri qapalı sual kimi
+**1 bal**:
+
+| Alt növ | Cavabın kodu | Düzgün cavab haradan gəlir |
+|---|---|---|
+| `numeric` (hesablama) | "0,5" | `accepted_answers` (köhnə davranış) |
+| `multi_select` (seçim) | "A,C" | `is_correct` variantlar |
+| `ordering` (ardıcıllıq) | "C,A,B" | variantların `order` sırası |
+| `matching` (uyğunluq) | "1-2,2-1" | `pairs` cütlərinin sırası |
+
+Yoxlama `App\Support\CodedAnswer`-dədir. **Düzgün cavab saxlanılmır, hesablanır** — admin
+variantı düzəldəndə "düzgün cavab" köhnəlmir. Kod HƏRFLƏ işləyir, id ilə yox: sual
+kopyalananda variantların id-si dəyişir, hərflər qalır.
+
+**Yazılı (`open_written`)** alt növləri — `serbest`, `situasiya`, `metn`, `menbe`, `isbat`
+(DİM-in 2027 modelinə görə). **Bal qaydasını dəyişmir**, yalnız məlumat və filtr üçündür.
+Mətn və mənbə əsaslı tapşırıqlarda mətn ayrıca `passages` cədvəlindədir: **bir mətnə bir
+neçə sual bağlana bilər**.
+
+- **Admin formasında** alt növ seçicisi və hər alt növ üçün öz redaktoru: seçimdə çoxlu
+  işarələmə, ardıcıllıqda ↑↓ ilə düzmə (sıra düzgün cavabdır), uyğunluqda sol-sağ cütlər.
+  Cəhdlərdə işlənmiş sualda alt növ, düzgün ardıcıllıq və cütlər **bloklanır**.
+- **İmport**: "tip" sütununda yeni adlar — `secim`, `ardicilliq`, `uygunluq` (+ `hesablama`);
+  yazılının alt növü isə `alt_tip` sütunundadır. Uyğunluq cütləri `Bakı=Azərbaycan|…`
+  formasındadır. Köhnə fayllar dəyişmir: `qisa` hələ də hesablamadır. Şablon və izah vərəqi
+  yeniləndi.
+- **İmtahan səhifəsində** hər növ üçün uyğun interfeys: checkbox, sıralama düymələri,
+  uyğunluq seçimi. Bəndlər cəhdə görə SABİT qarışdırılır (səhifə yeniləndikdə yerini
+  dəyişmir), düzgün sıra isə interfeysdən oxunmur. Mətn/mənbə sualın üstündə açılan blokdadır.
+- **Nəticə səhifəsində** cavab kartı kodu göstərir ("A, C" / "1 → 2").
+- **Demo datada** hər alt növdən nümunə var (50 seçim, 50 ardıcıllıq, 41 uyğunluq, 26 mətn,
+  26 mənbə). Çərçivə seçimi tipə görə şablonla işləyir: mövzu daxilində tip balansı sabit
+  qalır (yalnız qapalı sual qəbul edən imtahanlarda hovuz çatsın), çərçivələr isə
+  mövzudan-mövzuya növbə ilə dəyişir. `demo:clear` mətnləri də silir.
+
+---
+
 ### 2026-09-23 — İmtahan səhifəsinin layout-u, ilkin bal və kartda imtahanın adı
 
 **İmtahan səhifəsində boşluq.** Tək bölməli imtahanda ("Magistratura tam sınaq") əsas

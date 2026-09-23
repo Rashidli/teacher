@@ -123,11 +123,27 @@ class QuestionService
             $errors['type'] = 'Bu sual şagird cəhdlərində istifadə olunub: sual tipi dəyişdirilə bilməz.';
         }
 
-        if ($question->type === Question::TYPE_MULTIPLE_CHOICE && isset($data['options'])) {
+        $hasOptions = $question->type === Question::TYPE_MULTIPLE_CHOICE
+            || in_array($question->codedSubtype(), [Question::CODED_MULTI_SELECT, Question::CODED_ORDERING], true);
+
+        if ($hasOptions && isset($data['options'])) {
             $errors += $this->optionChangeErrors($question, $data['options']);
         }
 
-        if ($question->type === Question::TYPE_OPEN_CODED && isset($data['accepted_answers'])) {
+        if ($question->type === Question::TYPE_OPEN_CODED
+            && ($data['subtype'] ?? $question->subtype) !== $question->subtype) {
+            $errors['subtype'] = 'Bu sual şagird cəhdlərində istifadə olunub: alt növ dəyişdirilə bilməz.';
+        }
+
+        // Uyğunluq cütlərinin SIRASI düzgün cavabdır: dəyişsə köhnə nəticə mənasını itirər
+        if ($question->codedSubtype() === Question::CODED_MATCHING && isset($data['pairs'])) {
+            if ($this->pairs((array) $question->pairs) !== $this->pairs((array) $data['pairs'])) {
+                $errors['pairs'] = 'Bu sual şagird cəhdlərində istifadə olunub: uyğunluq cütləri '
+                    .'dəyişdirilə bilməz.';
+            }
+        }
+
+        if ($question->codedSubtype() === Question::CODED_NUMERIC && isset($data['accepted_answers'])) {
             $before = $this->normalisedAnswers((array) $question->accepted_answers);
             $after = $this->normalisedAnswers((array) $data['accepted_answers']);
 
@@ -145,7 +161,14 @@ class QuestionService
         }
     }
 
-    /** @return array<string, string> */
+    /**
+     * Variant dəsti və düzgün cavab qorunur.
+     *
+     * Düzgün cavab tipdən asılıdır: testdə və seçimdə `is_correct` HƏRFLƏRİ (seçimdə bir
+     * neçəsi ola bilər), ardıcıllıqda isə hərflərin SIRASI. Hər ikisi burada tutuşdurulur.
+     *
+     * @return array<string, string>
+     */
     private function optionChangeErrors(Question $question, array $options): array
     {
         $currentLetters = $question->options->pluck('option_letter')->sort()->values()->all();
@@ -156,11 +179,19 @@ class QuestionService
                 .'və ya silinə bilməz.'];
         }
 
-        $currentCorrect = $question->options->firstWhere('is_correct', true)?->option_letter;
-        $newCorrect = collect($options)->first(fn ($option) => filter_var(
-            $option['is_correct'] ?? false,
-            FILTER_VALIDATE_BOOLEAN
-        ))['option_letter'] ?? null;
+        if ($question->codedSubtype() === Question::CODED_ORDERING) {
+            $currentOrder = $question->options->sortBy('order')->pluck('option_letter')->values()->all();
+            $newOrder = collect($options)->pluck('option_letter')->values()->all();
+
+            return $currentOrder === $newOrder ? [] : ['options' => 'Bu sual şagird cəhdlərində '
+                .'istifadə olunub: düzgün ardıcıllıq dəyişdirilə bilməz.'];
+        }
+
+        $currentCorrect = $question->options->where('is_correct', true)
+            ->pluck('option_letter')->sort()->values()->all();
+        $newCorrect = collect($options)
+            ->filter(fn ($option) => filter_var($option['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN))
+            ->pluck('option_letter')->sort()->values()->all();
 
         if ($currentCorrect !== $newCorrect) {
             return ['options' => 'Bu sual şagird cəhdlərində istifadə olunub: düzgün cavab '
@@ -187,8 +218,9 @@ class QuestionService
     {
         return DB::transaction(function () use ($exam, $question) {
             $copy = Question::create($question->only([
-                'subject_id', 'topic_id', 'question_text', 'question_image', 'question_image_alt', 'type', 'language',
-                'translation_group_id', 'difficulty', 'accepted_answers', 'explanation', 'grading_rubric',
+                'subject_id', 'topic_id', 'passage_id', 'question_text', 'question_image', 'question_image_alt',
+                'type', 'subtype', 'language',
+                'translation_group_id', 'difficulty', 'accepted_answers', 'pairs', 'explanation', 'grading_rubric',
                 'source', 'is_active',
             ]));
 
@@ -391,6 +423,7 @@ class QuestionService
     private function questionAttributes(array $data, ?Question $question = null): array
     {
         $type = $data['type'];
+        $subtype = $this->subtype($type, $data['subtype'] ?? null);
 
         return [
             'subject_id' => $data['subject_id'] ?? $question?->subject_id,
@@ -400,6 +433,14 @@ class QuestionService
             // Şəkilli sualın ekran oxuyucusu üçün təsviri (şəkil silinəndə də boşalır)
             'question_image_alt' => $data['question_image_alt'] ?? $question?->question_image_alt,
             'type' => $type,
+            'subtype' => $subtype,
+            /*
+             * Mətn/mənbə yalnız həmin yazılı alt növlərdə saxlanılır: alt növ dəyişəndə
+             * köhnə mətn suala "yapışıb" qalmamalıdır.
+             */
+            'passage_id' => in_array($subtype, Question::PASSAGE_SUBTYPES, true)
+                ? ($data['passage_id'] ?? $question?->passage_id)
+                : null,
             'difficulty' => $data['difficulty'] ?? $question?->difficulty ?? Question::DIFFICULTY_MEDIUM,
             'source' => $data['source'] ?? $question?->source,
             'explanation' => $data['explanation'] ?? null,
@@ -407,15 +448,58 @@ class QuestionService
             'grading_rubric' => $type === Question::TYPE_OPEN_WRITTEN
                 ? ($data['grading_rubric'] ?? $question?->grading_rubric)
                 : null,
-            'accepted_answers' => $type === Question::TYPE_OPEN_CODED
+            /*
+             * Etalon cavab yalnız HESABLAMA alt növündə saxlanılır: seçim, ardıcıllıq və
+             * uyğunluqda düzgün cavab variantlardan/cütlərdən hesablanır (`CodedAnswer`).
+             */
+            'accepted_answers' => $subtype === Question::CODED_NUMERIC
                 ? array_values($data['accepted_answers'] ?? [])
+                : null,
+            // Cütlər yalnız uyğunluq tapşırığında doludur; sıra DÜZGÜN cavabı bildirir
+            'pairs' => $subtype === Question::CODED_MATCHING
+                ? $this->pairs($data['pairs'] ?? [])
                 : null,
         ];
     }
 
+    /**
+     * Alt növ tipə uyğunlaşdırılır: kodlaşdırılan sualda boş dəyər HESABLAMA sayılır
+     * (köhnə suallar belədir), uyğun gəlməyən dəyər isə atılır.
+     */
+    private function subtype(string $type, ?string $subtype): ?string
+    {
+        if (in_array($subtype, Question::subtypesFor($type), true)) {
+            return $subtype;
+        }
+
+        return $type === Question::TYPE_OPEN_CODED ? Question::CODED_NUMERIC : null;
+    }
+
+    /**
+     * Uyğunluq cütləri: boş sətirlər atılır, sıra qorunur.
+     *
+     * @param  array<int, mixed>  $pairs
+     * @return array<int, array{left: string, right: string}>
+     */
+    private function pairs(array $pairs): array
+    {
+        return array_values(array_filter(array_map(fn ($pair) => [
+            'left' => trim((string) ($pair['left'] ?? '')),
+            'right' => trim((string) ($pair['right'] ?? '')),
+        ], $pairs), fn (array $pair) => $pair['left'] !== '' && $pair['right'] !== ''));
+    }
+
+    /**
+     * Variantlar test sualından başqa SEÇİM və ARDICILLIQ tapşırıqlarında da saxlanılır:
+     * orada variantlar cavabın özüdür (seçiləcək bəndlər və düzüləcək ardıcıllıq).
+     * Ardıcıllıqda `order` DÜZGÜN sıranı bildirir — şagird tərəfdə siyahı qarışdırılır.
+     */
     private function syncOptions(Question $question, array $data): void
     {
-        if ($question->type !== Question::TYPE_MULTIPLE_CHOICE) {
+        $keepsOptions = $question->type === Question::TYPE_MULTIPLE_CHOICE
+            || in_array($question->subtype, [Question::CODED_MULTI_SELECT, Question::CODED_ORDERING], true);
+
+        if (! $keepsOptions) {
             $this->deleteOptionImages($question);
             $question->options()->delete();
 

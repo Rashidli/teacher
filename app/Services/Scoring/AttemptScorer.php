@@ -8,7 +8,7 @@ use App\Models\ExamSection;
 use App\Models\Group;
 use App\Models\Question;
 use App\Models\SubjectGroupScore;
-use App\Support\AnswerNormalizer;
+use App\Support\CodedAnswer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +23,8 @@ use Illuminate\Support\Facades\DB;
  * - Bölmə nəticəsi `attempt_sections`-a dondurulur (max_score və NB daxil), sonra bal matrisi
  *   dəyişsə də köhnə nəticə eyni qalır.
  *
- * Sual tipləri: `multiple_choice` variantla, `open_coded` AnswerNormalizer ilə avtomatik,
+ * Sual tipləri: `multiple_choice` variantla, `open_coded` `CodedAnswer` ilə avtomatik (hesablama,
+ * seçim, ardıcıllıq, uyğunluq),
  * `open_written` admin şkalası ilə (yoxlanmayıbsa cəhd `pending_review` olur).
  */
 class AttemptScorer
@@ -188,11 +189,12 @@ class AttemptScorer
             return [$isCorrect, $isCorrect ? 1.0 : 0.0, true, false];
         }
 
+        /*
+         * Kodlaşdırılan açıq tapşırıq: hesablama, seçim, ardıcıllıq və uyğunluq — hamısı
+         * avtomatik yoxlanılır və xam dəyəri 1 baldır (bax `CodedAnswer`).
+         */
         if ($question->type === Question::TYPE_OPEN_CODED) {
-            $isCorrect = AnswerNormalizer::matches(
-                $answer->open_answer,
-                (array) ($question->accepted_answers ?? [])
-            );
+            $isCorrect = CodedAnswer::matches($question, $answer->open_answer);
 
             return [$isCorrect, $isCorrect ? 1.0 : 0.0, filled($answer->open_answer), false];
         }

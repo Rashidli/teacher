@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Http\Controllers\SitemapController;
 use App\Models\Exam;
+use App\Models\Passage;
 use App\Models\Question;
 use App\Models\Topic;
 use App\Models\User;
@@ -143,6 +144,7 @@ class ClearDemoContent extends Command
 
         [$questionIds, $keptQuestions] = $this->deletableQuestions($examIds);
         [$topicIds, $keptTopics] = $this->deletableTopics($questionIds);
+        [$passageIds, $keptPassages] = $this->deletablePassages($questionIds);
 
         $skipped = [];
 
@@ -154,6 +156,10 @@ class ClearDemoContent extends Command
             $skipped[] = "{$keptTopics} demo mövzuya real sual bağlı olduğu üçün saxlanıldı.";
         }
 
+        if ($keptPassages > 0) {
+            $skipped[] = "{$keptPassages} demo mətnə real sual bağlı olduğu üçün saxlanıldı.";
+        }
+
         return [
             'ids' => [
                 'exams' => $examIds,
@@ -161,6 +167,7 @@ class ClearDemoContent extends Command
                 'attempts' => $attemptIds,
                 'questions' => $questionIds,
                 'topics' => $topicIds,
+                'passages' => $passageIds,
             ],
             'counts' => [
                 'İmtahan' => count($examIds),
@@ -168,6 +175,7 @@ class ClearDemoContent extends Command
                 'Sual' => count($questionIds),
                 'Sual variantı' => $this->count('question_options', 'question_id', $questionIds),
                 'Mövzu' => count($topicIds),
+                'Mətn/mənbə' => count($passageIds),
                 'Cəhd' => count($attemptIds),
                 'Cavab' => $this->count('attempt_answers', 'attempt_id', $attemptIds),
                 'Giriş hüququ' => $this->accessCount($examIds, $userIds),
@@ -210,6 +218,32 @@ class ClearDemoContent extends Command
      * @param  array<int, int>  $deletableQuestionIds
      * @return array{0: array<int, int>, 1: int}
      */
+    /**
+     * Silinə bilən demo mətnlər: yalnız silinəcək demo suallara bağlı olanlar.
+     * Real sual bağlanıbsa mətn qalır — sualın mətni itməməlidir.
+     *
+     * @param  array<int, int>  $deletableQuestionIds
+     * @return array{0: array<int, int>, 1: int}
+     */
+    private function deletablePassages(array $deletableQuestionIds): array
+    {
+        $all = Passage::where('is_demo', true)->pluck('id')->all();
+
+        if ($all === []) {
+            return [[], 0];
+        }
+
+        $used = Question::whereIn('passage_id', $all)
+            ->when($deletableQuestionIds !== [], fn ($query) => $query->whereNotIn('id', $deletableQuestionIds))
+            ->pluck('passage_id')
+            ->unique()
+            ->all();
+
+        $deletable = array_values(array_diff($all, $used));
+
+        return [$deletable, count($all) - count($deletable)];
+    }
+
     private function deletableTopics(array $deletableQuestionIds): array
     {
         $all = Topic::where('is_demo', true)->pluck('id')->all();
@@ -234,7 +268,7 @@ class ClearDemoContent extends Command
     private function delete(array $plan): void
     {
         ['exams' => $examIds, 'users' => $userIds, 'attempts' => $attemptIds,
-            'questions' => $questionIds, 'topics' => $topicIds] = $plan['ids'];
+            'questions' => $questionIds, 'topics' => $topicIds, 'passages' => $passageIds] = $plan['ids'];
 
         // Cəhd zənciri: cavablar → dondurulmuş suallar → bölmə nəticələri → cəhdlər
         if ($attemptIds !== []) {
@@ -272,6 +306,11 @@ class ClearDemoContent extends Command
 
         if ($topicIds !== []) {
             DB::table('topics')->whereIn('id', $topicIds)->delete();
+        }
+
+        // Mətnlər suallardan SONRA silinir: sual ona istinad edir
+        if ($passageIds !== []) {
+            DB::table('passages')->whereIn('id', $passageIds)->delete();
         }
 
         if ($userIds !== []) {

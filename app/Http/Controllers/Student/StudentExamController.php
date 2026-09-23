@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\ExamAccess;
 use App\Models\ExamAttempt;
 use App\Models\Question;
+use App\Support\CodedAnswer;
 use App\Models\QuestionOption;
 use App\Models\SubjectGroupScore;
 use App\Services\Grading\OpenAnswerGradingQueue;
@@ -205,7 +206,7 @@ class StudentExamController extends Controller
         );
 
         $questions = $attempt->questions()
-            ->with('options')
+            ->with(['options', 'passage'])
             ->get()
             ->map(function ($question) use ($answersByQuestion, $sectionTitles) {
                 $answer = $answersByQuestion->get($question->id);
@@ -218,12 +219,35 @@ class StudentExamController extends Controller
                     'question_image_url' => $question->imageUrl(),
                     'question_image_alt' => $question->question_image_alt,
                     'type' => $question->type,
+                    /*
+                     * Alt növ interfeysi seçir: seçimdə checkbox, ardıcıllıqda sıralama,
+                     * uyğunluqda isə hər sol bəndə sağdan biri (bax `CodedAnswer`).
+                     */
+                    'subtype' => $question->subtype,
                     'options' => $question->options->map(fn ($opt) => [
                         'id' => $opt->id,
                         'option_letter' => $opt->option_letter,
                         'option_text' => $opt->option_text,
                         'option_image_url' => $opt->imageUrl(),
                     ]),
+                    /*
+                     * Uyğunluq cütləri SIRALI saxlanılır (1-ci sol 1-ci sağa uyğundur), ona görə
+                     * şagirdə yalnız sütunlar ayrı-ayrılıqda göndərilir: sağ sütun qarışdırılır
+                     * və düzgün cavab interfeysdən oxunmur.
+                     */
+                    'pairs' => $question->codedSubtype() === Question::CODED_MATCHING
+                        ? [
+                            'left' => collect($question->pairs ?? [])->pluck('left')->values(),
+                            'right' => collect($question->pairs ?? [])->pluck('right')->values(),
+                        ]
+                        : null,
+                    // Mətn/mənbə əsaslı tapşırıq: eyni mətn bir neçə sualda görünə bilər
+                    'passage' => $question->passage ? [
+                        'id' => $question->passage->id,
+                        'title' => $question->passage->title,
+                        'body' => $question->passage->body,
+                        'source' => $question->passage->source,
+                    ] : null,
                     'selected_option_id' => $answer?->selected_option_id,
                     'open_answer' => $answer?->open_answer,
                 ];
@@ -403,7 +427,7 @@ class StudentExamController extends Controller
         $totalQuestions = $attempt->questions()->count();
 
         $questionsWithAnswers = $attempt->questions()
-            ->with(['options', 'correctOption'])
+            ->with(['options', 'correctOption', 'passage'])
             ->get()
             ->map(function ($question) use ($attempt) {
                 $answer = $attempt->answers->where('question_id', $question->id)->first();
@@ -415,6 +439,7 @@ class StudentExamController extends Controller
                     'question_image_url' => $question->imageUrl(),
                     'question_image_alt' => $question->question_image_alt,
                     'type' => $question->type,
+                    'subtype' => $question->subtype,
                     'explanation' => $question->explanation,
                     'options' => $question->options->map(fn ($opt) => [
                         'id' => $opt->id,
@@ -438,8 +463,16 @@ class StudentExamController extends Controller
                     'score_earned' => $answer?->score_earned ?? 0,
                     // Açıq suallar
                     'open_answer' => $answer?->open_answer,
-                    'accepted_answers' => $question->type === Question::TYPE_OPEN_CODED
+                    /*
+                     * Kodlaşdırılan tapşırıqda "düzgün cavab" saxlanılmır, hesablanır
+                     * (`CodedAnswer`): hesablamada etalon siyahısı, digərlərində isə koddur.
+                     */
+                    'accepted_answers' => $question->codedSubtype() === Question::CODED_NUMERIC
                         ? $question->accepted_answers
+                        : null,
+                    'correct_code' => CodedAnswer::describe($question, CodedAnswer::correct($question)),
+                    'given_code' => $question->type === Question::TYPE_OPEN_CODED
+                        ? CodedAnswer::describe($question, $answer?->open_answer)
                         : null,
                     'grade_ratio' => $answer?->grade_ratio,
                     'awaiting_review' => $question->type === Question::TYPE_OPEN_WRITTEN

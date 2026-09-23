@@ -349,6 +349,130 @@ class AdminQuestionTest extends TestCase
         $this->assertSame(1, Question::count());
     }
 
+    /* ------------------------- DİM-in kodlaşdırılan alt növləri ---------------- */
+
+    /** Seçim tapşırığı: bir neçə düzgün variant, variant sayı sərbəstdir. */
+    public function test_admin_can_create_a_multi_select_task(): void
+    {
+        $options = $this->optionsPayload(3);
+        $options[0]['is_correct'] = true;
+        $options[2]['is_correct'] = true;
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.exams.questions.store', $this->exam), [
+                'question_text' => 'Hansılar düzgündür?',
+                'type' => Question::TYPE_OPEN_CODED,
+                'subtype' => Question::CODED_MULTI_SELECT,
+                'options' => $options,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $question = Question::firstOrFail();
+
+        $this->assertSame(Question::CODED_MULTI_SELECT, $question->subtype);
+        $this->assertCount(3, $question->options);
+        // Etalon cavab saxlanılmır: düzgün cavab variantlardan hesablanır
+        $this->assertNull($question->accepted_answers);
+        $this->assertSame('A,C', \App\Support\CodedAnswer::correct($question->load('options')));
+    }
+
+    /** Seçimdə bir düzgün variant adi test sualıdır — qəbul edilmir. */
+    public function test_a_multi_select_needs_at_least_two_correct_options(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.exams.questions.store', $this->exam), [
+                'question_text' => 'Hansılar düzgündür?',
+                'type' => Question::TYPE_OPEN_CODED,
+                'subtype' => Question::CODED_MULTI_SELECT,
+                'options' => $this->optionsPayload(3, 1),
+            ])
+            ->assertSessionHasErrors('options');
+
+        $this->assertSame(0, Question::count());
+    }
+
+    /** Ardıcıllıqda variantların sırası düzgün cavabdır. */
+    public function test_admin_can_create_an_ordering_task(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.exams.questions.store', $this->exam), [
+                'question_text' => 'Xronoloji sıraya düzün',
+                'type' => Question::TYPE_OPEN_CODED,
+                'subtype' => Question::CODED_ORDERING,
+                'options' => $this->optionsPayload(4),
+            ])
+            ->assertSessionHasNoErrors();
+
+        $question = Question::firstOrFail()->load('options');
+
+        $this->assertSame(Question::CODED_ORDERING, $question->subtype);
+        $this->assertSame('A,B,C,D', \App\Support\CodedAnswer::correct($question));
+    }
+
+    /** Uyğunluq tapşırığı cütlərlə saxlanılır, variantsız. */
+    public function test_admin_can_create_a_matching_task(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.exams.questions.store', $this->exam), [
+                'question_text' => 'Uyğunlaşdırın',
+                'type' => Question::TYPE_OPEN_CODED,
+                'subtype' => Question::CODED_MATCHING,
+                'pairs' => [
+                    ['left' => 'Bakı', 'right' => 'Azərbaycan'],
+                    ['left' => 'Ankara', 'right' => 'Türkiyə'],
+                ],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $question = Question::firstOrFail();
+
+        $this->assertSame(Question::CODED_MATCHING, $question->subtype);
+        $this->assertCount(2, $question->pairs);
+        $this->assertSame('Bakı', $question->pairs[0]['left']);
+        $this->assertCount(0, $question->options);
+    }
+
+    /** Uyğunluqda ən azı iki cüt lazımdır. */
+    public function test_a_matching_task_needs_two_pairs(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.exams.questions.store', $this->exam), [
+                'question_text' => 'Uyğunlaşdırın',
+                'type' => Question::TYPE_OPEN_CODED,
+                'subtype' => Question::CODED_MATCHING,
+                'pairs' => [['left' => 'Bakı', 'right' => 'Azərbaycan']],
+            ])
+            ->assertSessionHasErrors('pairs');
+    }
+
+    /** Alt növ tipə uyğun olmalıdır: yazılının alt növü kodlaşdırılana yazıla bilməz. */
+    public function test_a_subtype_must_belong_to_the_type(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.exams.questions.store', $this->exam), [
+                'question_text' => 'Sual',
+                'type' => Question::TYPE_OPEN_CODED,
+                'subtype' => Question::WRITTEN_PROOF,
+                'accepted_answers' => ['5'],
+            ])
+            ->assertSessionHasErrors('subtype');
+    }
+
+    /** Yazılı alt növ saxlanılır (bal qaydasını dəyişmir). */
+    public function test_a_written_subtype_is_saved(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.exams.questions.store', $this->exam), [
+                'question_text' => 'İsbat edin',
+                'type' => Question::TYPE_OPEN_WRITTEN,
+                'subtype' => Question::WRITTEN_PROOF,
+                'grading_rubric' => 'İsbatın gedişi',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(Question::WRITTEN_PROOF, Question::firstOrFail()->subtype);
+    }
+
     /** Açıq sualda forma köhnə variantları göndərə bilər — onlar nəzərə alınmamalıdır. */
     public function test_an_open_question_ignores_leftover_options_from_the_form(): void
     {
