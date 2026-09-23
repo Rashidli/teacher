@@ -92,7 +92,7 @@ class CategorySeeder extends Seeder
     {
         return [
             [
-                'slug' => 'mekteb', 'name' => 'Orta məktəb',
+                'slug' => 'mekteb', 'name' => 'Orta məktəb', 'color' => '#2440A0',
                 'short' => '9 və 11-ci sinif buraxılış imtahanları',
                 'ru_enabled' => true,
                 'translations' => ['ru' => ['name' => 'Школьник', 'short' => '9 и 11 классы, выпускные']],
@@ -118,7 +118,7 @@ class CategorySeeder extends Seeder
                 ],
             ],
             [
-                'slug' => 'abituriyent', 'name' => 'Abituriyent',
+                'slug' => 'abituriyent', 'name' => 'Abituriyent', 'color' => '#C8354E',
                 'short' => 'Bakalavr qəbulu: I mərhələ və I–V qruplar',
                 'ru_enabled' => true,
                 'translations' => ['ru' => ['name' => 'Абитуриент', 'short' => 'Вступительный экзамен, группы I–V']],
@@ -176,7 +176,7 @@ class CategorySeeder extends Seeder
                 ],
             ],
             [
-                'slug' => 'magistratura', 'name' => 'Magistratura',
+                'slug' => 'magistratura', 'name' => 'Magistratura', 'color' => '#6B3FA0',
                 'short' => 'Magistraturaya qəbul imtahanı',
                 'translations' => ['ru' => ['name' => 'Магистратура', 'short' => 'Логика, информатика, ин. язык']],
                 'children' => [
@@ -192,7 +192,7 @@ class CategorySeeder extends Seeder
                 ],
             ],
             [
-                'slug' => 'dovlet-qullugu', 'name' => 'Dövlət qulluğu',
+                'slug' => 'dovlet-qullugu', 'name' => 'Dövlət qulluğu', 'color' => '#1B6B44',
                 'short' => 'Dövlət qulluğuna qəbul imtahanı',
                 'translations' => ['ru' => ['name' => 'Госслужба', 'short' => 'Законодательство, логика']],
                 // Fənlər və sual sayları (variant sayı fənnə görə fərqlidir)
@@ -218,7 +218,7 @@ class CategorySeeder extends Seeder
                 ],
             ],
             [
-                'slug' => 'muellimler', 'name' => 'Müəllimlər',
+                'slug' => 'muellimler', 'name' => 'Müəllimlər', 'color' => '#9A4B06',
                 'short' => 'MİQ, sertifikasiya, diaqnostik qiymətləndirmə',
                 'translations' => ['ru' => ['name' => 'Учителя', 'short' => 'MİQ, сертификация, диагностика']],
                 'children' => [
@@ -242,7 +242,7 @@ class CategorySeeder extends Seeder
                 ],
             ],
             [
-                'slug' => 'suruculuk-imtahani', 'name' => 'Sürücülük vəsiqəsi',
+                'slug' => 'suruculuk-imtahani', 'name' => 'Sürücülük vəsiqəsi', 'color' => '#0F766E',
                 'short' => 'Nəzəri imtahan: yol nişanları, qaydalar, ilk yardım',
                 'translations' => ['ru' => ['name' => 'Водительские права', 'short' => 'Теория, дорожные знаки']],
                 // Nəzəri imtahan tək fənndir; hər alt düyün onu valideyndən deyil, öz
@@ -270,7 +270,7 @@ class CategorySeeder extends Seeder
             ],
             [
                 // Struktur yaradılır, amma hələ deaktivdir
-                'slug' => 'diger', 'name' => 'Digər imtahanlar', 'is_active' => false,
+                'slug' => 'diger', 'name' => 'Digər imtahanlar', 'is_active' => false, 'color' => '#596069',
                 'children' => [
                     ['slug' => 'rezidentura', 'name' => 'Rezidentura', 'is_active' => false],
                     ['slug' => 'doktorantura-xarici-dil', 'name' => 'Doktorantura xarici dil', 'is_active' => false],
@@ -306,7 +306,10 @@ class CategorySeeder extends Seeder
             ? Group::where('code', $node['group'])->value('id')
             : null;
 
-        unset($node['group']);
+        // Rəng struktur sahəsi deyil: aşağıda yalnız YARADILANDA qoyulur (admin onu dəyişir)
+        $color = $node['color'] ?? null;
+
+        unset($node['group'], $node['color']);
 
         $path = $node['path'] ?? trim(($parent?->path ? $parent->path.'/' : '').$node['slug'], '/');
 
@@ -324,11 +327,17 @@ class CategorySeeder extends Seeder
             'order' => $index + 1,
         ]);
 
-        // Bayraqlar yalnız yaradılanda təyin olunur: seeder təkrar işlədiləndə adminin
-        // deaktiv etdiyi kateqoriya geri açılmasın (siyahıda açıq göstərilənlərdən başqa).
+        // Bayraqlar və rəng yalnız yaradılanda təyin olunur: seeder təkrar işlədiləndə
+        // adminin deaktiv etdiyi kateqoriya geri açılmasın, seçdiyi rəng də itməsin.
         if (! $category->exists) {
             $category->is_active = $node['is_active'] ?? true;
             $category->has_exams = $node['has_exams'] ?? true;
+        }
+
+        // Rəng yalnız BOŞ olanda doldurulur: mövcud bazaya ilk dəfə düşəndə defolt gəlir,
+        // adminin sonradan seçdiyi rəng isə seeder təkrar işləyəndə silinmir.
+        if ($color !== null && $category->color === null) {
+            $category->color = $color;
         }
 
         $category->save();

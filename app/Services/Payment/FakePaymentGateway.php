@@ -6,14 +6,15 @@ use App\Models\Payment;
 use Illuminate\Http\Request;
 
 /**
- * Sınaq provayderi: real bank əvəzinə öz "bank səhifəmizə" yönləndirir, orada
- * "Uğurlu"/"Uğursuz" seçilir və REAL callback route-u çağırılır.
+ * Sınaq provayderi — REAL PUL HƏRƏKƏT ETMİR.
  *
- * Beləliklə bütün axın (pending → callback → paid → giriş açılır) indidən real şəkildə
- * işləyir və bank qoşulanda yalnız yeni driver yazılacaq.
+ * "Al" basılanda bank səhifəsi açılmır: ödəniş `confirm()` ilə dərhal uğurlu sayılır,
+ * `PaymentProcessor` onu "paid" edir və girişi açır. Axının qalan hissəsi (ödəniş qeydi,
+ * status keçidi, giriş hüququ) real provayderdəki kimidir — bank qoşulanda yalnız yeni
+ * driver yazılacaq.
  *
- * İmza yoxlanışı da real provayderdəki kimidir: fake səhifə imzanı göndərir, callback isə
- * yoxlayır — yəni interfeysin bu hissəsi də sınaqdan keçir.
+ * Uğursuz axını əl ilə yoxlamaq üçün sınaq "bank səhifəsi" (`/payments/fake/{payment}`)
+ * saxlanılıb: orada "Uğursuz" seçilir və REAL callback route-u imza ilə çağırılır.
  */
 class FakePaymentGateway implements PaymentGateway
 {
@@ -25,6 +26,21 @@ class FakePaymentGateway implements PaymentGateway
     public function redirectUrl(Payment $payment): string
     {
         return route('payments.fake.show', $payment);
+    }
+
+    /**
+     * Test rejimində ödənişin dərhal təsdiqi.
+     *
+     * Bank cavabı ilə eyni formadadır (`CallbackResult`), ona görə `PaymentProcessor`
+     * üçün ayrıca kod yolu yoxdur: status keçidi və giriş hüququ eyni tranzaksiyadan keçir.
+     */
+    public function confirm(Payment $payment): CallbackResult
+    {
+        return new CallbackResult(
+            reference: (string) $payment->id,
+            successful: true,
+            payload: ['test_mode' => true, 'confirmed_at' => now()->toAtomString()],
+        );
     }
 
     public function verifyCallback(Request $request): bool

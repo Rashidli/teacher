@@ -19,6 +19,7 @@ const form = useForm({
     is_active: Boolean(props.category.is_active),
     has_exams: Boolean(props.category.has_exams),
     order: props.category.order ?? 0,
+    color: props.category.color ?? '',
     seo_title: props.category.seo_title ?? '',
     seo_description: props.category.seo_description ?? '',
     h1: props.category.h1 ?? '',

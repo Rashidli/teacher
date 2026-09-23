@@ -117,6 +117,29 @@ const emit = defineEmits(['submit']);
                 <InputLabel for="order" value="Sıra" />
                 <TextInput id="order" v-model="form.order" type="number" min="0" class="mt-1 block w-full" />
             </div>
+            <div>
+                <InputLabel for="color" value="Bölmə rəngi" />
+                <div class="mt-1 flex items-center gap-2">
+                    <input
+                        id="color"
+                        v-model="form.color"
+                        type="color"
+                        class="h-10 w-12 cursor-pointer rounded border border-gray-300"
+                    />
+                    <TextInput v-model="form.color" type="text" placeholder="#2440A0" class="block w-full font-mono text-sm" />
+                    <button
+                        v-if="form.color"
+                        type="button"
+                        class="text-sm text-gray-500 underline"
+                        @click="form.color = ''"
+                    >Təmizlə</button>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">
+                    Kataloq kartlarında üst zolaq və nişan bu rəngdə olur. Boş qalsa kök
+                    bölmənin rəngi miras alınır. Kontrast WCAG AA-ya uyğun seçilməlidir.
+                </p>
+                <InputError :message="form.errors.color" class="mt-2" />
+            </div>
         </div>
 
         <fieldset class="rounded-md border border-gray-200 p-4 space-y-4">

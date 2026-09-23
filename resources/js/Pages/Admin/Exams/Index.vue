@@ -145,7 +145,15 @@ const toggleActive = (exam) => {
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <tr v-for="exam in exams.data" :key="exam.id">
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">{{ exam.title }}</div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-medium text-gray-900">{{ exam.title }}</span>
+                                            <!-- Nümunə məzmun: yalnız admin tərəfdə görünür (php artisan demo:clear onu silir) -->
+                                            <span
+                                                v-if="exam.is_demo"
+                                                class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800"
+                                                title="Nümunə məzmun — php artisan demo:clear ilə silinir"
+                                            >demo</span>
+                                        </div>
                                         <div class="text-xs text-gray-500">{{ exam.duration_minutes }} dəqiqə</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

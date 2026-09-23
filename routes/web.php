@@ -279,8 +279,12 @@ Route::post('/sektor', [SectorController::class, 'update'])->name('sector.update
 Route::match(['get', 'post'], '/payments/callback/{provider}', PaymentCallbackController::class)
     ->name('payments.callback');
 
-// Sınaq bank səhifəsi: yalnız fake driver seçiləndə və produksiyadan kənarda mövcuddur
-if (config('payments.driver') === 'fake' && ! app()->isProduction()) {
+/*
+ * Sınaq "bank səhifəsi". Adi "Al" axınında İŞLƏDİLMİR — test rejimində ödəniş dərhal
+ * təsdiqlənir. Səhifə yalnız UĞURSUZ ödəniş axınını əl ilə yoxlamaq üçün saxlanılır və
+ * yalnız öz gözləyən ödənişini açmağa icazə verir.
+ */
+if (config('payments.driver') === 'fake') {
     Route::get('/payments/fake/{payment}', [FakeGatewayController::class, 'show'])
         ->middleware(['auth', 'student'])
         ->name('payments.fake.show');

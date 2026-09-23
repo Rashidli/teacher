@@ -18,6 +18,7 @@ const form = useForm({
     is_active: true,
     has_exams: true,
     order: 0,
+    color: '',
     seo_title: '',
     seo_description: '',
     h1: '',

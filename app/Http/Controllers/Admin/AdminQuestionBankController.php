@@ -55,6 +55,8 @@ class AdminQuestionBankController extends Controller
                 'topic' => $question->topic?->name,
                 'exams_count' => $question->exams_count,
                 'attempt_usage' => $question->attemptUsageCount(),
+                // Nümunə məzmun: yalnız admin tərəfdə nişanla göstərilir
+                'is_demo' => $question->is_demo,
             ]);
 
         return Inertia::render('Admin/QuestionBank/Index', [

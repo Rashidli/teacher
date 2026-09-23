@@ -70,7 +70,8 @@ class AdminCategoryController extends Controller
         return Inertia::render('Admin/Categories/Edit', $this->formData($category) + [
             'category' => $category->only([
                 'id', 'parent_id', 'group_id', 'slug', 'path', 'ru_path', 'name', 'short', 'description',
-                'is_active', 'has_exams', 'ru_enabled', 'order', 'seo_title', 'seo_description', 'h1', 'intro',
+                'is_active', 'has_exams', 'ru_enabled', 'order', 'color',
+                'seo_title', 'seo_description', 'h1', 'intro',
             ]) + ['translations' => $this->russianFields($category)],
         ]);
     }
@@ -144,6 +145,8 @@ class AdminCategoryController extends Controller
             'is_active' => ['boolean'],
             'has_exams' => ['boolean'],
             'order' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            // Bölmə rəngi: kataloq kartlarındakı zolaq və nişan. Boş → kökdən miras.
+            'color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'seo_title' => ['nullable', 'string', 'max:255'],
             'seo_description' => ['nullable', 'string', 'max:500'],
             'h1' => ['nullable', 'string', 'max:255'],
@@ -168,7 +171,11 @@ class AdminCategoryController extends Controller
             'ru_path.regex' => 'Rusca ünvan yalnız kiçik latın hərfləri, rəqəm, defis və "/" ola bilər (məs: abiturient/1-ya-gruppa).',
             'ru_path.unique' => 'Bu rusca ünvan başqa kateqoriyada işlənir.',
             'parent_id.not_in' => 'Kateqoriya öz alt kateqoriyasının altına köçürülə bilməz.',
+            'color.regex' => 'Rəng #RRGGBB formatında olmalıdır (məs: #2440A0).',
         ]);
+
+        // Boş rəng NULL olur: "kökdən miras al" deməkdir, boş sətir yox
+        $validated['color'] = filled($validated['color'] ?? null) ? $validated['color'] : null;
 
         // Rus mətnləri `translations` JSON-unda "ru" açarının altında saxlanılır
         $russian = array_filter($validated['translations'] ?? [], fn ($value) => filled($value));

@@ -10,6 +10,76 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Test ödənişi, başlıqda hesab, kataloq sadələşməsi və rəng dili
+
+**Ödəniş test rejimi.** Sayt müvəqqəti subdomendə olduğu üçün `PAYMENT_DRIVER=fake` artıq
+**produksiyada da işləyir**: "Al" basılanda bank səhifəsi açılmır, ödəniş dərhal `paid` olur,
+giriş açılır və şagird imtahana başlaya bilir. Ödəniş qeydində `provider = fake`,
+`payload.test_mode = true`. Səhifədə **"Test rejimi — real ödəniş getmir"** xəbərdarlığı var.
+
+- Tək açar `PAYMENT_DRIVER`: real driver yazılanda test rejimi bir addımla sönür.
+  `PaymentGatewayFactory`-dəki `APP_ENV` şərti götürüldü, `testMode()` əlavə olundu.
+- Uğursuz axını əl ilə yoxlamaq üçün sınaq bank səhifəsi qalır, adi axında işlədilmir.
+- **ROADMAP P2.5 və TESTING.md:** öz domenimizə keçməzdən əvvəl `PAYMENT_DRIVER` real
+  provayderə dəyişdirilməlidir — əks halda ödənişli imtahanlar faktiki olaraq pulsuz olar.
+- "Onlayn alış bağlıdır, bizimlə əlaqə saxla" → **"Onlayn ödəniş tezliklə aktivləşəcək."**
+
+**Başlıqda hesab vəziyyəti.** `SiteHeader.vue` həmişə "Daxil ol / Qeydiyyat" göstərirdi,
+halbuki `auth.user` səhifəyə onsuz da göndərilirdi. İndi daxil olmuş istifadəçidə inisiallı
+düymə və açılan menyu var: Mənim imtahanlarım, Nəticələr, Statistika, Profil, Çıxış; admin
+hesabında əlavə **Admin panel**. Bəndlər **rola görə** seçilir (şagird bölmələri yalnız şagird
+rolunda — əks halda link 403-ə aparardı). Çıxış `method="post"`. Mobil paneldə eyni siyahı;
+Escape və kənara klik menyunu bağlayır.
+
+**`/imtahanlar` sadələşdirildi.**
+
+- **Defolt görünüş qruplaşdırılmışdır**: hər kök bölmə üçün başlıq, 4 kart və "Hamısına bax (N)".
+  Beləcə sürücülük kateqoriyaları kimi böyük bölmə bütün səhifəni tutmur. Filtr və ya axtarış
+  seçiləndə səhifələnən düz siyahıya keçilir. **Sıralama görünüşü dəyişmir** — yalnız
+  bölmələrin içindəki sıranı dəyişir.
+- **Sıralama** (`?sirala=`): ən yeni (defolt), əvvəlcə pulsuz, ucuzdan bahaya, bahadan ucuza.
+- Filtr paneli yığcamlaşdı: kateqoriya **ikisəviyyəli akkordeon**, fənn siyahısı 6-dan sonra
+  "Daha çox (N)". Seçilmiş filtrlər panelin üstündə **silinə bilən çip** kimi, yanında
+  "Hamısını sıfırla".
+- "Tədris dili" axtarışın üstündən filtr panelinin ən yuxarısına keçdi və adı aydınlaşdı:
+  **"İmtahanın dili (sektor)"** + izah — başlıqdakı AZ|RU (interfeys dili) ilə qarışmır.
+
+**İmtahan kartı yenidən quruldu.** Üst sətir bölmə yolu (`Sürücülük › DE kateqoriyası`, rəngli
+nöqtə ilə), başlıq yalnız növ və rüb, alt sətir fənlər/sual sayı/müddət, aşağıda qiymət və ya
+"Pulsuz" nişanı. İmtahanın öz adı kartda təkrarlanmır (o, çox vaxt kateqoriya + növ sözünün
+təkrarı idi). Klik sahəsi **stretched link** üsulu ilədir: kart adi blokdur, link başlıqdadır
+və `::after` ilə bütün kartı örtür — fokus başlığa düşür, link mətni qısa qalır, `aria-label`
+isə bölmə yolunu da əlavə edir ki, ekran oxuyucusunda linklər seçilsin.
+
+**Rəng və vizual iyerarxiya.**
+
+- **`categories.color`** (migration + admin formasında rəng seçici): kök bölmənin rəngi, alt
+  düyünlər onu miras alır (`Category::displayColor()`). Kartın üst zolağı, bölmə nöqtəsi və
+  filtr paneli həmin rəngdədir. Rənglər səhifələrdə `--cat` CSS dəyişəni kimi toplanır —
+  qlobal stil faylına toxunulmadı.
+- Palitra (kontrast kağız fonunda, hamısı **WCAG AA ≥4.5:1**): Orta məktəb `#2440A0` (8.83),
+  Abituriyent `#C8354E` (5.02), Magistratura `#6B3FA0` (7.19), Dövlət qulluğu `#1B6B44` (6.32),
+  Müəllimlər `#9A4B06` (6.04), Sürücülük `#0F766E` (5.33), Digər `#596069` (6.19).
+- "Pulsuz" yaşıl nişan (`#1F7A4D` / `#E6EFEA` = 4.53), qiymət `--paper-sunk` fonunda vurğulu,
+  növ üçün rəngli etiket. **Rəng heç yerdə tək məlumat daşıyıcısı deyil** — hamısında mətn var.
+- İmtahan səhifəsində beş boz qutu getdi: müddət, sual sayı və maksimal bal ikonlarla bir
+  sətirdə, qiymət və əsas düymə sağda vurğulu blokda.
+- İyerarxiya: h1 1.75–2rem/700 → bölmə başlığı 1.25rem/700 → kart başlığı 1.0625rem/600 →
+  meta 0.9375rem muted.
+
+**Demo məzmun şagird tərəfdə gizləndi.** İmtahan adlarından və sual mətnlərindən `[DEMO]`
+prefiksi, imtahanlardan isə "Demo imtahan…" izahı çıxarıldı — nümunə məzmun real məzmundan
+seçilmir. `is_demo` bayrağı qalır (`demo:clear` ona görə işləyir) və **admin paneldə**
+(imtahan siyahısı, sual bankı) kiçik sarı `demo` nişanı ilə göstərilir. Slug-lardakı `demo-`
+hissəsi dəyişmədi: mövcud ünvanlar qırılmadı.
+
+**Testlər:** `SiteHeaderTest` (5), `ExamCatalogTest` genişləndi (22) — qruplaşdırılmış görünüş,
+sıralama variantları, filtrin tək-tək silinməsi, kartın bölmə yolu və rəngi; `ExamPurchaseTest`
+test rejimi axınına uyğunlaşdı (al → paid → giriş → başla), callback testləri gözləyən ödənişi
+birbaşa qurur (452 → 465 test).
+
+---
+
 ### 2026-09-23 — `/imtahanlar` kataloqu və mobile-first
 
 **Ümumi kataloq.** `/imtahanlar` (rusca `/ru/imtahanlar`) — kateqoriya ağacından asılı olmayan

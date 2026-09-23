@@ -30,6 +30,7 @@ return [
     'filter_quarter' => 'Rüb',
     'filter_subject' => 'Fənn',
     'filter_price' => 'Qiymət',
+    'quarter' => ':number-ci rüb',
     'filter_all' => 'Hamısı',
     'no_match' => 'Seçilmiş filtrlərə uyğun imtahan yoxdur.',
     'kinds' => [

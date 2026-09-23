@@ -146,6 +146,12 @@ const remove = (question) => {
                         <tbody class="divide-y divide-gray-100">
                             <tr v-for="question in questions.data" :key="question.id">
                                 <td class="px-4 py-2 max-w-md">
+                                    <!-- Nümunə məzmun: yalnız admin tərəfdə görünür (php artisan demo:clear onu silir) -->
+                                    <span
+                                        v-if="question.is_demo"
+                                        class="mr-1 rounded bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-amber-800"
+                                        title="Nümunə məzmun — php artisan demo:clear ilə silinir"
+                                    >demo</span>
                                     <MathText :text="question.question_text" />
                                 </td>
                                 <td class="px-4 py-2">

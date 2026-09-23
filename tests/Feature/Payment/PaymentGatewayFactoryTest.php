@@ -12,51 +12,48 @@ use RuntimeException;
 use Tests\TestCase;
 
 /**
- * Sınaq provayderi produksiyada işləməməlidir: əks halda kimsə saxta "Uğurlu" düyməsi ilə
- * pulsuz giriş əldə edə bilərdi.
+ * Provayder seçimi TƏK açarla idarə olunur: `PAYMENT_DRIVER`.
+ *
+ * `fake` test rejimidir və produksiyada da işləyir (sayt müvəqqəti subdomendədir).
+ * Real bank gələndə dəyişən yeni driverə çevrilir və test rejimi bir addımla sönür —
+ * öz domenimizə keçməzdən əvvəl bu MÜTLƏQ edilməlidir (bax ROADMAP P2.5).
  */
 class PaymentGatewayFactoryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_the_fake_gateway_is_used_outside_production(): void
+    public function test_the_fake_gateway_is_used_when_the_driver_says_so(): void
     {
         config(['payments.driver' => 'fake']);
 
         $this->assertInstanceOf(FakePaymentGateway::class, app(PaymentGatewayFactory::class)->make());
         $this->assertTrue(app(PaymentGatewayFactory::class)->available());
+        $this->assertTrue(app(PaymentGatewayFactory::class)->testMode());
     }
 
-    public function test_the_fake_gateway_is_refused_in_production(): void
+    /** Müvəqqəti subdomen: fake driver produksiyada da işləyir. */
+    public function test_the_fake_gateway_also_works_in_production(): void
     {
         config(['payments.driver' => 'fake']);
         $this->app->detectEnvironment(fn () => 'production');
 
-        $this->expectException(RuntimeException::class);
-
-        app(PaymentGatewayFactory::class)->make();
+        $this->assertInstanceOf(FakePaymentGateway::class, app(PaymentGatewayFactory::class)->make());
+        $this->assertTrue(app(PaymentGatewayFactory::class)->available());
     }
 
-    public function test_purchases_are_reported_unavailable_in_production_with_the_fake_driver(): void
+    /** Səhifə test rejimini bildirir: "real ödəniş getmir" xəbərdarlığı ondan asılıdır. */
+    public function test_the_exam_page_reports_test_mode(): void
     {
         config(['payments.driver' => 'fake']);
-        $this->app->detectEnvironment(fn () => 'production');
-
-        $this->assertFalse(app(PaymentGatewayFactory::class)->available());
-    }
-
-    /** UI-da "Al" düyməsi göstərilməsin deyə səhifəyə də ötürülür. */
-    public function test_the_exam_page_reports_that_purchases_are_unavailable(): void
-    {
-        config(['payments.driver' => 'fake']);
-        $this->app->detectEnvironment(fn () => 'production');
 
         $student = User::factory()->student()->create();
         $exam = Exam::factory()->published()->paid()->create();
 
         $this->actingAs($student)
             ->get($exam->publicUrl())
-            ->assertInertia(fn ($page) => $page->where('purchasesEnabled', false));
+            ->assertInertia(fn ($page) => $page
+                ->where('purchasesEnabled', true)
+                ->where('paymentsTestMode', true));
     }
 
     public function test_an_unknown_driver_is_refused(): void

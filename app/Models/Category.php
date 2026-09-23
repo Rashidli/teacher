@@ -25,8 +25,8 @@ class Category extends Model
 
     protected $fillable = [
         'parent_id', 'group_id', 'slug', 'path', 'ru_path', 'name', 'short', 'description',
-        'is_active', 'has_exams', 'ru_enabled', 'order', 'seo_title', 'seo_description', 'h1', 'intro',
-        'translations',
+        'is_active', 'has_exams', 'ru_enabled', 'order', 'color',
+        'seo_title', 'seo_description', 'h1', 'intro', 'translations',
     ];
 
     protected $casts = [
@@ -138,6 +138,52 @@ class Category extends Model
     public function exams(): HasMany
     {
         return $this->hasMany(Exam::class);
+    }
+
+    /**
+     * Ağacın kökü. Valideyn zənciri əvvəlcədən yüklənibsə əlavə sorğu getmir
+     * (`with('category.parent.parent')` — ağac üç səviyyədən dərin deyil).
+     */
+    public function rootAncestor(): Category
+    {
+        $node = $this;
+
+        while ($node->parent !== null) {
+            $node = $node->parent;
+        }
+
+        return $node;
+    }
+
+    /**
+     * Bölmənin rəngi: özününkü, yoxdursa kökündən miras.
+     *
+     * Rəng yalnız kök düyünlərdə saxlanılır ki, bir bölmənin bütün imtahanları kataloqda
+     * eyni rənglə tanınsın; alt düyün istəsə öz rəngini təyin edə bilər.
+     *
+     * Metodun adı sütunla eyni OLMAMALIDIR: `color` sütunu seçilmədən yüklənmiş modeldə
+     * Eloquent `$model->color`-u münasibət (relation) kimi oxumağa çalışar və xəta verər.
+     */
+    public function displayColor(): ?string
+    {
+        return $this->color ?: $this->rootAncestor()->color;
+    }
+
+    /**
+     * Kataloq kartındakı yol: "Sürücülük › DE kateqoriyası".
+     * Düyün elə kökdürsə tək ad qaytarılır — eyni söz iki dəfə yazılmır.
+     *
+     * @return array{root: string, leaf: ?string, color: ?string}
+     */
+    public function trail(): array
+    {
+        $root = $this->rootAncestor();
+
+        return [
+            'root' => $root->localized('name'),
+            'leaf' => $root->is($this) ? null : $this->localized('name'),
+            'color' => $this->displayColor(),
+        ];
     }
 
     public function scopeActive(Builder $query): Builder

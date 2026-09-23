@@ -267,11 +267,25 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 - [x] `php artisan staging:anonymize` — produksiyada işləmir, admin hesablarına toxunmur.
 - [x] `DEPLOY.md`: deploy ardıcıllığı, yoxlama, geri qaytarma və domen keçidi.
 
+**⚠️ ÖDƏNİŞ — DOMEN KEÇİDİNDƏ BİRİNCİ İŞ (23.09.2026):**
+
+Sayt müvəqqəti subdomendə olduğu üçün `PAYMENT_DRIVER=fake` **produksiyada da işləyir**:
+"Al" basılanda ödəniş dərhal "paid" olur, giriş açılır, real pul hərəkət etmir. Səhifədə
+"Test rejimi — real ödəniş getmir" xəbərdarlığı göstərilir.
+
+- [ ] **Öz domenimizə keçməzdən ƏVVƏL `.env`-də `PAYMENT_DRIVER` real provayderə dəyişdirilməlidir.**
+      Əks halda bütün ödənişli imtahanlar faktiki olaraq pulsuz olar. Bu, tək açardır —
+      `PaymentGatewayFactory` başqa şərtə baxmır.
+- [ ] Real driver yazılana qədər `FakePaymentGateway` yeganə provayderdir; yeni driver
+      `PaymentGateway` interfeysini tətbiq edir, qalan kod dəyişmir.
+
 **Domen alınanda (təsdiq gözləyir):**
 
 - [ ] Yeni domen + DNS + SSL; qovluq və baza (yeni produksiya nüsxəsi).
 - [ ] Yeni domendə `.env`: `APP_URL=<yeni domen>`, `APP_ENV=production`, `SEO_INDEXING=true`,
-      real `PAYMENT_DRIVER`, ayrıca `APP_KEY`.
+      **real `PAYMENT_DRIVER`** (fake qalsa imtahanlar pulsuz olar), ayrıca `APP_KEY`.
+- [ ] Yeni domenə keçməzdən əvvəl `php artisan demo:clear --force` — nümunə məzmun real
+      saytda qalmasın.
 - [ ] `teacher.cvhazirla.az` staging-ə çevrilir: `APP_ENV=staging`, `SEO_INDEXING=false`,
       `PAYMENT_DRIVER=fake`, `MAIL_MAILER=log`, şagird məlumatları `staging:anonymize` ilə
       təmizlənir, mümkünsə basic auth qoyulur.

@@ -10,15 +10,23 @@ import ExamCard from '@/Components/Catalog/ExamCard.vue';
 /**
  * Ümumi kataloq: `/imtahanlar`.
  *
- * Bütün dərc olunmuş imtahanlar ən yenisindən başlayaraq göstərilir. Seçim URL-də query
- * kimi qalır (`?kateqoriya=8&nov=general&axtar=…&sehife=2`), ona görə süzülmüş səhifə
- * paylaşıla bilir. Canonical həmişə filtrsiz `/imtahanlar`-a göstərir (backend).
+ * İki görünüş: filtr/axtarış seçilməyibsə bölmələr üzrə qruplaşdırılmış (`grouped`),
+ * seçiləndə isə səhifələnən düz siyahı (`list`). SIRALAMA görünüşü dəyişmir — yalnız
+ * bölmələrin içindəki sıranı dəyişir, çünki sıralamaya görə düz siyahıya keçmək
+ * istifadəçinin gözlədiyi davranış deyil.
+ *
+ * Bütün seçimlər URL query-də qalır: `?kateqoriya=8&nov=general&sirala=ucuz&sehife=2`.
+ * Canonical həmişə filtrsiz `/imtahanlar`-a göstərir (backend).
  */
 const props = defineProps({
+    mode: { type: String, default: 'grouped' },
+    groups: { type: Array, default: () => [] },
     exams: { type: Array, default: () => [] },
-    pagination: { type: Object, default: () => ({ page: 1, pages: 1, total: 0, prev: null, next: null }) },
+    pagination: { type: Object, default: null },
     filterOptions: { type: Object, default: () => ({}) },
     filters: { type: Object, default: () => ({}) },
+    sort: { type: String, default: 'yeni' },
+    sorts: { type: Array, default: () => [] },
     sector: { type: String, default: 'az' },
     canSwitchSector: { type: Boolean, default: false },
     meta: { type: Object, default: () => ({}) },
@@ -34,11 +42,16 @@ watch(() => props.filters.axtar, (value) => {
 });
 
 const go = (changes) => {
-    const next = { ...props.filters, ...changes };
+    const next = { ...props.filters, sirala: props.sort, ...changes };
 
     // Rüb yalnız mövzu sınağı üçün mənalıdır
     if ('nov' in changes && changes.nov !== 'topic_trial') {
         next.rub = null;
+    }
+
+    // Defolt sıralama ünvanı doldurmasın
+    if (next.sirala === 'yeni') {
+        next.sirala = null;
     }
 
     // Filtr dəyişəndə həmişə birinci səhifəyə qayıdılır
@@ -74,7 +87,10 @@ const clearSearch = () => {
     go({ axtar: null });
 };
 
-const reset = () => router.get(window.location.pathname, {}, { preserveScroll: true, replace: true });
+const reset = () => {
+    search.value = '';
+    router.get(window.location.pathname, {}, { preserveScroll: true, replace: true });
+};
 
 const switchSector = (value) => {
     if (value !== props.sector) {
@@ -82,9 +98,9 @@ const switchSector = (value) => {
     }
 };
 
-const hasFilters = computed(
-    () => Object.entries(props.filters).some(([key, value]) => key !== 'axtar' && value !== null && value !== ''),
-);
+const total = computed(() => (props.mode === 'grouped'
+    ? props.groups.reduce((sum, group) => sum + group.total, 0)
+    : props.pagination?.total ?? 0));
 </script>
 
 <template>
@@ -96,24 +112,6 @@ const hasFilters = computed(
         <main class="wrap page">
             <h1 class="title">{{ $t('exam_catalog.title') }}</h1>
             <p class="lead">{{ $t('exam_catalog.lead') }}</p>
-
-            <div v-if="canSwitchSector" class="sector" role="group" :aria-label="$t('category_page.sector_switch')">
-                <span class="sector-label">{{ $t('category_page.sector_switch') }}:</span>
-                <button
-                    type="button"
-                    class="sector-option"
-                    :class="{ 'sector-option--on': sector === 'az' }"
-                    :aria-pressed="sector === 'az'"
-                    @click="switchSector('az')"
-                >{{ $t('category_page.sector_az') }}</button>
-                <button
-                    type="button"
-                    class="sector-option"
-                    :class="{ 'sector-option--on': sector === 'ru' }"
-                    :aria-pressed="sector === 'ru'"
-                    @click="switchSector('ru')"
-                >{{ $t('category_page.sector_ru') }}</button>
-            </div>
 
             <form class="search" role="search" @submit.prevent="onSearch">
                 <label class="search-label" for="catalog-search">{{ $t('exam_catalog.search_label') }}</label>
@@ -131,60 +129,108 @@ const hasFilters = computed(
                         {{ $t('exam_catalog.search_clear') }}
                     </button>
                 </div>
-                <p class="search-hint">{{ $t('exam_catalog.search_hint', { min: SEARCH_MIN }) }}</p>
             </form>
 
             <div class="layout">
                 <CatalogFilters
                     class="layout-filters"
-                    :facets="['kateqoriya', 'nov', 'rub', 'fenn', 'qiymet']"
+                    :facets="['sektor', 'kateqoriya', 'nov', 'rub', 'fenn', 'qiymet']"
                     :options="filterOptions"
                     :filters="filters"
+                    :sector="sector"
+                    :can-switch-sector="canSwitchSector"
                     layout="side"
                     @update="(key, value) => go({ [key]: value })"
                     @reset="reset"
+                    @sector="switchSector"
                 />
 
                 <div class="layout-results">
-                    <p class="found" aria-live="polite">
-                        {{ $t('exam_catalog.found', { count: pagination.total }) }}
-                    </p>
+                    <div class="bar">
+                        <p class="found" aria-live="polite">
+                            {{ $t('exam_catalog.found', { count: total }) }}
+                        </p>
+                        <label class="sort">
+                            <span class="sort-label">{{ $t('exam_catalog.sort_label') }}</span>
+                            <select
+                                class="sort-select"
+                                :value="sort"
+                                @change="go({ sirala: $event.target.value })"
+                            >
+                                <option v-for="option in sorts" :key="option" :value="option">
+                                    {{ $t(`exam_catalog.sorts.${option}`) }}
+                                </option>
+                            </select>
+                        </label>
+                    </div>
 
-                    <ul v-if="exams.length" class="cards">
-                        <li v-for="exam in exams" :key="exam.id">
-                            <ExamCard :exam="exam" show-category />
-                        </li>
-                    </ul>
-                    <p v-else class="empty">{{ $t('exam_catalog.empty') }}</p>
+                    <!-- Defolt görünüş: kök bölmələr üzrə qruplar -->
+                    <template v-if="mode === 'grouped'">
+                        <section
+                            v-for="group in groups"
+                            :key="group.id"
+                            class="group"
+                            :style="{ '--cat': group.color || 'var(--muted)' }"
+                        >
+                            <div class="group-head">
+                                <h2 class="group-title">
+                                    <span class="group-dot" aria-hidden="true"></span>{{ group.name }}
+                                </h2>
+                                <Link :href="group.url" class="group-all">
+                                    {{ $t('exam_catalog.show_all', { count: group.total }) }}
+                                </Link>
+                            </div>
+                            <p v-if="group.short" class="group-short">{{ group.short }}</p>
 
-                    <nav v-if="pagination.pages > 1" class="pager" :aria-label="$t('exam_catalog.pagination')">
-                        <Link
-                            v-if="pagination.prev"
-                            :href="pagination.prev"
-                            class="pager-link"
-                            rel="prev"
-                            preserve-scroll
-                        >{{ $t('exam_catalog.prev') }}</Link>
-                        <span v-else class="pager-link pager-link--off" aria-hidden="true">{{ $t('exam_catalog.prev') }}</span>
+                            <ul class="cards">
+                                <li v-for="exam in group.exams" :key="exam.id">
+                                    <ExamCard :exam="exam" />
+                                </li>
+                            </ul>
+                        </section>
 
-                        <span class="pager-state">
-                            {{ $t('exam_catalog.page_of', { page: pagination.page, pages: pagination.pages }) }}
-                        </span>
+                        <p v-if="!groups.length" class="empty">{{ $t('exam_catalog.empty') }}</p>
+                    </template>
 
-                        <Link
-                            v-if="pagination.next"
-                            :href="pagination.next"
-                            class="pager-link"
-                            rel="next"
-                            preserve-scroll
-                        >{{ $t('exam_catalog.next') }}</Link>
-                        <span v-else class="pager-link pager-link--off" aria-hidden="true">{{ $t('exam_catalog.next') }}</span>
-                    </nav>
+                    <!-- Filtr və ya axtarış seçiləndə: düz siyahı -->
+                    <template v-else>
+                        <ul v-if="exams.length" class="cards">
+                            <li v-for="exam in exams" :key="exam.id">
+                                <ExamCard :exam="exam" />
+                            </li>
+                        </ul>
+                        <div v-else class="empty-box">
+                            <p class="empty">{{ $t('exam_catalog.empty') }}</p>
+                            <button type="button" class="link-button" @click="reset">
+                                {{ $t('exam_catalog.reset_all') }}
+                            </button>
+                        </div>
+
+                        <nav v-if="pagination && pagination.pages > 1" class="pager" :aria-label="$t('exam_catalog.pagination')">
+                            <Link
+                                v-if="pagination.prev"
+                                :href="pagination.prev"
+                                class="pager-link"
+                                rel="prev"
+                                preserve-scroll
+                            >{{ $t('exam_catalog.prev') }}</Link>
+                            <span v-else class="pager-link pager-link--off" aria-hidden="true">{{ $t('exam_catalog.prev') }}</span>
+
+                            <span class="pager-state">
+                                {{ $t('exam_catalog.page_of', { page: pagination.page, pages: pagination.pages }) }}
+                            </span>
+
+                            <Link
+                                v-if="pagination.next"
+                                :href="pagination.next"
+                                class="pager-link"
+                                rel="next"
+                                preserve-scroll
+                            >{{ $t('exam_catalog.next') }}</Link>
+                            <span v-else class="pager-link pager-link--off" aria-hidden="true">{{ $t('exam_catalog.next') }}</span>
+                        </nav>
+                    </template>
                 </div>
-            </div>
-
-            <div v-if="!exams.length && hasFilters" class="actions">
-                <button type="button" class="link-button" @click="reset">{{ $t('exam_catalog.reset') }}</button>
             </div>
         </main>
 
@@ -197,55 +243,30 @@ const hasFilters = computed(
     padding-block: 32px 72px;
 }
 
+/* İyerarxiya: h1 → bölmə başlığı → kart başlığı → meta */
 .title {
     margin: 0 0 8px;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 
 .lead {
-    margin: 0 0 8px;
-    max-width: 65ch;
-    font-size: 1.1rem;
-}
-
-.sector {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 14px;
-    font-size: 0.9375rem;
-}
-
-.sector-label {
-    opacity: 0.75;
-}
-
-/* Toxunma sahəsi 44px, mətn ölçüsü dəyişmir */
-.sector-option {
-    min-height: 44px;
-    padding: 10px 16px;
-    border: 1px solid rgba(22, 19, 14, 0.25);
-    border-radius: 999px;
-    background: none;
-    font: inherit;
-    font-size: 0.95rem;
-    cursor: pointer;
-}
-
-.sector-option--on {
-    border-color: rgba(22, 19, 14, 0.7);
-    font-weight: 600;
+    margin: 0;
+    max-width: 62ch;
+    font-size: 1.05rem;
+    color: var(--muted);
 }
 
 .search {
-    margin-top: 24px;
+    margin-top: 22px;
 }
 
 .search-label {
     display: block;
     margin-bottom: 6px;
     font-size: 0.9375rem;
-    opacity: 0.75;
+    font-weight: 600;
 }
 
 .search-row {
@@ -282,14 +303,8 @@ const hasFilters = computed(
     cursor: pointer;
 }
 
-.search-hint {
-    margin: 6px 0 0;
-    font-size: 0.875rem;
-    opacity: 0.65;
-}
-
 .layout {
-    margin-top: 28px;
+    margin-top: 24px;
     display: grid;
     gap: 24px;
 }
@@ -298,16 +313,96 @@ const hasFilters = computed(
     min-width: 0;
 }
 
-.found {
-    margin: 0 0 14px;
-    font-size: 0.9375rem;
-    opacity: 0.75;
+.bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--ink-red-line);
 }
 
-/* Mobildə tək sütun; sonra iki, sonra üç */
+.found {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-label {
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+/* Select-də 1rem: iOS avtomatik zoom etməsin */
+.sort-select {
+    min-height: 44px;
+    padding: 8px 32px 8px 12px;
+    border: 1px solid rgba(22, 19, 14, 0.25);
+    border-radius: 10px;
+    background: var(--paper);
+    font: inherit;
+    font-size: 1rem;
+    color: var(--graphite);
+    cursor: pointer;
+}
+
+/* ----------------------------------------------------------- bölmələr */
+
+.group {
+    margin-bottom: 36px;
+}
+
+.group-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px 16px;
+}
+
+.group-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    min-width: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.group-dot {
+    width: 10px;
+    height: 10px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--cat);
+}
+
+.group-all {
+    flex: none;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--pen);
+    text-underline-offset: 4px;
+}
+
+.group-short {
+    margin: 4px 0 0;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
 .cards {
     list-style: none;
-    margin: 0;
+    margin: 14px 0 0;
     padding: 0;
     display: grid;
     gap: 12px;
@@ -318,9 +413,24 @@ const hasFilters = computed(
     min-width: 0;
 }
 
-.empty {
+.empty,
+.empty-box {
     margin: 24px 0;
-    opacity: 0.75;
+}
+
+.empty {
+    color: var(--muted);
+}
+
+.link-button {
+    min-height: 44px;
+    padding: 10px 4px;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--pen);
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 .pager {
@@ -348,33 +458,19 @@ const hasFilters = computed(
 
 .pager-state {
     font-size: 0.9375rem;
-    opacity: 0.75;
-}
-
-.actions {
-    margin-top: 32px;
-}
-
-.link-button {
-    min-height: 44px;
-    padding: 10px 4px;
-    border: 0;
-    background: none;
-    font: inherit;
-    color: var(--pen);
-    text-decoration: underline;
-    cursor: pointer;
+    color: var(--muted);
 }
 
 @media (min-width: 640px) {
     .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .found { font-size: 0.9rem; }
+    .found,
+    .sort-label { font-size: 0.9rem; }
 }
 
 @media (min-width: 1024px) {
     /* Masaüstü: filtrlər yan sütunda, nəticələr üç sütunda */
     .layout {
-        grid-template-columns: 260px minmax(0, 1fr);
+        grid-template-columns: 272px minmax(0, 1fr);
         gap: 32px;
         align-items: start;
     }
@@ -385,6 +481,7 @@ const hasFilters = computed(
         margin-bottom: 0;
     }
 
+    .title { font-size: 2rem; }
     .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 </style>

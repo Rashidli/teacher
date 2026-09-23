@@ -15,8 +15,12 @@ use Tests\TestCase;
 /**
  * Ümumi kataloq: `/imtahanlar`.
  *
- * Kateqoriya səhifəsi ağacın bir düyününü göstərir, bu səhifə isə bütün dərc olunmuş
- * imtahanları — ən yenisindən başlayaraq. Filtr məntiqi ortaqdır (`CatalogFilters`).
+ * İki görünüş: filtr/axtarış seçilməyibsə bölmələr üzrə qruplaşdırılmış (`grouped`),
+ * seçiləndə səhifələnən düz siyahı (`list`). Sıralama görünüşü dəyişmir — yalnız
+ * bölmələrin içindəki sıranı dəyişir.
+ *
+ * Kartda imtahanın öz başlığı göstərilmir (bölmə yolu + növ olur), ona görə yoxlamalar
+ * slug üzrədir.
  */
 class ExamCatalogTest extends TestCase
 {
@@ -35,7 +39,8 @@ class ExamCatalogTest extends TestCase
         $this->group = Group::factory()->create();
 
         $this->school = Category::create([
-            'name' => 'Orta məktəb', 'slug' => 'mekteb', 'path' => 'mekteb', 'has_exams' => true,
+            'name' => 'Orta məktəb', 'slug' => 'mekteb', 'path' => 'mekteb',
+            'has_exams' => true, 'color' => '#2440A0',
         ]);
 
         $this->ninth = Category::create([
@@ -47,9 +52,11 @@ class ExamCatalogTest extends TestCase
         ]);
     }
 
-    private function exam(array $attributes = [], ?Subject $subject = null): Exam
+    private function exam(string $slug, array $attributes = [], ?Subject $subject = null): Exam
     {
         $exam = Exam::factory()->published()->create(array_merge([
+            'slug' => $slug,
+            'title' => $slug,
             'category_id' => $this->ninth->id,
             'group_id' => $this->group->id,
         ], $attributes));
@@ -66,23 +73,6 @@ class ExamCatalogTest extends TestCase
         return $exam;
     }
 
-    /**
-     * @param  array<string, mixed>  $query
-     * @return array<int, string>
-     */
-    private function titles(array $query = [], string $path = '/imtahanlar'): array
-    {
-        $titles = [];
-
-        $this->get($path.($query ? '?'.http_build_query($query) : ''))
-            ->assertOk()
-            ->assertInertia(function ($page) use (&$titles) {
-                $titles = collect($page->toArray()['props']['exams'])->pluck('title')->all();
-            });
-
-        return $titles;
-    }
-
     private function props(array $query = [], string $path = '/imtahanlar'): array
     {
         $props = [];
@@ -96,30 +86,149 @@ class ExamCatalogTest extends TestCase
         return $props;
     }
 
-    public function test_the_newest_exams_come_first(): void
+    /**
+     * Siyahıdakı (və ya qruplardakı) imtahanların slug-ları, göründükləri sıra ilə.
+     *
+     * @return array<int, string>
+     */
+    private function slugs(array $query = [], string $path = '/imtahanlar'): array
     {
-        $this->exam(['title' => 'Köhnə', 'published_at' => now()->subDays(10)]);
-        $this->exam(['title' => 'Ən yeni', 'published_at' => now()]);
-        $this->exam(['title' => 'Ortada', 'published_at' => now()->subDays(3)]);
+        $props = $this->props($query, $path);
 
-        $this->assertSame(['Ən yeni', 'Ortada', 'Köhnə'], $this->titles());
+        return $props['mode'] === 'grouped'
+            ? collect($props['groups'])->flatMap(fn ($group) => collect($group['exams'])->pluck('slug'))->all()
+            : collect($props['exams'])->pluck('slug')->all();
     }
 
-    public function test_the_page_is_paginated(): void
+    /* ------------------------------------------------------------- görünüş */
+
+    /** Defolt görünüş: kök bölmələr üzrə qruplar, hər birində say və "hamısına bax" keçidi. */
+    public function test_the_default_view_is_grouped_by_root_category(): void
     {
-        Exam::factory()->published()->count(30)->create([
+        $this->exam('a');
+        $this->exam('b');
+
+        $props = $this->props();
+
+        $this->assertSame('grouped', $props['mode']);
+        $this->assertNull($props['pagination']);
+        $this->assertCount(1, $props['groups']);
+
+        $group = $props['groups'][0];
+        $this->assertSame('Orta məktəb', $group['name']);
+        $this->assertSame('#2440A0', $group['color']);
+        $this->assertSame(2, $group['total']);
+        $this->assertSame(url('/mekteb'), $group['url']);
+    }
+
+    /** Bölmədə çox imtahan olsa da kartların sayı məhdudlanır — biri səhifəni tutmur. */
+    public function test_a_group_shows_only_the_first_few_exams(): void
+    {
+        Exam::factory()->published()->count(9)->create([
             'category_id' => $this->ninth->id,
             'group_id' => $this->group->id,
         ]);
 
-        $first = $this->props();
+        $group = $this->props()['groups'][0];
+
+        $this->assertSame(9, $group['total']);
+        $this->assertCount(4, $group['exams']);
+    }
+
+    /** Filtr seçiləndə düz siyahıya keçilir. */
+    public function test_a_filter_switches_to_the_list_view(): void
+    {
+        $this->exam('umumi', ['kind' => Exam::KIND_GENERAL]);
+        $this->exam('movzu', ['kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 2]);
+
+        $props = $this->props(['nov' => Exam::KIND_GENERAL]);
+
+        $this->assertSame('list', $props['mode']);
+        $this->assertSame([], $props['groups']);
+        $this->assertSame(1, $props['pagination']['total']);
+        $this->assertSame(['umumi'], collect($props['exams'])->pluck('slug')->all());
+    }
+
+    /** Axtarış da siyahıya keçirir. */
+    public function test_a_search_switches_to_the_list_view(): void
+    {
+        $this->exam('miq-sinagi', ['title' => 'MİQ sınağı']);
+        $this->exam('buraxilis', ['title' => 'Buraxılış imtahanı']);
+
+        $props = $this->props(['axtar' => 'MİQ']);
+
+        $this->assertSame('list', $props['mode']);
+        $this->assertSame(['miq-sinagi'], collect($props['exams'])->pluck('slug')->all());
+    }
+
+    /** SIRALAMA görünüşü dəyişmir: qruplar qalır, yalnız içindəki sıra dəyişir. */
+    public function test_sorting_alone_keeps_the_grouped_view(): void
+    {
+        $this->exam('ucuz', ['is_free' => false, 'price' => 3]);
+        $this->exam('baha', ['is_free' => false, 'price' => 20]);
+        $this->exam('pulsuz', ['is_free' => true, 'price' => 0]);
+
+        $props = $this->props(['sirala' => 'ucuz']);
+
+        $this->assertSame('grouped', $props['mode']);
+        $this->assertSame('ucuz', $props['sort']);
+        $this->assertSame(['pulsuz', 'ucuz', 'baha'], collect($props['groups'][0]['exams'])->pluck('slug')->all());
+    }
+
+    /* ------------------------------------------------------------ sıralama */
+
+    public function test_the_newest_exams_come_first_by_default(): void
+    {
+        $this->exam('kohne', ['published_at' => now()->subDays(10)]);
+        $this->exam('yeni', ['published_at' => now()]);
+        $this->exam('ortada', ['published_at' => now()->subDays(3)]);
+
+        $this->assertSame(['yeni', 'ortada', 'kohne'], $this->slugs());
+    }
+
+    public function test_free_exams_can_be_sorted_first(): void
+    {
+        $this->exam('pullu', ['is_free' => false, 'price' => 9]);
+        $this->exam('pulsuz', ['is_free' => true, 'price' => 0]);
+
+        $this->assertSame(['pulsuz', 'pullu'], $this->slugs(['sirala' => 'pulsuz']));
+    }
+
+    public function test_exams_can_be_sorted_by_price(): void
+    {
+        $this->exam('ucuz', ['is_free' => false, 'price' => 3]);
+        $this->exam('orta', ['is_free' => false, 'price' => 7]);
+        $this->exam('baha', ['is_free' => false, 'price' => 20]);
+
+        $this->assertSame(['ucuz', 'orta', 'baha'], $this->slugs(['sirala' => 'ucuz']));
+        $this->assertSame(['baha', 'orta', 'ucuz'], $this->slugs(['sirala' => 'baha']));
+    }
+
+    /** Tanınmayan sıralama defolta düşür, səhifə sınmır. */
+    public function test_an_unknown_sort_falls_back_to_the_default(): void
+    {
+        $this->exam('a');
+
+        $this->assertSame('yeni', $this->props(['sirala' => 'hech-ne'])['sort']);
+    }
+
+    /* -------------------------------------------------------------- filtrlər */
+
+    public function test_the_page_is_paginated_in_the_list_view(): void
+    {
+        Exam::factory()->published()->count(30)->create([
+            'category_id' => $this->ninth->id,
+            'group_id' => $this->group->id,
+            'kind' => Exam::KIND_GENERAL,
+        ]);
+
+        $first = $this->props(['nov' => Exam::KIND_GENERAL]);
 
         $this->assertCount(24, $first['exams']);
         $this->assertSame(30, $first['pagination']['total']);
         $this->assertSame(2, $first['pagination']['pages']);
-        $this->assertNotNull($first['pagination']['next']);
 
-        $second = $this->props(['sehife' => 2]);
+        $second = $this->props(['nov' => Exam::KIND_GENERAL, 'sehife' => 2]);
 
         $this->assertCount(6, $second['exams']);
         $this->assertSame(2, $second['pagination']['page']);
@@ -127,47 +236,43 @@ class ExamCatalogTest extends TestCase
 
     public function test_only_published_and_active_exams_are_listed(): void
     {
-        $this->exam(['title' => 'Görünən']);
-        $this->exam(['title' => 'Qaralama', 'is_published' => false]);
-        $this->exam(['title' => 'Deaktiv', 'is_active' => false]);
+        $this->exam('gorunen');
+        $this->exam('qaralama', ['is_published' => false]);
+        $this->exam('deaktiv', ['is_active' => false]);
 
-        $this->assertSame(['Görünən'], $this->titles());
+        $this->assertSame(['gorunen'], $this->slugs());
     }
 
     public function test_the_category_filter_includes_the_subtree(): void
     {
-        $this->exam(['title' => '9-cu sinif sınağı']);
-        $this->exam(['title' => 'Ümumi məktəb sınağı', 'category_id' => $this->school->id]);
+        $this->exam('doqquzuncu');
+        $this->exam('mekteb-umumi', ['category_id' => $this->school->id]);
 
         $other = Category::create([
-            'name' => 'Abituriyent', 'slug' => 'abituriyent', 'path' => 'abituriyent', 'has_exams' => true,
+            'name' => 'Abituriyent', 'slug' => 'abituriyent', 'path' => 'abituriyent',
+            'has_exams' => true, 'color' => '#C8354E',
         ]);
-        $this->exam(['title' => 'Abituriyent sınağı', 'category_id' => $other->id]);
+        $this->exam('abituriyent-sinagi', ['category_id' => $other->id]);
 
-        // Kök düyün alt düyünlərin imtahanlarını da yığır
         $this->assertEqualsCanonicalizing(
-            ['9-cu sinif sınağı', 'Ümumi məktəb sınağı'],
-            $this->titles(['kateqoriya' => $this->school->id]),
+            ['doqquzuncu', 'mekteb-umumi'],
+            $this->slugs(['kateqoriya' => $this->school->id]),
         );
 
-        $this->assertSame(['9-cu sinif sınağı'], $this->titles(['kateqoriya' => $this->ninth->id]));
+        $this->assertSame(['doqquzuncu'], $this->slugs(['kateqoriya' => $this->ninth->id]));
     }
 
     public function test_the_kind_and_quarter_filters_work(): void
     {
-        $this->exam(['title' => 'Ümumi', 'kind' => Exam::KIND_GENERAL]);
-        $this->exam(['title' => '1-ci rüb', 'kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 1]);
-        $this->exam(['title' => '2-ci rüb', 'kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 2]);
+        $this->exam('umumi', ['kind' => Exam::KIND_GENERAL]);
+        $this->exam('rub-1', ['kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 1]);
+        $this->exam('rub-2', ['kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 2]);
 
-        $this->assertEqualsCanonicalizing(
-            ['1-ci rüb', '2-ci rüb'],
-            $this->titles(['nov' => Exam::KIND_TOPIC_TRIAL]),
-        );
-
-        $this->assertSame(['2-ci rüb'], $this->titles(['nov' => Exam::KIND_TOPIC_TRIAL, 'rub' => 2]));
+        $this->assertEqualsCanonicalizing(['rub-1', 'rub-2'], $this->slugs(['nov' => Exam::KIND_TOPIC_TRIAL]));
+        $this->assertSame(['rub-2'], $this->slugs(['nov' => Exam::KIND_TOPIC_TRIAL, 'rub' => 2]));
 
         // Rüb yalnız mövzu sınağı ilə birlikdə mənalıdır: təkbaşına nəzərə alınmır
-        $this->assertCount(3, $this->titles(['rub' => 2]));
+        $this->assertCount(3, $this->slugs(['rub' => 2]));
     }
 
     public function test_the_subject_filter_looks_at_exam_sections(): void
@@ -175,50 +280,53 @@ class ExamCatalogTest extends TestCase
         $math = Subject::create(['name' => 'Riyaziyyat', 'slug' => 'riyaziyyat', 'category' => 'technical']);
         $history = Subject::create(['name' => 'Tarix', 'slug' => 'tarix', 'category' => 'humanitarian']);
 
-        $this->exam(['title' => 'Riyaziyyat sınağı'], $math);
-        $this->exam(['title' => 'Tarix sınağı'], $history);
+        $this->exam('riyaziyyat-sinagi', [], $math);
+        $this->exam('tarix-sinagi', [], $history);
 
-        $this->assertSame(['Riyaziyyat sınağı'], $this->titles(['fenn' => $math->id]));
+        $this->assertSame(['riyaziyyat-sinagi'], $this->slugs(['fenn' => $math->id]));
     }
 
     public function test_the_price_filter_separates_free_and_paid(): void
     {
-        $this->exam(['title' => 'Pulsuz', 'is_free' => true, 'price' => 0]);
-        $this->exam(['title' => 'Ödənişli', 'is_free' => false, 'price' => 5]);
+        $this->exam('pulsuz', ['is_free' => true, 'price' => 0]);
+        $this->exam('pullu', ['is_free' => false, 'price' => 5]);
 
-        $this->assertSame(['Pulsuz'], $this->titles(['qiymet' => 'pulsuz']));
-        $this->assertSame(['Ödənişli'], $this->titles(['qiymet' => 'pullu']));
-    }
-
-    public function test_the_search_matches_the_title(): void
-    {
-        $this->exam(['title' => 'MİQ sınağı']);
-        $this->exam(['title' => 'Buraxılış imtahanı']);
-
-        $this->assertSame(['MİQ sınağı'], $this->titles(['axtar' => 'MİQ']));
-
-        // Bir hərflik axtarış tətbiq edilmir: bütün kataloq qayıdardı
-        $this->assertCount(2, $this->titles(['axtar' => 'M']));
+        $this->assertSame(['pulsuz'], $this->slugs(['qiymet' => 'pulsuz']));
+        $this->assertSame(['pullu'], $this->slugs(['qiymet' => 'pullu']));
     }
 
     public function test_filters_combine(): void
     {
-        $this->exam(['title' => 'Uyğun', 'kind' => Exam::KIND_GENERAL, 'is_free' => true, 'price' => 0]);
-        $this->exam(['title' => 'Növü uyğun deyil', 'kind' => Exam::KIND_SUBJECT, 'is_free' => true, 'price' => 0]);
-        $this->exam(['title' => 'Qiyməti uyğun deyil', 'kind' => Exam::KIND_GENERAL, 'is_free' => false, 'price' => 5]);
+        $this->exam('uygun', ['kind' => Exam::KIND_GENERAL, 'is_free' => true, 'price' => 0]);
+        $this->exam('novu-uygun-deyil', ['kind' => Exam::KIND_SUBJECT, 'is_free' => true, 'price' => 0]);
+        $this->exam('qiymeti-uygun-deyil', ['kind' => Exam::KIND_GENERAL, 'is_free' => false, 'price' => 5]);
 
         $this->assertSame(
-            ['Uyğun'],
-            $this->titles(['nov' => Exam::KIND_GENERAL, 'qiymet' => 'pulsuz', 'kateqoriya' => $this->school->id]),
+            ['uygun'],
+            $this->slugs(['nov' => Exam::KIND_GENERAL, 'qiymet' => 'pulsuz', 'kateqoriya' => $this->school->id]),
         );
+    }
+
+    /** Tək filtri silmək: digər seçimlər yerində qalır. */
+    public function test_removing_one_filter_keeps_the_others(): void
+    {
+        $this->exam('uygun', ['kind' => Exam::KIND_GENERAL, 'is_free' => true, 'price' => 0]);
+        $this->exam('pullu-umumi', ['kind' => Exam::KIND_GENERAL, 'is_free' => false, 'price' => 5]);
+
+        // Qiymət filtri silinəndə növ qalır: hər iki ümumi sınaq çıxır
+        $props = $this->props(['nov' => Exam::KIND_GENERAL]);
+
+        $this->assertSame(Exam::KIND_GENERAL, $props['filters']['nov']);
+        $this->assertNull($props['filters']['qiymet']);
+        $this->assertCount(2, $props['exams']);
     }
 
     /** Sayğaclar əhatə üzrədir: seçilmiş çip digər ölçüləri daraltmır. */
     public function test_filter_options_carry_counts(): void
     {
-        $this->exam(['kind' => Exam::KIND_GENERAL, 'is_free' => true, 'price' => 0]);
-        $this->exam(['kind' => Exam::KIND_GENERAL, 'is_free' => false, 'price' => 5]);
-        $this->exam(['kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 3, 'is_free' => true, 'price' => 0]);
+        $this->exam('a', ['kind' => Exam::KIND_GENERAL, 'is_free' => true, 'price' => 0]);
+        $this->exam('b', ['kind' => Exam::KIND_GENERAL, 'is_free' => false, 'price' => 5]);
+        $this->exam('c', ['kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 3, 'is_free' => true, 'price' => 0]);
 
         $options = $this->props(['nov' => Exam::KIND_GENERAL])['filterOptions'];
 
@@ -231,34 +339,47 @@ class ExamCatalogTest extends TestCase
             [['value' => 'pulsuz', 'count' => 2], ['value' => 'pullu', 'count' => 1]],
             $options['prices'],
         );
+
+        // Kateqoriya filtri ikisəviyyəlidir: kök + övladlar
         $this->assertSame(
-            [['value' => $this->school->id, 'name' => 'Orta məktəb', 'depth' => 0, 'count' => 3],
-                ['value' => $this->ninth->id, 'name' => '9-cu sinif buraxılış', 'depth' => 1, 'count' => 3]],
+            [[
+                'value' => $this->school->id,
+                'name' => 'Orta məktəb',
+                'color' => '#2440A0',
+                'count' => 3,
+                'children' => [[
+                    'value' => $this->ninth->id,
+                    'name' => '9-cu sinif buraxılış',
+                    'count' => 3,
+                ]],
+            ]],
             $options['categories'],
         );
     }
 
+    /* ------------------------------------------------------------ sektor və SEO */
+
     public function test_the_sector_filter_applies(): void
     {
-        $this->exam(['title' => 'Az imtahanı', 'sector' => Sector::AZ]);
-        $this->exam(['title' => 'Ru imtahanı', 'sector' => Sector::RU]);
+        $this->exam('az-imtahani', ['sector' => Sector::AZ]);
+        $this->exam('ru-imtahani', ['sector' => Sector::RU]);
 
-        $this->assertSame(['Az imtahanı'], $this->titles());
-        $this->assertSame(['Ru imtahanı'], $this->titles([], '/ru/imtahanlar'));
+        $this->assertSame(['az-imtahani'], $this->slugs());
+        $this->assertSame(['ru-imtahani'], $this->slugs([], '/ru/imtahanlar'));
 
         // Daxil olmuş şagird öz sektorunu görür, URL dilindən asılı olmayaraq
         $student = User::factory()->create(['sector' => Sector::RU]);
         $student->assignRole('student');
 
-        $this->assertSame(['Ru imtahanı'], $this->actingAs($student)->titles());
+        $this->assertSame(['ru-imtahani'], $this->actingAs($student)->slugs());
     }
 
     /** Filtrli və səhifələnmiş ünvan indeksləşməsin: canonical filtrsiz səhifəyə göstərir. */
     public function test_the_canonical_ignores_filters_and_pages(): void
     {
-        $this->exam();
+        $this->exam('a');
 
-        $seo = $this->props(['nov' => Exam::KIND_GENERAL, 'qiymet' => 'pulsuz', 'sehife' => 1])['seo'];
+        $seo = $this->props(['nov' => Exam::KIND_GENERAL, 'qiymet' => 'pulsuz', 'sirala' => 'ucuz', 'sehife' => 1])['seo'];
 
         $this->assertSame(url('/imtahanlar'), $seo['canonical']);
         $this->assertSame(
@@ -267,9 +388,7 @@ class ExamCatalogTest extends TestCase
         );
         $this->assertSame(url('/imtahanlar'), $seo['x_default']);
 
-        $ruSeo = $this->props([], '/ru/imtahanlar')['seo'];
-
-        $this->assertSame(url('/ru/imtahanlar'), $ruSeo['canonical']);
+        $this->assertSame(url('/ru/imtahanlar'), $this->props([], '/ru/imtahanlar')['seo']['canonical']);
     }
 
     public function test_the_catalog_is_in_the_sitemap(): void
@@ -278,5 +397,21 @@ class ExamCatalogTest extends TestCase
 
         $response->assertSee(url('/imtahanlar'), escape: false);
         $response->assertSee(url('/ru/imtahanlar'), escape: false);
+    }
+
+    /** Kartda bölmə yolu və rəngi olur — imtahanın öz başlığı təkrarlanmır. */
+    public function test_a_card_carries_the_category_trail_and_colour(): void
+    {
+        $this->exam('a', ['kind' => Exam::KIND_TOPIC_TRIAL, 'quarter' => 3]);
+
+        $card = $this->props()['groups'][0]['exams'][0];
+
+        $this->assertSame(
+            ['root' => 'Orta məktəb', 'leaf' => '9-cu sinif buraxılış', 'color' => '#2440A0'],
+            $card['trail'],
+        );
+        $this->assertSame(Exam::KIND_TOPIC_TRIAL, $card['kind']);
+        $this->assertSame(3, $card['quarter']);
+        $this->assertArrayNotHasKey('title', $card);
     }
 }

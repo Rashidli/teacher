@@ -24,6 +24,23 @@ return [
     'found' => ':count imtahan tapıldı',
     'empty' => 'Seçilmiş şərtlərə uyğun imtahan yoxdur. Filtrləri sıfırlayıb yenidən yoxlayın.',
 
+    'sector_label' => 'İmtahanın dili (sektor)',
+    'sector_hint' => 'İmtahan sualları bu dildədir. Başlıqdakı AZ|RU isə saytın interfeys dilidir.',
+    'sort_label' => 'Sıralama',
+    'sorts' => [
+        'yeni' => 'Ən yeni',
+        'pulsuz' => 'Əvvəlcə pulsuz',
+        'ucuz' => 'Ucuzdan bahaya',
+        'baha' => 'Bahadan ucuza',
+    ],
+    'selected' => 'Seçilmiş filtrlər',
+    'remove' => ':name filtrini sil',
+    'reset_all' => 'Hamısını sıfırla',
+    'more' => 'Daha çox (:count)',
+    'less' => 'Yığ',
+    'show_all' => 'Hamısına bax (:count)',
+    'group_empty' => 'Bu bölmədə hələ imtahan yoxdur.',
+
     'pagination' => 'Səhifələr',
     'prev' => 'Əvvəlki',
     'next' => 'Növbəti',

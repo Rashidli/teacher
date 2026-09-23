@@ -282,7 +282,8 @@ class CategoryController extends Controller
                 ->where('exams.quarter', $quarter));
 
         $exams = CatalogFilters::apply($scope(), $filters)
-            ->with(['sections.subject:id,name', 'category:id,name,path'])
+            // Kateqoriya zənciri kart üçün: `trail()` əlavə sorğu etməsin
+            ->with(['sections.subject:id,name', 'category.parent.parent'])
             ->withCount('questions')
             ->latest('exams.id')
             ->get();
@@ -298,6 +299,12 @@ class CategoryController extends Controller
      * Kataloq kartının məlumatları. `ExamCatalogController` eyni formanı qaytarır —
      * `ExamCard.vue` hər iki səhifədə işlənir.
      *
+     * Kartda imtahanın ÖZ BAŞLIĞI göstərilmir: o, çox vaxt kateqoriya adı + növ sözünün
+     * təkrarıdır ("[DEMO] MİQ — mövzu sınağı"). Əvəzinə üst sətirdə kateqoriya yolu,
+     * başlıqda isə növ və rüb olur — eyni məlumat iki dəfə yazılmır. Tam başlıq imtahanın
+     * öz səhifəsindədir; kartın linkinin `aria-label`-ı isə yol + növü birləşdirir ki,
+     * ekran oxuyucusunda linklər bir-birindən seçilsin.
+     *
      * @return array<string, mixed>
      */
     public static function examCard(Exam $exam): array
@@ -306,13 +313,12 @@ class CategoryController extends Controller
             'id' => $exam->id,
             'slug' => $exam->slug,
             'url' => $exam->publicUrl(),
-            'title' => $exam->title,
+            // Bölmə yolu və rəngi: "Sürücülük › DE kateqoriyası"
+            'trail' => $exam->category?->trail() ?? ['root' => null, 'leaf' => null, 'color' => null],
             'kind' => $exam->kind,
             'quarter' => $exam->quarter,
             'subjects' => $exam->sections->map(fn ($section) => $section->subject?->name)
                 ->filter()->unique()->values()->all(),
-            // Kartdakı bölmə adı cari dildə: rus səhifəsində rusca qarşılığı varsa o göstərilir
-            'category' => $exam->category?->localized('name'),
             'duration_minutes' => $exam->duration_minutes,
             'questions_count' => $exam->questions_count,
             'is_free' => $exam->is_free,

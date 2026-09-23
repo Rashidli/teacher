@@ -30,6 +30,7 @@ return [
     'filter_quarter' => 'Четверть',
     'filter_subject' => 'Предмет',
     'filter_price' => 'Цена',
+    'quarter' => ':number-я четверть',
     'filter_all' => 'Все',
     'no_match' => 'По выбранным фильтрам экзаменов нет.',
     'kinds' => [

@@ -53,18 +53,27 @@ class CatalogFilterTest extends TestCase
         ], $attributes));
     }
 
-    /** @return array<int, string> */
+    /**
+     * Siyahıdakı imtahanların başlıqları, göründükləri sıra ilə.
+     *
+     * Kartda imtahanın ÖZ BAŞLIĞI göstərilmir (orada bölmə yolu və növ olur), ona görə
+     * kartın slug-ından başlıq tapılır — testlərin gözləntiləri oxunaqlı qalsın.
+     *
+     * @return array<int, string>
+     */
     private function titlesAt(string $path, array $query = []): array
     {
-        $titles = [];
+        $slugs = [];
 
         $this->get($path.($query ? '?'.http_build_query($query) : ''))
             ->assertOk()
-            ->assertInertia(function ($page) use (&$titles) {
-                $titles = collect($page->toArray()['props']['exams'])->pluck('title')->all();
+            ->assertInertia(function ($page) use (&$slugs) {
+                $slugs = collect($page->toArray()['props']['exams'])->pluck('slug');
             });
 
-        return $titles;
+        $titles = Exam::whereIn('slug', $slugs)->pluck('title', 'slug');
+
+        return $slugs->map(fn (string $slug) => $titles[$slug])->all();
     }
 
     /** Düyünün öz imtahanı öz səhifəsində görünür, qonşu düyününkü yox. */

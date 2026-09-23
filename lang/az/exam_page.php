@@ -28,6 +28,11 @@ return [
     'start_hint' => 'Düyməni basanda cəhd başlayır və taymer işə düşür.',
     'guest_hint' => 'Başlamaq üçün hesabına daxil ol — imtahan bu səhifədə açılacaq.',
     'buy_hint' => 'Ödənişdən sonra imtahan dərhal açılır.',
-    'purchases_closed' => 'Onlayn alış hazırda bağlıdır. İmtahanı açmaq üçün bizimlə əlaqə saxla.',
+    'purchases_closed' => 'Onlayn ödəniş tezliklə aktivləşəcək.',
     'last_result' => 'Son nəticəyə bax',
+
+    // Test rejimi (PAYMENT_DRIVER=fake): real ödəniş getmir
+    'test_mode' => 'Test rejimi — real ödəniş getmir.',
+    'test_mode_hint' => 'Sayt sınaq mərhələsindədir: "Al" basanda ödəniş dərhal təsdiqlənir və imtahan açılır.',
+    'test_mode_paid' => 'Test rejimi: ödəniş təsdiqləndi, imtahan açıldı. Real ödəniş getmədi.',
 ];

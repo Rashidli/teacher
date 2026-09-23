@@ -18,6 +18,13 @@ return [
         'tutors' => 'Репетиторам',
         'login' => 'Войти',
         'register' => 'Регистрация',
+        'account_aria' => 'Меню аккаунта',
+        'my_exams' => 'Мои экзамены',
+        'results' => 'Результаты',
+        'statistics' => 'Статистика',
+        'profile' => 'Профиль',
+        'admin' => 'Админ-панель',
+        'logout' => 'Выход',
     ],
 
     'language' => [

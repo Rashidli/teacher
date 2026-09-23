@@ -52,6 +52,10 @@ class HandleInertiaRequests extends Middleware
             'features' => [
                 'teachers' => (bool) config('features.teachers'),
             ],
+            // Ödəniş test rejimi (PAYMENT_DRIVER=fake): interfeysdə xəbərdarlıq göstərilir
+            'payments' => [
+                'test_mode' => (string) config('payments.driver') === 'fake',
+            ],
             // Kök kateqoriyalar: ana səhifə və altlıq hər səhifədə işlədir.
             // Lazy (closure) — yalnız istifadə olunanda sorğu gedir.
             'categories' => fn () => Category::active()->roots()

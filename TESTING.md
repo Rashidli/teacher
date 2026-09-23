@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 452 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 465 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
@@ -13,8 +13,12 @@ buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 ## Demo məzmun
 
 Kataloqun hər düyünündə imtahan, hər filtrdə variant olsun deyə nümunə məzmun ayrıca
-seeder ilə qurulur. Real data ilə qarışmır: bütün qeydlər `is_demo = 1` ilə işarələnir,
-imtahan başlıqları və sual mətnləri isə **`[DEMO]`** ilə başlayır.
+seeder ilə qurulur. Real data ilə qarışmır: bütün qeydlər `is_demo = 1` ilə işarələnir.
+
+**Şagird tərəfdə "demo" sözü görünmür** — imtahan adları, izahları və sual mətnləri təmizdir,
+nümunə məzmun real məzmundan seçilmir. Ayırd etmək üçün **admin paneldə** (imtahan siyahısı və
+sual bankı) kiçik sarı **`demo`** nişanı var. Slug-larda `demo-` hissəsi qalır ki, mövcud
+ünvanlar qırılmasın.
 
 ```bash
 php artisan db:seed --class=DemoContentSeeder --force   # qurur (idempotent)
@@ -32,6 +36,8 @@ php artisan demo:clear --force                          # silir
   admin qiymətləndirmə ekranları boş qalmır.
 - `demo:clear` real dataya toxunmur: demo sual real imtahanda işlənibsə, demo mövzuya real
   sual bağlıdırsa — saxlanılır və hesabatda göstərilir.
+- Seeder idempotent olduğu üçün adların dəyişməsi də onun təkrar işə salınması ilə tətbiq
+  olunur (mövcud sətirlər yenilənir, slug-lar dəyişmir).
 - **Real istifadəçi gəlməzdən əvvəl `demo:clear` işlədilməlidir** (demo imtahanlar dərc
   olunmuş olduğu üçün kataloqda hamıya görünür).
 
@@ -112,6 +118,17 @@ bölmələrə) və **`/imtahanlar`** — ağacdan asılı olmayan ümumi siyahı
 | K36 | Filtrli ünvanın səhifə mənbəyində `<link rel="canonical">` | Həmişə **filtrsiz** `/imtahanlar`-a (ru-da `/ru/imtahanlar`) göstərir |
 | K37 | Sektoru "Rus"a keçir | Yalnız ru sektorunun imtahanları qalır; sayğaclar da dəyişir |
 | K38 | Telefonda (360px) `/imtahanlar`, kateqoriya və imtahan səhifəsi | **Üfüqi sürüşmə olmamalıdır**; kartlar tək sütun, çiplər və düymələr barmaqla rahat basılır (44px) |
+| K39 | `/imtahanlar`-ı filtrsiz aç | **Bölmələr üzrə qruplar**: hər kök kateqoriya üçün başlıq, 4 kart və "Hamısına bax (N)" keçidi — bir bölmə səhifəni tutmur |
+| K40 | Yalnız sıralamanı dəyiş (məs. "Ucuzdan bahaya") | Qruplar **qalır**, hər bölmənin içi seçilmiş sıraya görə düzülür |
+| K41 | İstənilən filtri və ya axtarışı seç | Düz siyahıya keçir, səhifələmə görünür |
+| K42 | Filtr panelində kateqoriya sətrindəki **+** düyməsi | Alt bölmələr açılır (akkordeon); fənn siyahısında 6-dan sonra "Daha çox (N)" |
+| K43 | Bir neçə filtr seç, sonra çiplərdən birinin **×**-ini bas | Yalnız o filtr silinir, digərləri qalır; "Hamısını sıfırla" hamısını təmizləyir |
+| K44 | Filtr panelinin ən yuxarısı | **"İmtahanın dili (sektor)"** seçimi orada olur və izahı var — başlıqdakı AZ|RU ilə qarışmır |
+| K45 | Karta bax | Üst sətir bölmə yolu (rəngli nöqtə ilə), başlıq yalnız növ (+rüb), altında fənlər/sual/müddət, aşağıda qiymət və ya yaşıl "Pulsuz" nişanı. **Kartın hər yeri klikləniəndir**, Tab ilə fokus başlığa düşür |
+| K46 | İmtahan səhifəsi | Bölmə rəngli üst sətir, növ etiketi, müddət/sual/bal bir sətirdə ikonlarla, qiymət və əsas düymə vurğulu blokda |
+| K47 | Daxil olmamış halda başlıq | "Daxil ol" və "Qeydiyyat" görünür |
+| K48 | Daxil olduqdan sonra başlıq | İnisiallı düymə + ad; menyuda Mənim imtahanlarım, Nəticələr, Statistika, Profil, Çıxış (admin hesabında əlavə "Admin panel"). Escape və kənara klik menyunu bağlayır |
+| K49 | Pullu imtahanda "Al" bas | Bank səhifəsi açılmır: ödəniş dərhal təsdiqlənir, "Test rejimi" bildirişi görünür, imtahan açılır və "Başla" işləyir |
 
 ---
 
@@ -282,6 +299,20 @@ Rol və limit yoxlamaları yuxarıdakı "Giriş və rollar" bölməsindədir.
 | B6.6 | Yeni hesabla statistikaya bax | Boş vəziyyət mesajları görünür, səhifə sınmır |
 
 ---
+
+## Ödəniş: TEST REJİMİ
+
+`PAYMENT_DRIVER=fake` olduğu üçün **"Al" basılanda ödəniş dərhal təsdiqlənir**, giriş açılır
+və şagird imtahana başlaya bilir. Real pul hərəkət etmir; ödəniş qeydində `provider = fake`
+və `payload.test_mode = true` qalır. İmtahan səhifəsində "Test rejimi — real ödəniş getmir"
+xəbərdarlığı görünür.
+
+> **⚠️ Öz domenimizə keçməzdən ƏVVƏL `.env`-də `PAYMENT_DRIVER` real provayderə
+> dəyişdirilməlidir.** Əks halda bütün ödənişli imtahanlar faktiki olaraq pulsuz olar.
+> Bu, tək açardır — başqa şərt yoxdur (bax ROADMAP P2.5).
+
+Uğursuz ödəniş axınını əl ilə yoxlamaq üçün sınaq bank səhifəsi (`/payments/fake/{payment}`)
+saxlanılıb; adi "Al" axınında işlədilmir.
 
 ## C. Ödəniş axını (fake)
 

@@ -34,7 +34,7 @@ class ExamController extends Controller
     {
         $this->ensureVisible($request, $exam);
 
-        $exam->load(['category', 'sections.subject:id,name']);
+        $exam->load(['category.parent.parent', 'sections.subject:id,name']);
 
         $student = $request->user()?->hasRole('student') ? $request->user() : null;
 
@@ -52,6 +52,8 @@ class ExamController extends Controller
                 'max_score' => (float) $exam->sections->sum('max_score'),
                 'is_free' => $exam->is_free,
                 'price' => $exam->price,
+                // Bölmə yolu və rəngi: kataloq kartı ilə eyni vizual dil
+                'trail' => $exam->category?->trail() ?? ['root' => null, 'leaf' => null, 'color' => null],
                 'sections' => $exam->sections->map(fn (ExamSection $section) => [
                     'title' => $section->displayTitle(),
                     'subject' => $section->subject?->name,
@@ -62,6 +64,8 @@ class ExamController extends Controller
             'breadcrumb' => $this->breadcrumb($exam),
             'status' => $this->status($exam, $student),
             'purchasesEnabled' => $this->gateways->available(),
+            // PAYMENT_DRIVER=fake: real ödəniş getmir, səhifədə xəbərdarlıq göstərilir
+            'paymentsTestMode' => $this->gateways->testMode(),
             'meta' => [
                 'title' => $exam->title,
                 'description' => $exam->description,

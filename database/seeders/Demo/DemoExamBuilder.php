@@ -154,7 +154,8 @@ class DemoExamBuilder
             'quarter' => $quarter,
             'is_cumulative' => false,
             'title' => $this->title($category, $node, $sector, $kind, $quarter, $sectionSubjects),
-            'description' => $this->description($sector),
+            // İzah boş qalır: şagird tərəfdə "demo" izahı görünməməlidir
+            'description' => null,
             'duration_minutes' => $this->duration($node['duration'], $kind),
             'options_per_question' => $node['options'],
             'is_free' => $isFree,
@@ -282,16 +283,13 @@ class DemoExamBuilder
             $suffix = ': '.$subjects[0]->name;
         }
 
-        return "[DEMO] {$name} — {$label}{$suffix}";
-    }
-
-    private function description(string $sector): string
-    {
-        return $sector === 'ru'
-            ? 'Демонстрационный экзамен: создан для проверки дизайна и потоков. '
-                .'Вопросы помечены [DEMO] и удаляются командой php artisan demo:clear.'
-            : 'Demo imtahan: dizaynı və axınları yoxlamaq üçün qurulub. Sualları [DEMO] ilə '
-                .'işarələnib və `php artisan demo:clear` əmri ilə silinir.';
+        /*
+         * Başlıqda "demo" sözü yoxdur: nümunə məzmun şagird tərəfdə real məzmundan
+         * seçilməməlidir. Ayırd etmə `exams.is_demo` bayrağı ilədir (admin paneldə nişan,
+         * `demo:clear` üçün açar). Slug-dakı `demo-` hissəsi isə dəyişmir — mövcud
+         * ünvanlar qırılmasın.
+         */
+        return "{$name} — {$label}{$suffix}";
     }
 
     /** Fənn sınağı və məşq testi qısa olur — kataloqda müddət fərqi də görünsün */

@@ -144,7 +144,8 @@ class CategoryTest extends TestCase
         // Altqrup səhifəsində yalnız öz imtahanı
         $this->get('/abituriyent/1-ci-qrup/rk')
             ->assertInertia(fn ($page) => $page->has('exams', 1)
-                ->where('exams.0.title', 'Altqrup imtahanı'));
+                // Kartda başlıq yoxdur (bölmə yolu + növ göstərilir), slug ilə yoxlanılır
+                ->where('exams.0.slug', \Illuminate\Support\Str::slug('Altqrup imtahanı')));
     }
 
     /** Yayımlanmamış imtahan ictimai səhifədə görünmür. */

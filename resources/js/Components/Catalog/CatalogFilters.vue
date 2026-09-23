@@ -1,26 +1,36 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { trans } from 'laravel-vue-i18n';
 
 /**
  * Kataloq filtr paneli — kateqoriya səhifəsində və ümumi kataloqda eyni komponent.
  *
- * Seçim URL-də query kimi qalır: komponent özü naviqasiya etmir, `update` hadisəsi ilə
- * açar/dəyər qaytarır, səhifə isə onu `router.get()` ilə ünvana yazır.
+ * Komponent özü naviqasiya etmir: `update` hadisəsi ilə açar/dəyər qaytarır, səhifə isə
+ * onu URL query-sinə yazır. Beləcə süzülmüş səhifə paylaşıla bilir.
  *
- * Mobildə panel bağlıdır (açar düymədə aktiv filtr sayı görünür), ≥768px-dən həmişə açıq.
+ * YIĞCAMLIQ: kateqoriya siyahısı ikisəviyyəli akkordeondur (kök sətri, açılanda alt
+ * düyünlər), fənn siyahısı isə ilk altıdan sonra "Daha çox" ilə açılır — panel uzun
+ * kataloqda da ekranı doldurmur. Mobildə panel bağlıdır, ≥768px-dən həmişə açıq.
  */
 const props = defineProps({
-    // Hansı ölçülər göstərilsin: 'kateqoriya' | 'nov' | 'rub' | 'fenn' | 'qiymet'
+    // Hansı ölçülər göstərilsin: 'sektor' | 'kateqoriya' | 'nov' | 'rub' | 'fenn' | 'qiymet'
     facets: { type: Array, default: () => ['nov', 'rub', 'fenn', 'qiymet'] },
     options: { type: Object, default: () => ({}) },
     filters: { type: Object, default: () => ({}) },
     // 'top' — siyahının üstündə, 'side' — masaüstündə yan sütunda
     layout: { type: String, default: 'top' },
+    sector: { type: String, default: 'az' },
+    canSwitchSector: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update', 'reset']);
+const emit = defineEmits(['update', 'reset', 'sector']);
+
+/** Fənn siyahısı bundan sonra "Daha çox" arxasında gizlənir */
+const SUBJECT_LIMIT = 6;
 
 const open = ref(false);
+const openCategory = ref(null);
+const allSubjects = ref(false);
 
 const has = (facet) => props.facets.includes(facet);
 
@@ -35,16 +45,81 @@ const showQuarters = computed(
     () => has('rub') && props.filters.nov === 'topic_trial' && list('quarters').length > 0,
 );
 
-const visible = computed(() => has('nov') && list('kinds').length > 1
-    || has('fenn') && list('subjects').length > 1
-    || has('qiymet') && list('prices').length > 1
-    || has('kateqoriya') && list('categories').length > 1);
+const subjects = computed(() => (allSubjects.value
+    ? list('subjects')
+    : list('subjects').slice(0, SUBJECT_LIMIT)));
 
-defineExpose({ visible });
+const hiddenSubjects = computed(() => Math.max(0, list('subjects').length - SUBJECT_LIMIT));
+
+/** Seçilmiş filtrlərin oxunaqlı adları — silinə bilən çiplər üçün */
+const chosen = computed(() => {
+    const rows = [];
+
+    const label = (key, options, value) => options.find((option) => option.value === value);
+
+    if (props.filters.kateqoriya) {
+        const flat = list('categories').flatMap((root) => [root, ...(root.children ?? [])]);
+        const found = label('kateqoriya', flat, props.filters.kateqoriya);
+
+        if (found) {
+            rows.push({ key: 'kateqoriya', name: found.name });
+        }
+    }
+
+    if (props.filters.nov) {
+        rows.push({ key: 'nov', name: trans(`category_page.kinds.${props.filters.nov}`) });
+    }
+
+    if (props.filters.rub) {
+        rows.push({ key: 'rub', name: trans('category_page.quarter', { number: props.filters.rub }) });
+    }
+
+    if (props.filters.fenn) {
+        const found = label('fenn', list('subjects'), props.filters.fenn);
+
+        if (found) {
+            rows.push({ key: 'fenn', name: found.name });
+        }
+    }
+
+    if (props.filters.qiymet) {
+        rows.push({ key: 'qiymet', name: trans(`category_page.prices.${props.filters.qiymet}`) });
+    }
+
+    if (props.filters.axtar) {
+        rows.push({ key: 'axtar', name: `“${props.filters.axtar}”` });
+    }
+
+    return rows;
+});
+
+const visible = computed(() => has('sektor') && props.canSwitchSector
+    || has('kateqoriya') && list('categories').length > 1
+    || has('nov') && list('kinds').length > 1
+    || has('fenn') && list('subjects').length > 1
+    || has('qiymet') && list('prices').length > 1);
 </script>
 
 <template>
     <section v-if="visible" class="filters-box" :class="`filters-box--${layout}`">
+        <!-- Seçilmiş filtrlər: paneldən kənarda, həmişə görünür -->
+        <div v-if="chosen.length" class="chosen">
+            <span class="chosen-label">{{ $t('exam_catalog.selected') }}:</span>
+            <button
+                v-for="item in chosen"
+                :key="item.key"
+                type="button"
+                class="chosen-chip"
+                :aria-label="$t('exam_catalog.remove', { name: item.name })"
+                @click="emit('update', item.key, null)"
+            >
+                {{ item.name }}<span class="chosen-x" aria-hidden="true">×</span>
+            </button>
+            <button type="button" class="chosen-reset" @click="emit('reset')">
+                {{ $t('exam_catalog.reset_all') }}
+            </button>
+        </div>
+
         <!-- Mobil açar: masaüstündə gizlənir, panel həmişə açıq olur -->
         <button
             type="button"
@@ -60,27 +135,69 @@ defineExpose({ visible });
         <div id="catalog-filters" class="filters" :class="{ 'filters--open': open }">
             <h2 class="filters-title">{{ $t('exam_catalog.filters') }}</h2>
 
-            <!-- Kateqoriya: kök və ikinci səviyyə düyünlər (yalnız ümumi kataloqda) -->
-            <div v-if="has('kateqoriya') && list('categories').length > 1" class="filter">
-                <span :id="`f-cat`" class="filter-label">{{ $t('exam_catalog.filter_category') }}</span>
-                <div class="chips" role="group" :aria-labelledby="`f-cat`">
+            <!-- İmtahanın dili: başlıqdakı AZ|RU interfeys dilidir, bu isə məzmunun dili -->
+            <div v-if="has('sektor') && canSwitchSector" class="filter filter--sector">
+                <span id="f-sector" class="filter-label">{{ $t('exam_catalog.sector_label') }}</span>
+                <div class="chips" role="group" aria-labelledby="f-sector">
                     <button
                         type="button"
                         class="chip"
-                        :class="{ 'chip--on': !filters.kateqoriya }"
-                        :aria-pressed="!filters.kateqoriya"
-                        @click="emit('update', 'kateqoriya', null)"
-                    >{{ $t('category_page.filter_all') }}</button>
+                        :class="{ 'chip--on': sector === 'az' }"
+                        :aria-pressed="sector === 'az'"
+                        @click="emit('sector', 'az')"
+                    >{{ $t('category_page.sector_az') }}</button>
                     <button
-                        v-for="option in list('categories')"
-                        :key="option.value"
                         type="button"
                         class="chip"
-                        :class="{ 'chip--on': filters.kateqoriya === option.value, 'chip--child': option.depth > 0 }"
-                        :aria-pressed="filters.kateqoriya === option.value"
-                        @click="emit('update', 'kateqoriya', option.value)"
-                    >{{ option.name }} ({{ option.count }})</button>
+                        :class="{ 'chip--on': sector === 'ru' }"
+                        :aria-pressed="sector === 'ru'"
+                        @click="emit('sector', 'ru')"
+                    >{{ $t('category_page.sector_ru') }}</button>
                 </div>
+                <p class="filter-hint">{{ $t('exam_catalog.sector_hint') }}</p>
+            </div>
+
+            <!-- Kateqoriya: ikisəviyyəli akkordeon -->
+            <div v-if="has('kateqoriya') && list('categories').length > 1" class="filter">
+                <span class="filter-label">{{ $t('exam_catalog.filter_category') }}</span>
+                <ul class="tree">
+                    <li v-for="root in list('categories')" :key="root.value" class="tree-node">
+                        <div class="tree-row">
+                            <button
+                                type="button"
+                                class="tree-name"
+                                :class="{ 'tree-name--on': filters.kateqoriya === root.value }"
+                                :aria-pressed="filters.kateqoriya === root.value"
+                                :style="{ '--cat': root.color || 'var(--muted)' }"
+                                @click="emit('update', 'kateqoriya', root.value)"
+                            >
+                                <span class="tree-dot" aria-hidden="true"></span>
+                                {{ root.name }} <span class="tree-count">({{ root.count }})</span>
+                            </button>
+                            <button
+                                v-if="root.children.length"
+                                type="button"
+                                class="tree-expand"
+                                :aria-expanded="openCategory === root.value"
+                                :aria-label="root.name"
+                                @click="openCategory = openCategory === root.value ? null : root.value"
+                            >
+                                <span aria-hidden="true">{{ openCategory === root.value ? '−' : '+' }}</span>
+                            </button>
+                        </div>
+                        <ul v-if="openCategory === root.value" class="tree-children">
+                            <li v-for="child in root.children" :key="child.value">
+                                <button
+                                    type="button"
+                                    class="tree-child"
+                                    :class="{ 'tree-child--on': filters.kateqoriya === child.value }"
+                                    :aria-pressed="filters.kateqoriya === child.value"
+                                    @click="emit('update', 'kateqoriya', child.value)"
+                                >{{ child.name }} <span class="tree-count">({{ child.count }})</span></button>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
 
             <div v-if="has('nov') && list('kinds').length > 1" class="filter">
@@ -98,7 +215,7 @@ defineExpose({ visible });
                         :key="option.value"
                         type="button"
                         class="chip"
-                        :class="{ 'chip--on': filters.nov === option.value }"
+                        :class="[`chip--kind-${option.value}`, { 'chip--on': filters.nov === option.value }]"
                         :aria-pressed="filters.nov === option.value"
                         @click="emit('update', 'nov', option.value)"
                     >{{ $t(`category_page.kinds.${option.value}`) }} ({{ option.count }})</button>
@@ -123,7 +240,7 @@ defineExpose({ visible });
                         :class="{ 'chip--on': filters.rub === option.value }"
                         :aria-pressed="filters.rub === option.value"
                         @click="emit('update', 'rub', option.value)"
-                    >{{ option.value }}-ci rüb ({{ option.count }})</button>
+                    >{{ $t('category_page.quarter', { number: option.value }) }} ({{ option.count }})</button>
                 </div>
             </div>
 
@@ -138,7 +255,7 @@ defineExpose({ visible });
                         @click="emit('update', 'fenn', null)"
                     >{{ $t('category_page.filter_all') }}</button>
                     <button
-                        v-for="option in list('subjects')"
+                        v-for="option in subjects"
                         :key="option.value"
                         type="button"
                         class="chip"
@@ -146,6 +263,13 @@ defineExpose({ visible });
                         :aria-pressed="filters.fenn === option.value"
                         @click="emit('update', 'fenn', option.value)"
                     >{{ option.name }} ({{ option.count }})</button>
+                    <button
+                        v-if="hiddenSubjects"
+                        type="button"
+                        class="chip chip--more"
+                        :aria-expanded="allSubjects"
+                        @click="allSubjects = !allSubjects"
+                    >{{ allSubjects ? $t('exam_catalog.less') : $t('exam_catalog.more', { count: hiddenSubjects }) }}</button>
                 </div>
             </div>
 
@@ -164,16 +288,12 @@ defineExpose({ visible });
                         :key="option.value"
                         type="button"
                         class="chip"
-                        :class="{ 'chip--on': filters.qiymet === option.value }"
+                        :class="[{ 'chip--on': filters.qiymet === option.value }, option.value === 'pulsuz' ? 'chip--free' : '']"
                         :aria-pressed="filters.qiymet === option.value"
                         @click="emit('update', 'qiymet', option.value)"
                     >{{ $t(`category_page.prices.${option.value}`) }} ({{ option.count }})</button>
                 </div>
             </div>
-
-            <button v-if="active" type="button" class="filters-reset" @click="emit('reset')">
-                {{ $t('exam_catalog.reset') }}
-            </button>
         </div>
     </section>
 </template>
@@ -183,7 +303,58 @@ defineExpose({ visible });
     margin-bottom: 20px;
 }
 
-/* Mobil açar düyməsi: masaüstündə (≥768px) gizlənir */
+/* ----------------------------------------------------- seçilmiş filtrlər */
+
+.chosen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.chosen-label {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.chosen-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    max-width: 100%;
+    padding: 6px 10px 6px 12px;
+    border: 1px solid var(--pen);
+    border-radius: 999px;
+    background: #E9ECF6;
+    color: var(--pen-deep);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.chosen-x {
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.chosen-reset {
+    min-height: 36px;
+    padding: 6px 4px;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 0.875rem;
+    color: var(--ink-red);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* ------------------------------------------------------------- panel */
+
 .filters-toggle {
     display: inline-flex;
     align-items: center;
@@ -214,7 +385,7 @@ defineExpose({ visible });
 /* Mobildə panel yalnız açar basılanda görünür */
 .filters {
     display: none;
-    gap: 14px;
+    gap: 16px;
     margin-top: 14px;
 }
 
@@ -223,7 +394,6 @@ defineExpose({ visible });
 }
 
 .filters-title {
-    /* Mobildə panelin içində başlıq lazım deyil — açar düymə onu onsuz da bildirir */
     position: absolute;
     width: 1px;
     height: 1px;
@@ -239,7 +409,14 @@ defineExpose({ visible });
 
 .filter-label {
     font-size: 0.9375rem;
-    opacity: 0.7;
+    font-weight: 600;
+    color: var(--graphite);
+}
+
+.filter-hint {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--muted);
 }
 
 .chips {
@@ -254,7 +431,6 @@ defineExpose({ visible });
  */
 .chip {
     min-height: 44px;
-    /* Uzun kateqoriya adı konteynerdən enli olmasın (360px-də üfüqi sürüşmə) */
     max-width: 100%;
     overflow-wrap: anywhere;
     padding: 10px 14px;
@@ -265,31 +441,138 @@ defineExpose({ visible });
     font-size: 0.95rem;
     line-height: 1.2;
     text-align: left;
+    color: var(--graphite);
     cursor: pointer;
+}
+
+.chip:hover {
+    border-color: rgba(22, 19, 14, 0.5);
 }
 
 .chip--on {
-    border-color: rgba(22, 19, 14, 0.7);
+    border-color: var(--graphite);
+    background: var(--graphite);
+    color: var(--paper);
     font-weight: 600;
 }
 
-/* İkinci səviyyə kateqoriya: kökdən vizual olaraq ayrılır */
-.chip--child {
+/* Növ çipləri rəngli kənarla tanınır; seçiləndə dolu olur (rəng tək göstərici deyil) */
+.chip--kind-general { border-left: 4px solid var(--graphite); }
+.chip--kind-topic_trial { border-left: 4px solid var(--pen); }
+.chip--kind-subject { border-left: 4px solid #6B3FA0; }
+.chip--kind-practice { border-left: 4px solid #0F766E; }
+.chip--free { border-left: 4px solid var(--correct); }
+
+.chip--more {
     border-style: dashed;
-    opacity: 0.9;
+    color: var(--pen);
 }
 
-.filters-reset {
-    justify-self: start;
+/* -------------------------------------------------- kateqoriya akkordeonu */
+
+.tree {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.tree-row {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+}
+
+.tree-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
     min-height: 44px;
-    padding: 10px 4px;
+    padding: 8px 10px;
     border: 0;
+    border-radius: 8px;
     background: none;
     font: inherit;
     font-size: 0.95rem;
-    color: var(--pen);
-    text-decoration: underline;
+    text-align: left;
+    color: var(--graphite);
     cursor: pointer;
+}
+
+.tree-name:hover {
+    background: var(--paper-sunk);
+}
+
+.tree-name--on {
+    background: var(--paper-sunk);
+    font-weight: 700;
+    box-shadow: inset 3px 0 0 var(--cat);
+}
+
+.tree-dot {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--cat);
+}
+
+.tree-count {
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.tree-expand {
+    width: 44px;
+    min-height: 44px;
+    flex: none;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    font: inherit;
+    font-size: 1.15rem;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.tree-expand:hover {
+    background: var(--paper-sunk);
+}
+
+.tree-children {
+    list-style: none;
+    margin: 2px 0 6px;
+    padding: 0 0 0 18px;
+    display: grid;
+    gap: 2px;
+    border-left: 1px dashed var(--ink-red-line);
+}
+
+.tree-child {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    font: inherit;
+    font-size: 0.9375rem;
+    text-align: left;
+    color: var(--graphite);
+    cursor: pointer;
+}
+
+.tree-child:hover {
+    background: var(--paper-sunk);
+}
+
+.tree-child--on {
+    background: var(--paper-sunk);
+    font-weight: 700;
 }
 
 @media (min-width: 768px) {
@@ -302,35 +585,16 @@ defineExpose({ visible });
         display: grid;
         margin-top: 0;
     }
-
-    .filter {
-        grid-template-columns: 96px 1fr;
-        align-items: start;
-    }
-
-    .filter-label {
-        padding-top: 12px;
-    }
 }
 
-/* Yan sütun: etiket çiplərin üstündə qalır, sütun dar olduğu üçün */
+/* Yan sütun: başlıq görünür, ölçülər alt-alta düzülür */
 @media (min-width: 1024px) {
-    .filters-box--side .filter {
-        grid-template-columns: 1fr;
-    }
-
-    .filters-box--side .filter-label {
-        padding-top: 0;
-        font-weight: 600;
-        opacity: 0.85;
-    }
-
     .filters-box--side .filters-title {
         position: static;
         width: auto;
         height: auto;
         clip: auto;
-        margin: 0;
+        margin: 0 0 4px;
         font-size: 1.05rem;
     }
 }

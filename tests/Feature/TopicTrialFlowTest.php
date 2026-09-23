@@ -97,7 +97,7 @@ class TopicTrialFlowTest extends TestCase
                 ->where('view', 'topic_trial')
                 ->where('quarter', 2)
                 ->has('exams', 1)
-                ->where('exams.0.title', $second->title));
+                ->where('exams.0.slug', $second->slug));
     }
 
     /** Ümumi sınaq rüb səhifəsinə düşməməlidir. */

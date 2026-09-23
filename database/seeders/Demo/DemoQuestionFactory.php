@@ -13,7 +13,9 @@ use App\Models\Question;
  * Riyaziyyat/fizika/kimya/informatika/məntiq üçün əlavə olaraq hesablanmış KaTeX sualları
  * qurulur (düstur `$...$` içində yazılır, `MathText.vue` onu render edir).
  *
- * Hər sual `[DEMO]` ilə başlayır: kataloqda, bankda və imtahan səhifəsində dərhal görünür.
+ * Sual mətnində "demo" sözü YOXDUR: şagird tərəfdə nümunə məzmun real məzmundan seçilməməlidir
+ * (kart, imtahan səhifəsi, sual mətni — hamısı təmiz olur). Ayırd etmək üçün `questions.is_demo`
+ * bayrağı var: admin panel onu nişanla göstərir, `php artisan demo:clear` isə ona görə silir.
  */
 class DemoQuestionFactory
 {
@@ -81,8 +83,8 @@ class DemoQuestionFactory
 
         return [
             'question_text' => $this->t($lang,
-                "[DEMO] Aşağıdakı anlayışlardan hansı «{$topic}» mövzusuna aiddir?",
-                "[DEMO] Какое из следующих понятий относится к теме «{$topic}»?"),
+                "Aşağıdakı anlayışlardan hansı «{$topic}» mövzusuna aiddir?",
+                "Какое из следующих понятий относится к теме «{$topic}»?"),
             'type' => Question::TYPE_MULTIPLE_CHOICE,
             'options' => $this->options($correct, $wrong, $n),
             'explanation' => $this->t($lang,
@@ -106,8 +108,8 @@ class DemoQuestionFactory
 
         return [
             'question_text' => $this->t($lang,
-                "[DEMO] «{$term}» anlayışı hansı mövzuda öyrənilir?",
-                "[DEMO] В рамках какой темы изучается понятие «{$term}»?"),
+                "«{$term}» anlayışı hansı mövzuda öyrənilir?",
+                "В рамках какой темы изучается понятие «{$term}»?"),
             'type' => Question::TYPE_MULTIPLE_CHOICE,
             'options' => $this->options($topic, array_slice($wrong, 0, 3), $n),
             'explanation' => $this->t($lang,
@@ -125,8 +127,8 @@ class DemoQuestionFactory
 
         return [
             'question_text' => $this->t($lang,
-                "[DEMO] Aşağıdakılardan hansı «{$topic}» mövzusuna AİD DEYİL?",
-                "[DEMO] Какое из перечисленных понятий НЕ относится к теме «{$topic}»?"),
+                "Aşağıdakılardan hansı «{$topic}» mövzusuna AİD DEYİL?",
+                "Какое из перечисленных понятий НЕ относится к теме «{$topic}»?"),
             'type' => Question::TYPE_MULTIPLE_CHOICE,
             'options' => $this->options($correct, $wrong, $n),
             'explanation' => $this->t($lang,
@@ -143,9 +145,9 @@ class DemoQuestionFactory
 
         return [
             'question_text' => $this->t($lang,
-                "[DEMO] «{$topic}» mövzusu tədris ilinin neçənci rübündə keçilir? "
+                "«{$topic}» mövzusu tədris ilinin neçənci rübündə keçilir? "
                     .'Cavabı yalnız rəqəmlə yazın.',
-                "[DEMO] В какой четверти учебного года изучается тема «{$topic}»? "
+                "В какой четверти учебного года изучается тема «{$topic}»? "
                     .'Запишите ответ только цифрой.'),
             'type' => Question::TYPE_OPEN_CODED,
             'accepted_answers' => [(string) $quarter, $quarter.($lang === 'ru' ? '-я четверть' : '-ci rüb')],
@@ -164,9 +166,9 @@ class DemoQuestionFactory
 
         return [
             'question_text' => $this->t($lang,
-                "[DEMO] «{$term}» anlayışını öz sözlərinizlə izah edin və «{$topic}» mövzusundan "
+                "«{$term}» anlayışını öz sözlərinizlə izah edin və «{$topic}» mövzusundan "
                     .'bir nümunə göstərin.',
-                "[DEMO] Объясните своими словами понятие «{$term}» и приведите один пример "
+                "Объясните своими словами понятие «{$term}» и приведите один пример "
                     ."из темы «{$topic}»."),
             'type' => Question::TYPE_OPEN_WRITTEN,
             'options' => [],
@@ -185,12 +187,12 @@ class DemoQuestionFactory
 
         return [
             'question_text' => $this->t($lang,
-                "[DEMO] «{$topic}» mövzusunda «{$a}» və «{$b}» anlayışları tez-tez qarışdırılır. "
+                "«{$topic}» mövzusunda «{$a}» və «{$b}» anlayışları tez-tez qarışdırılır. "
                     .'Aşağıdakı üç bənd üzrə cavab yazın: (1) hər iki anlayışın qısa tərifi; '
                     .'(2) onları bir-birindən fərqləndirən ən azı iki əlamət; '
                     .'(3) hər biri üçün gündəlik həyatdan və ya dərslikdən bir nümunə. '
                     .'Cavabınızı bütöv cümlələrlə, 8–10 cümlə həcmində yazın.',
-                "[DEMO] В теме «{$topic}» понятия «{$a}» и «{$b}» часто путают. "
+                "В теме «{$topic}» понятия «{$a}» и «{$b}» часто путают. "
                     .'Ответьте по трём пунктам: (1) краткое определение каждого понятия; '
                     .'(2) не менее двух признаков, отличающих их друг от друга; '
                     .'(3) по одному примеру из повседневной жизни или учебника. '
@@ -218,10 +220,10 @@ class DemoQuestionFactory
 
         return [
             'question_text' => $this->t($lang,
-                "[DEMO] Müəllim dərsdə şagirdlərə «{$term}» ilə bağlı praktik tapşırıq verir və "
+                "Müəllim dərsdə şagirdlərə «{$term}» ilə bağlı praktik tapşırıq verir və "
                     .'onlardan nəticəni cədvəldə ümumiləşdirməyi xahiş edir. Şagirdlər tapşırığı '
                     .'yerinə yetirərkən hansı mövzunun bilikləri ilə işləyirlər?',
-                "[DEMO] Учитель даёт ученикам практическое задание, связанное с понятием «{$term}», "
+                "Учитель даёт ученикам практическое задание, связанное с понятием «{$term}», "
                     .'и просит обобщить результат в таблице. Знаниями какой темы пользуются '
                     .'ученики при выполнении задания?'),
             'type' => Question::TYPE_MULTIPLE_CHOICE,
@@ -241,7 +243,7 @@ class DemoQuestionFactory
 
         return [
             'question_text' => $this->t($lang,
-                "[DEMO] Aşağıdakı mətni oxuyun və sualı cavablandırın.\n\n"
+                "Aşağıdakı mətni oxuyun və sualı cavablandırın.\n\n"
                     ."«{$topic}» mövzusu tədris proqramında bir neçə dərsə bölünür. İlk dərslərdə "
                     .'şagirdlər əsas anlayışlarla tanış olur, sonrakı dərslərdə isə bu anlayışları '
                     .'praktik tapşırıqlarda tətbiq edirlər. Müəllim mövzunun sonunda kiçik summativ '
@@ -250,7 +252,7 @@ class DemoQuestionFactory
                     .'məhz mövzunun mərkəzi anlayışında çətinlik çəkir.'
                     ."\n\nMətndə söhbət «{$topic}» mövzusunun anlayışlarından gedir. "
                     .'Aşağıdakılardan hansı məhz bu mövzunun anlayışıdır?',
-                "[DEMO] Прочитайте текст и ответьте на вопрос.\n\n"
+                "Прочитайте текст и ответьте на вопрос.\n\n"
                     ."Тема «{$topic}» разбита в учебной программе на несколько уроков. На первых "
                     .'уроках ученики знакомятся с основными понятиями, а на последующих применяют '
                     .'эти понятия в практических заданиях. В конце темы учитель проводит малое '
@@ -275,7 +277,7 @@ class DemoQuestionFactory
         $item = DemoFormulas::closed($subject, $i, $n, $lang);
 
         return [
-            'question_text' => '[DEMO] '.$item['text'],
+            'question_text' => $item['text'],
             'type' => Question::TYPE_MULTIPLE_CHOICE,
             'options' => $this->options(
                 $item['answer'],
@@ -292,7 +294,7 @@ class DemoQuestionFactory
         $item = DemoFormulas::coded($subject, $i, $n, $lang);
 
         return [
-            'question_text' => '[DEMO] '.$item['text'],
+            'question_text' => $item['text'],
             'type' => Question::TYPE_OPEN_CODED,
             'accepted_answers' => $item['accepted'],
             'options' => [],

@@ -5,12 +5,17 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Services\Payment\ExamAccessService;
+use App\Services\Payment\FakePaymentGateway;
 use App\Services\Payment\PaymentGatewayFactory;
 use App\Services\Payment\PaymentProcessor;
 use Illuminate\Http\RedirectResponse;
 
 /**
  * "Al" düyməsi: gözləyən ödəniş yaradılır və şagird provayderin səhifəsinə yönləndirilir.
+ *
+ * TEST REJİMİ (`PAYMENT_DRIVER=fake`): bank səhifəsi açılmır — ödəniş dərhal təsdiqlənir,
+ * giriş açılır və şagird imtahan səhifəsinə qayıdır. Real pul hərəkət etmir; ödəniş qeydində
+ * `provider = fake` və `payload.test_mode = true` qalır.
  */
 class StudentPaymentController extends Controller
 {
@@ -32,10 +37,17 @@ class StudentPaymentController extends Controller
                 ->with('success', 'Bu imtahan artıq sizə açıqdır.');
         }
 
-        // Produksiyada sınaq provayderi seçilibsə burada dayanır (pulsuz giriş verilməsin)
         $gateway = $this->gateways->make();
 
         $payment = $this->payments->startExamPurchase($student, $exam, $gateway);
+
+        // Test rejimi: bank yoxdur, ödəniş elə burada "paid" olur və giriş açılır
+        if ($gateway instanceof FakePaymentGateway) {
+            $this->payments->handleCallback($payment, $gateway->confirm($payment));
+
+            return redirect()->to($exam->publicUrl())
+                ->with('success', __('exam_page.test_mode_paid'));
+        }
 
         return redirect()->away($gateway->redirectUrl($payment));
     }

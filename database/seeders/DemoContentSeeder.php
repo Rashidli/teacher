@@ -37,6 +37,11 @@ use Illuminate\Support\Collection;
  * olaraq seeder də mühiti yoxlayır — `DatabaseSeeder`-ə QOŞULMAYIB ki, adi `db:seed` onu
  * təsadüfən çağırmasın.
  *
+ * ŞAGİRD TƏRƏFDƏ "DEMO" SÖZÜ GÖRÜNMÜR: imtahan adları və sual mətnləri təmizdir, nümunə
+ * məzmun real məzmundan seçilmir. Ayırd etmə `is_demo` bayrağı ilədir — admin panel onu
+ * nişanla göstərir, `php artisan demo:clear` ona görə silir. Slug-lardakı `demo-` hissəsi
+ * isə qalır: mövcud ünvanlar qırılmasın.
+ *
  * Bütün yazılar idempotentdir (mövzu: slug, sual: `source`, imtahan: `slug`), ona görə
  * seeder istənilən qədər təkrar işlədilə bilər. Təmizləmə: `php artisan demo:clear`.
  */

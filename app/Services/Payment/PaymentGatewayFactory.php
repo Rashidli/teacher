@@ -7,9 +7,14 @@ use RuntimeException;
 /**
  * Aktiv provayderi .env-dən (PAYMENT_DRIVER) seçir.
  *
- * Təhlükəsizlik: "fake" produksiyada QADAĞANDIR. Əks halda kimsə saxta "Uğurlu" düyməsi ilə
- * pulsuz giriş əldə edə bilərdi. Produksiyada fake seçilibsə alış cəhdi xəta verir və
- * "Al" düyməsi ümumiyyətlə göstərilmir (bax: available()).
+ * TƏK AÇAR: `PAYMENT_DRIVER=fake` test rejimidir — ödəniş dərhal "ödənildi" olur, real pul
+ * hərəkət etmir. Real bank inteqrasiyası gələndə dəyişən yeni driverə çevrilir və test
+ * rejimi bir addımla sönür.
+ *
+ * DİQQƏT: fake driver produksiyada da işləyir (sayt müvəqqəti subdomendədir, real istifadəçi
+ * və data yoxdur). ÖZ DOMENİMİZƏ KEÇMƏZDƏN ƏVVƏL `PAYMENT_DRIVER` real provayderə
+ * dəyişdirilməlidir — əks halda imtahanlar faktiki olaraq pulsuz olar. Bax: ROADMAP (P2.5)
+ * və TESTING.md.
  */
 class PaymentGatewayFactory
 {
@@ -17,17 +22,16 @@ class PaymentGatewayFactory
     {
         $driver ??= (string) config('payments.driver');
 
-        if ($driver === 'fake' && app()->isProduction()) {
-            throw new RuntimeException(
-                'Sınaq ödəniş provayderi ("fake") produksiyada işlədilə bilməz. '
-                .'.env faylında PAYMENT_DRIVER real provayderə dəyişdirilməlidir.'
-            );
-        }
-
         return match ($driver) {
             'fake' => new FakePaymentGateway,
             default => throw new RuntimeException("Ödəniş provayderi tanınmır: \"{$driver}\"."),
         };
+    }
+
+    /** Ödəniş test rejimindədir (real pul hərəkət etmir) — interfeysdə xəbərdarlıq üçün */
+    public function testMode(): bool
+    {
+        return (string) config('payments.driver') === 'fake';
     }
 
     /** Alış mümkündürmü (UI-da "Al" düyməsi göstərilsinmi) */

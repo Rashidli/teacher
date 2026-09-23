@@ -64,8 +64,12 @@ class DemoContentTest extends TestCase
             $this->assertTrue($exams->where('kind', Exam::KIND_TOPIC_TRIAL)->whereNotNull('quarter')->isNotEmpty());
 
             foreach ($exams as $exam) {
-                $this->assertStringStartsWith('[DEMO]', $exam->title);
+                // Şagird tərəfdə "demo" sözü görünmür: başlıq və izah təmizdir
+                $this->assertStringNotContainsStringIgnoringCase('demo', $exam->title);
+                $this->assertNull($exam->description);
+                // Slug-dakı `demo-` qalır: mövcud ünvanlar qırılmasın
                 $this->assertStringStartsWith('demo-', $exam->slug);
+                $this->assertTrue($exam->is_demo);
                 $count = $exam->questions()->count();
                 $this->assertGreaterThanOrEqual(8, $count, "Az sual: {$exam->slug}");
                 $this->assertLessThanOrEqual(12, $count, "Çox sual: {$exam->slug}");
@@ -109,6 +113,9 @@ class DemoContentTest extends TestCase
         // KaTeX düsturu və uzun mətn
         $this->assertTrue(Question::demo()->where('question_text', 'like', '%\\frac%')->exists());
         $this->assertTrue(Question::demo()->whereRaw('LENGTH(question_text) > 400')->exists());
+
+        // Sual mətnlərində "demo" sözü olmur
+        $this->assertSame(0, Question::demo()->where('question_text', 'like', '%demo%')->count());
 
         // Hər sual mövzuya bağlıdır və mövzular rüblərə bölünüb
         $this->assertSame(0, Question::demo()->whereNull('topic_id')->count());

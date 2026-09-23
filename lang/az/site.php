@@ -18,6 +18,13 @@ return [
         'tutors' => 'Repetitorlar',
         'login' => 'Daxil ol',
         'register' => 'Qeydiyyat',
+        'account_aria' => 'Hesab menyusu',
+        'my_exams' => 'Mənim imtahanlarım',
+        'results' => 'Nəticələr',
+        'statistics' => 'Statistika',
+        'profile' => 'Profil',
+        'admin' => 'Admin panel',
+        'logout' => 'Çıxış',
     ],
 
     'language' => [

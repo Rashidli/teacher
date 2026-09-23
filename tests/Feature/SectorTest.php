@@ -137,12 +137,12 @@ class SectorTest extends TestCase
         $this->get('/ru/abiturient')->assertInertia(fn ($page) => $page
             ->where('sector', Sector::RU)
             ->has('exams', 1)
-            ->where('exams.0.title', 'Русский экзамен'));
+            ->where('exams.0.slug', \Illuminate\Support\Str::slug('Русский экзамен')));
 
         $this->get('/abituriyent')->assertInertia(fn ($page) => $page
             ->where('sector', Sector::AZ)
             ->has('exams', 1)
-            ->where('exams.0.title', 'Azərbaycan imtahanı'));
+            ->where('exams.0.slug', \Illuminate\Support\Str::slug('Azərbaycan imtahanı')));
     }
 
     /** Daxil olmuş şagird: sektor URL dilindən yox, profildən gəlir. */
@@ -166,7 +166,7 @@ class SectorTest extends TestCase
                 ->where('sector', Sector::AZ)
                 ->where('canSwitchSector', false)
                 ->has('exams', 1)
-                ->where('exams.0.title', 'Azərbaycan imtahanı'));
+                ->where('exams.0.slug', \Illuminate\Support\Str::slug('Azərbaycan imtahanı')));
     }
 
     /** Qonağın seçimi sessiyada qalır və sonrakı səhifələrdə də işləyir. */

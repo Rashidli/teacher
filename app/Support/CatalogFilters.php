@@ -32,6 +32,17 @@ class CatalogFilters
     /** Bütün ölçülər. Səhifə yalnız özünə lazım olanları istəyir. */
     public const FACETS = ['kateqoriya', 'nov', 'rub', 'fenn', 'qiymet', 'axtar'];
 
+    /** Sıralama variantları (`?sirala=`) */
+    public const SORT_NEW = 'yeni';
+
+    public const SORT_FREE_FIRST = 'pulsuz';
+
+    public const SORT_CHEAP = 'ucuz';
+
+    public const SORT_EXPENSIVE = 'baha';
+
+    public const SORTS = [self::SORT_NEW, self::SORT_FREE_FIRST, self::SORT_CHEAP, self::SORT_EXPENSIVE];
+
     /**
      * Sorğudan filtrləri oxuyur. Tanınmayan dəyər null olur — səhv query səhifəni sındırmır.
      *
@@ -60,6 +71,33 @@ class CatalogFilters
         ];
 
         return array_intersect_key($filters, array_flip($facets));
+    }
+
+    /** Sorğudan sıralama; tanınmayan dəyər defolta (ən yeni) düşür */
+    public static function sort(Request $request): string
+    {
+        $sort = (string) $request->query('sirala');
+
+        return in_array($sort, self::SORTS, true) ? $sort : self::SORT_NEW;
+    }
+
+    /**
+     * Sıralamanı sorğuya tətbiq edir.
+     *
+     * Hər variantda SON pillə `exams.id DESC`-dir: eyni qiymətli və ya eyni gün dərc
+     * olunmuş imtahanların sırası səhifədən-səhifəyə dəyişməsin (səhifələmə sabit qalsın).
+     */
+    public static function applySort(Builder $query, string $sort): Builder
+    {
+        return match ($sort) {
+            self::SORT_FREE_FIRST => $query
+                ->orderByDesc('exams.is_free')
+                ->orderBy('exams.price')
+                ->orderByDesc('exams.id'),
+            self::SORT_CHEAP => $query->orderBy('exams.price')->orderByDesc('exams.id'),
+            self::SORT_EXPENSIVE => $query->orderByDesc('exams.price')->orderByDesc('exams.id'),
+            default => $query->orderByDesc('exams.published_at')->orderByDesc('exams.id'),
+        };
     }
 
     /**
