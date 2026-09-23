@@ -27,8 +27,7 @@ class StudentExamController extends Controller
         private readonly AttemptScorer $scorer,
         private readonly StudentStatistics $statistics,
         private readonly OpenAnswerGradingQueue $aiGrading,
-    ) {
-    }
+    ) {}
 
     /**
      * "Mənim imtahanlarım": davam edən cəhdlər, giriş hüququ olan imtahanlar və nəticələr.
@@ -41,7 +40,7 @@ class StudentExamController extends Controller
         $student = auth()->user();
 
         $attempts = $student->examAttempts()
-            ->with('exam:id,slug,title,duration_minutes')
+            ->with(['exam:id,slug,title,duration_minutes,category_id', 'exam.category.parent.parent'])
             ->latest()
             ->get()
             ->filter(fn (ExamAttempt $attempt) => $attempt->exam !== null);
@@ -55,6 +54,7 @@ class StudentExamController extends Controller
                 'url' => route('student.exams.attempt', $attempt),
                 'exam_url' => $attempt->exam->publicUrl(),
                 'remaining_minutes' => (int) ceil($attempt->remaining_time / 60),
+                'trail' => $attempt->exam->category?->trail(),
             ])
             ->values();
 
@@ -67,6 +67,7 @@ class StudentExamController extends Controller
                 'exam_url' => $attempt->exam->publicUrl(),
                 'relative_score' => $attempt->relative_score,
                 'finished_at' => $attempt->finished_at?->format('d.m.Y'),
+                'trail' => $attempt->exam->category?->trail(),
             ])
             ->values();
 
@@ -77,7 +78,7 @@ class StudentExamController extends Controller
             ->pluck('exam_id');
 
         $available = ExamAccess::query()
-            ->with('exam:id,slug,title,duration_minutes,is_free,sector,is_published,is_active')
+            ->with(['exam:id,slug,title,duration_minutes,is_free,sector,is_published,is_active,category_id', 'exam.category.parent.parent'])
             ->where('user_id', $student->id)
             ->active()
             ->latest()
@@ -89,6 +90,7 @@ class StudentExamController extends Controller
                 'url' => $access->exam->publicUrl(),
                 'source' => $access->source,
                 'expires_at' => $access->expires_at?->format('d.m.Y'),
+                'trail' => $access->exam->category?->trail(),
             ])
             ->values();
 
@@ -173,6 +175,7 @@ class StudentExamController extends Controller
         // Vaxt bitmişsə bitir
         if ($attempt->status === 'in_progress' && $attempt->remaining_time <= 0) {
             $this->finishAttempt($attempt);
+
             return redirect()->route('student.exams.result', $attempt);
         }
 
@@ -215,7 +218,7 @@ class StudentExamController extends Controller
                     'question_image_url' => $question->imageUrl(),
                     'question_image_alt' => $question->question_image_alt,
                     'type' => $question->type,
-                    'options' => $question->options->map(fn($opt) => [
+                    'options' => $question->options->map(fn ($opt) => [
                         'id' => $opt->id,
                         'option_letter' => $opt->option_letter,
                         'option_text' => $opt->option_text,
@@ -345,7 +348,7 @@ class StudentExamController extends Controller
             abort(403);
         }
 
-        $attempt->load(['exam.subject', 'exam.teacher', 'exam.category.parent.parent', 'group', 'answers.question.options', 'answers.selectedOption']);
+        $attempt->load(['user:id,first_name,last_name', 'exam.subject', 'exam.teacher', 'exam.category.parent.parent', 'group', 'answers.question.options', 'answers.selectedOption']);
 
         // "Yenidən imtahan ver" ictimai imtahan səhifəsinə aparır (kabinetdə ayrıca səhifə yoxdur)
         $examUrl = $attempt->exam->publicUrl();
@@ -369,10 +372,20 @@ class StudentExamController extends Controller
                     'explanation' => $question->explanation,
                     'options' => $question->options->map(fn ($opt) => [
                         'id' => $opt->id,
+                        'option_letter' => $opt->option_letter,
                         'option_text' => $opt->option_text,
                         'option_image_url' => $opt->imageUrl(),
                         'is_correct' => $correctOption && $opt->id === $correctOption->id,
                     ]),
+                    /*
+                     * Sualın XAM dəyəri: qapalı və qısa cavab 1 bal, yazılı cavab isə
+                     * `scoring.open_written_weight` (2 bal). İmtahan vərəqində göstərilir —
+                     * tiplərin çəkisi fərqli olduğu üçün şagird hansı sualın nə qədər
+                     * "ağır" olduğunu görməlidir.
+                     */
+                    'weight' => $question->type === Question::TYPE_OPEN_WRITTEN
+                        ? (float) config('scoring.open_written_weight', 2)
+                        : 1.0,
                     'correct_option_id' => $correctOption?->id,
                     'selected_option_id' => $answer?->selected_option_id,
                     'is_correct' => $answer?->is_correct,
@@ -405,6 +418,10 @@ class StudentExamController extends Controller
         // Ümumi maksimum bölmələrin cəmindən gəlir (sabit rəqəm yazılmır)
         $attemptData['max_subject_score'] = (float) $attempt->sectionResults()->sum('max_score')
             ?: $this->subjectMaxScore($attempt);
+        // İmtahan vərəqinin başlığı üçün
+        $attemptData['student'] = $attempt->user?->full_name;
+        $attemptData['minutes_spent'] = (int) round($attempt->time_spent_seconds / 60);
+        $attemptData['trail'] = $attempt->exam->category?->trail();
 
         return Inertia::render('Student/Exams/Result', [
             'attempt' => $attemptData,

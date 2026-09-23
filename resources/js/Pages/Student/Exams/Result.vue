@@ -1,5 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PanelHead from '@/Components/Ui/PanelHead.vue';
+import PanelCard from '@/Components/Ui/PanelCard.vue';
+import PanelButton from '@/Components/Ui/PanelButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import MathText from '@/Components/MathText.vue';
 import QuestionImage from '@/Components/QuestionImage.vue';
@@ -7,6 +10,14 @@ import LineChart from '@/Components/Charts/LineChart.vue';
 import ScoreBar from '@/Components/Charts/ScoreBar.vue';
 import { computed } from 'vue';
 
+/**
+ * Nəticə səhifəsi.
+ *
+ * İki hissədən ibarətdir:
+ *  1. **İmtahan vərəqi** — ekranda da, çapda da SƏNƏD kimi görünən xülasə: başlıq,
+ *     cavab kartı cədvəli və yekun. `@media print` ilə menyu və düymələr gizlənir.
+ *  2. **Sual-cavab analizi** — hər sualın açılışı (əvvəlki bölmə, olduğu kimi qalır).
+ */
 const props = defineProps({
     attempt: Object,
     sections: { type: Array, default: () => [] },
@@ -25,24 +36,109 @@ const historyPoints = computed(() => (props.comparison.history ?? []).map((item)
 })));
 
 /*
- * Əsas göstərici NİSBİ BALDIR (NB). Əvvəl onun yanında ikinci, fərqli faiz
- * ("13% düzgün") da vardı — iki faiz yan-yana durmasın deyə o, SAYA çevrildi.
+ * Əsas göstərici NİSBİ BALDIR (NB). Açıq suallar yoxlanmayıbsa bal İLKİNDİR:
+ * rəng neytral qalır, yekun bal yalnız yoxlamadan sonra vurğulanır.
  */
 const relative = computed(() => Number(props.attempt.relative_score ?? 0));
 
-/*
- * Açıq suallar yoxlanmayıbsa bal İLKİNDİR: rəng neytral qalır, yekun bal yalnız
- * yoxlamadan sonra vurğulanır.
- */
 const getScoreColor = computed(() => {
-    if (props.attempt.awaiting_review) return 'text-gray-500';
-    if (relative.value >= 80) return 'text-green-600';
-    if (relative.value >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (props.attempt.awaiting_review) return 'score--pending';
+    if (relative.value >= 80) return 'score--high';
+    if (relative.value >= 60) return 'score--mid';
+
+    return 'score--low';
 });
 
 // "Qrup: " sətri qrupsuz imtahanlarda boş qalırdı (MİQ, sürücülük — group_id NULL)
 const contextLabel = computed(() => props.attempt.group?.name || props.exam?.category || null);
+
+const accent = computed(() => props.attempt.trail?.color || 'var(--graphite)');
+
+const trailText = computed(
+    () => [props.attempt.trail?.root, props.attempt.trail?.leaf].filter(Boolean).join(' › '),
+);
+
+const finishedAt = computed(() => (props.attempt.finished_at
+    ? new Date(props.attempt.finished_at).toLocaleString('az-AZ')
+    : null));
+
+/* ----------------------------------------------------------- cavab kartı */
+
+/**
+ * Sualın vəziyyəti — cavab kartının rəngi və işarəsi buradan gəlir.
+ * Rəng TƏK göstərici deyil: hər xanada işarə (✓ ✗ — ?) də var.
+ */
+const statusOf = (answer) => {
+    if (answer.awaiting_review) return 'pending';
+
+    const answered = answer.type === 'multiple_choice'
+        ? Boolean(answer.selected_option_id)
+        : Boolean(answer.open_answer);
+
+    if (!answered) return 'empty';
+    if (answer.is_correct) return 'correct';
+    if (answer.grade_ratio > 0) return 'partial';
+
+    return 'wrong';
+};
+
+const STATUS_MARK = { correct: '✓', wrong: '✗', empty: '—', pending: '?', partial: '±' };
+
+const letterOf = (answer, optionId) => answer.options
+    ?.find((option) => option.id === optionId)?.option_letter ?? null;
+
+/** Şagirdin cavabı — qapalıda hərf, açıqda qısaldılmış mətn */
+const givenAnswer = (answer) => {
+    if (answer.type === 'multiple_choice') {
+        return letterOf(answer, answer.selected_option_id) ?? '—';
+    }
+
+    if (!answer.open_answer) return '—';
+
+    return answer.open_answer.length > 8 ? '✎' : answer.open_answer;
+};
+
+/** Düzgün cavab — qapalıda hərf, qısa cavabda etalon, yazılıda meyar (vərəqdə "—") */
+const rightAnswer = (answer) => {
+    if (answer.type === 'multiple_choice') {
+        return letterOf(answer, answer.correct_option_id) ?? '—';
+    }
+
+    if (answer.accepted_answers?.length) {
+        const first = String(answer.accepted_answers[0]);
+
+        return first.length > 8 ? `${first.slice(0, 7)}…` : first;
+    }
+
+    return '—';
+};
+
+const tally = computed(() => {
+    const counts = { correct: 0, wrong: 0, empty: 0, pending: 0, partial: 0 };
+
+    (props.answers ?? []).forEach((answer) => {
+        counts[statusOf(answer)] += 1;
+    });
+
+    return counts;
+});
+
+const totalWeight = computed(
+    () => (props.answers ?? []).reduce((sum, answer) => sum + Number(answer.weight ?? 1), 0),
+);
+
+const printSheet = () => window.print();
+
+/* -------------------------------------------------------------- etirazlar */
+
+const SCALE = [[0, '0'], [1 / 3, '1/3'], [0.5, '1/2'], [2 / 3, '2/3'], [1, '1']];
+
+const gradeLabel = (ratio) => {
+    const value = Number(ratio);
+    const found = SCALE.find(([step]) => Math.abs(step - value) < 0.01);
+
+    return found ? found[1] : value.toFixed(2);
+};
 
 const reviewForm = useForm({});
 
@@ -53,77 +149,124 @@ const requestReview = (answer) => {
     );
 };
 
-// DİM şkalası: kəsr qiymətlər oxunaqlı yazılır (0.6667 → "2/3")
-const SCALE = [[0, '0'], [1 / 3, '1/3'], [0.5, '1/2'], [2 / 3, '2/3'], [1, '1']];
-
-const gradeLabel = (ratio) => {
-    const value = Number(ratio);
-    const found = SCALE.find(([step]) => Math.abs(step - value) < 0.01);
-
-    return found ? found[1] : value.toFixed(2);
-};
-
-const getAnswerStatus = (answer) => {
-    if (!answer.selected_option_id) return 'unanswered';
-    if (answer.is_correct) return 'correct';
-    return 'wrong';
-};
+const getAnswerStatus = (answer) => statusOf(answer);
 </script>
 
 <template>
-    <Head title="İmtahan Nəticəsi" />
+    <Head :title="`Nəticə — ${exam?.title ?? ''}`" />
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                    İmtahan Nəticəsi
-                </h2>
-                <Link
-                    :href="route('student.results.index')"
-                    class="text-sm text-indigo-600 hover:text-indigo-800"
-                >
-                    Bütün Nəticələr
-                </Link>
-            </div>
+            <PanelHead :title="exam?.title ?? 'Nəticə'" :lead="trailText || null">
+                <template #actions>
+                    <PanelButton variant="ghost" @click="printSheet">Çap et / PDF</PanelButton>
+                    <PanelButton :href="examUrl">Yenidən ver</PanelButton>
+                </template>
+            </PanelHead>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-4xl sm:px-6 lg:px-8">
-                <!-- Score Card -->
-                <div class="bg-white overflow-hidden shadow-sm rounded-lg mb-6">
-                    <div class="p-8 text-center">
-                        <span class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">
-                            {{ exam.subject?.name }}
-                        </span>
-                        <h1 class="text-2xl font-bold text-gray-900 mt-4">{{ exam.title }}</h1>
+        <div class="wrap page" :style="{ '--accent': accent }">
+            <!--
+                İMTAHAN VƏRƏQİ — ekranda da, çapda da sənəd kimi. Aşağıdakı sual-cavab
+                analizi olduğu kimi qalır, vərəq onun üstündə xülasədir.
+            -->
+            <article class="sheet">
+                <header class="sheet-head">
+                    <div class="sheet-brand">
+                        <span class="brand-mark" aria-hidden="true"></span>
+                        <span class="brand-name">{{ $t('site.brand') }}</span>
+                    </div>
+                    <p class="sheet-doc">İmtahan vərəqi</p>
+                </header>
 
-                        <div
-                            v-if="attempt.awaiting_review"
-                            class="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
-                        >
-                            Açıq suallar yoxlanılır. Aşağıdakı bal müvəqqətidir — yoxlama bitəndən
-                            sonra yenilənəcək.
-                        </div>
+                <dl class="sheet-meta">
+                    <div>
+                        <dt>Şagird</dt>
+                        <dd>{{ attempt.student || '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt>İmtahan</dt>
+                        <dd>{{ exam?.title }}</dd>
+                    </div>
+                    <div>
+                        <dt>Bölmə</dt>
+                        <dd>{{ trailText || contextLabel || '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Tarix</dt>
+                        <dd>{{ finishedAt }}<template v-if="attempt.minutes_spent"> · {{ attempt.minutes_spent }} dəq</template></dd>
+                    </div>
+                </dl>
 
-                        <!-- Ümumi bal. Yoxlama bitməyibsə "ilkin" nişanı ilə və neytral rəngdə. -->
-                        <div class="mt-8">
-                            <div :class="['text-5xl sm:text-6xl font-bold', getScoreColor]">
-                                {{ attempt.score }}
-                                <span class="text-3xl text-gray-400">/ {{ attempt.max_subject_score }}</span>
-                            </div>
-                            <p class="mt-2 flex flex-wrap items-center justify-center gap-2 text-gray-500">
-                                <span>ümumi bal</span>
-                                <span class="text-gray-400">({{ attempt.relative_score }} — 100-lük)</span>
-                                <span
-                                    v-if="attempt.awaiting_review"
-                                    class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
-                                >ilkin</span>
-                            </p>
-                        </div>
+                <div class="sheet-body">
+                    <!-- Cavab kartı: mobildə ÖZ konteynerində sürüşür, səhifəni yana çəkmir -->
+                    <div class="card-scroll">
+                        <table class="answer-card">
+                            <caption class="visually-hidden">Cavab kartı: sual nömrəsi, sənin cavabın, düzgün cavab və sualın dəyəri</caption>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">№</th>
+                                    <td v-for="(answer, index) in answers" :key="`n-${answer.question_id}`" class="cell-num">
+                                        {{ index + 1 }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Cavabın</th>
+                                    <td
+                                        v-for="answer in answers"
+                                        :key="`g-${answer.question_id}`"
+                                        :class="['cell', `cell--${statusOf(answer)}`]"
+                                    >
+                                        <span class="cell-mark" aria-hidden="true">{{ STATUS_MARK[statusOf(answer)] }}</span>
+                                        <span class="cell-value">{{ givenAnswer(answer) }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Düzgün</th>
+                                    <td v-for="answer in answers" :key="`r-${answer.question_id}`" class="cell-right">
+                                        {{ rightAnswer(answer) }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Dəyər</th>
+                                    <td v-for="answer in answers" :key="`w-${answer.question_id}`" class="cell-weight">
+                                        {{ answer.weight }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                        <!-- Fənn üzrə bölgü: nisbi bal (NB) burada göstərilir -->
-                        <div v-if="sections.length" class="mt-8 overflow-x-auto">
+                    <!-- Yekun -->
+                    <aside class="summary">
+                        <p class="summary-score">
+                            <span :class="['score', getScoreColor]">{{ attempt.relative_score }}</span>
+                            <span class="score-max">/ 100</span>
+                            <span v-if="attempt.awaiting_review" class="tag tag--pending">ilkin</span>
+                        </p>
+                        <p class="summary-sub">
+                            {{ attempt.score }} / {{ attempt.max_subject_score }} bal
+                            · {{ totalWeight }} xam bal
+                        </p>
+
+                        <ul class="legend">
+                            <li><span class="dot dot--correct" aria-hidden="true">✓</span> düz <b>{{ tally.correct }}</b></li>
+                            <li v-if="tally.partial"><span class="dot dot--partial" aria-hidden="true">±</span> qismən <b>{{ tally.partial }}</b></li>
+                            <li><span class="dot dot--wrong" aria-hidden="true">✗</span> səhv <b>{{ tally.wrong }}</b></li>
+                            <li><span class="dot dot--empty" aria-hidden="true">—</span> cavabsız <b>{{ tally.empty }}</b></li>
+                            <li v-if="tally.pending"><span class="dot dot--pending" aria-hidden="true">?</span> yoxlanılır <b>{{ tally.pending }}</b></li>
+                        </ul>
+
+                        <p v-if="attempt.awaiting_review" class="summary-note">
+                            Açıq suallar yoxlanılır — bal yoxlamadan sonra dəyişə bilər.
+                        </p>
+                    </aside>
+                </div>
+            </article>
+
+            <!-- Fənn üzrə bölgü, müqayisə və qrafik -->
+            <PanelCard v-if="sections.length || comparison.previous || historyPoints.length > 1" title="Bölmələr və irəliləyiş" class="block">
+                                                <div v-if="sections.length" class="card-scroll">
                             <table class="min-w-full text-sm">
                                 <thead>
                                     <tr class="text-gray-500">
@@ -167,70 +310,41 @@ const getAnswerStatus = (answer) => {
                                 <p class="text-sm text-gray-500">Boş</p>
                             </div>
                         </div>
-
-                        <!-- Zolaq nisbi balı göstərir; altında isə FAİZ yox, SAY yazılır -->
-                        <div class="mt-6">
-                            <div class="w-full bg-gray-200 rounded-full h-3 max-w-md mx-auto">
-                                <div
-                                    class="h-3 rounded-full transition-all duration-500"
-                                    :class="attempt.awaiting_review ? 'bg-gray-400' : (relative >= 60 ? 'bg-green-500' : 'bg-red-500')"
-                                    :style="{ width: `${Math.min(100, relative)}%` }"
-                                ></div>
-                            </div>
-                            <p class="text-sm text-gray-500 mt-2">
-                                {{ attempt.total_questions }} sualdan {{ attempt.correct_answers }}-i düzgün
-                            </p>
-                        </div>
-
-                        <!-- Əvvəlki cəhdlə müqayisə -->
-                        <div v-if="comparison.previous" class="mx-auto mt-8 max-w-md rounded-lg bg-gray-50 p-4 text-sm">
-                            <p class="text-gray-700">
-                                Əvvəlki cəhd ({{ comparison.previous.date }}):
-                                <span class="font-semibold">{{ comparison.previous.relative_score }}</span> (100-lük)
-                            </p>
-                            <p class="mt-1">
-                                Dəyişmə:
-                                <span
-                                    class="font-semibold"
-                                    :class="comparison.change >= 0 ? 'text-green-600' : 'text-red-600'"
-                                >{{ comparison.change > 0 ? '+' : '' }}{{ comparison.change }}</span>
-                            </p>
-                        </div>
-
-                        <div v-if="historyPoints.length > 1" class="mt-6">
-                            <LineChart :points="historyPoints" :max="100" label="Bu imtahandakı cəhdlərin nisbi balı" />
-                        </div>
-
-                        <div class="mt-6 space-y-1 text-sm text-gray-500">
-                            <p v-if="contextLabel">Bölmə: {{ contextLabel }}</p>
-                            <p>Tarix: {{ new Date(attempt.finished_at).toLocaleString('az-AZ') }}</p>
-                        </div>
-                    </div>
+                <div v-if="comparison.previous" class="compare">
+                    <p>
+                        Əvvəlki cəhd ({{ comparison.previous.date }}):
+                        <b>{{ comparison.previous.relative_score }}</b> (100-lük)
+                    </p>
+                    <p>
+                        Dəyişmə:
+                        <b :class="comparison.change >= 0 ? 'up' : 'down'">
+                            {{ comparison.change > 0 ? '+' : '' }}{{ comparison.change }}
+                        </b>
+                    </p>
                 </div>
 
-                <!-- Mövzu bölgüsü -->
-                <div v-if="topics.length" class="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
-                    <div class="border-b border-gray-200 p-6">
-                        <h3 class="text-lg font-semibold text-gray-900">Mövzu üzrə bölgü</h3>
-                        <p class="mt-1 text-sm text-gray-500">Ən zəif mövzu yuxarıdadır.</p>
-                    </div>
-                    <ul class="divide-y divide-gray-100 p-6 pt-0">
-                        <li v-for="topic in topics" :key="topic.topic" class="py-3">
-                            <div class="flex justify-between text-sm">
-                                <span class="font-medium text-gray-800">{{ topic.topic }}</span>
-                                <span class="text-gray-500">{{ topic.correct }}/{{ topic.answered }}</span>
-                            </div>
-                            <ScoreBar :value="topic.accuracy" :weak="topic.accuracy < 60" class="mt-1" />
-                        </li>
-                    </ul>
+                <div v-if="historyPoints.length > 1" class="chart">
+                    <LineChart :points="historyPoints" :max="100" label="Bu imtahandakı cəhdlərin nisbi balı" />
                 </div>
+            </PanelCard>
 
-                <!-- Answer Details -->
-                <div class="bg-white overflow-hidden shadow-sm rounded-lg">
-                    <div class="p-6 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Sual-Cavab Analizi</h3>
-                    </div>
-                    <div class="divide-y divide-gray-200">
+            <!-- Mövzu bölgüsü -->
+            <PanelCard v-if="topics.length" title="Mövzu üzrə bölgü" class="block">
+                <p class="hint">Ən zəif mövzu yuxarıdadır.</p>
+                <ul class="topics">
+                    <li v-for="topic in topics" :key="topic.topic">
+                        <div class="topic-line">
+                            <span class="topic-name">{{ topic.topic }}</span>
+                            <span class="muted">{{ topic.correct }}/{{ topic.answered }}</span>
+                        </div>
+                        <ScoreBar :value="topic.accuracy" :weak="topic.accuracy < 60" class="bar" />
+                    </li>
+                </ul>
+            </PanelCard>
+
+            <!-- Sual-cavab analizi: vərəqdəki xülasənin açılışı -->
+            <PanelCard title="Sual-cavab analizi" class="block" flush>
+                    <div class="analysis">
                         <div
                             v-for="(answer, index) in answers"
                             :key="answer.question_id"
@@ -357,24 +471,443 @@ const getAnswerStatus = (answer) => {
                             </div>
                         </div>
                     </div>
-                </div>
+            </PanelCard>
 
-                <!-- Actions -->
-                <div class="mt-6 flex justify-center gap-4">
-                    <Link
-                        :href="examUrl"
-                        class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                    >
-                        Yenidən İmtahan Ver
-                    </Link>
-                    <Link
-                        :href="route('student.exams.index')"
-                        class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-                    >
-                        Mənim imtahanlarım
-                    </Link>
-                </div>
+            <div class="actions">
+                <PanelButton :href="route('student.exams.index')" variant="ghost">Mənim imtahanlarım</PanelButton>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.page {
+    padding-block: 28px 64px;
+}
+
+.block {
+    margin-top: 20px;
+}
+
+/* ============================================================ VƏRƏQ */
+
+.sheet {
+    border: var(--card-border);
+    border-top: 4px solid var(--accent);
+    border-radius: var(--card-radius);
+    background: var(--paper);
+}
+
+.sheet-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--ink-red-line);
+}
+
+.sheet-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* İctimai başlıqdakı nişanın eynisi */
+.brand-mark {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink-red);
+    background: radial-gradient(circle at 40% 38%, #3a3f46 0 45%, var(--graphite) 70%);
+    box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+.brand-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--graphite);
+}
+
+.sheet-doc {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.sheet-meta {
+    display: grid;
+    gap: 10px 24px;
+    margin: 0;
+    padding: 14px 18px;
+    border-bottom: 1px dashed var(--ink-red-line);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sheet-meta div {
+    min-width: 0;
+}
+
+.sheet-meta dt {
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.sheet-meta dd {
+    margin: 2px 0 0;
+    font-weight: 600;
+    color: var(--graphite);
+    overflow-wrap: anywhere;
+}
+
+.sheet-body {
+    display: grid;
+    gap: 18px;
+    padding: 16px 18px 18px;
+}
+
+/* ------------------------------------------------------- cavab kartı */
+
+/* Cədvəl ÖZ konteynerində sürüşür — səhifə yana çəkilmir */
+.card-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
+
+.answer-card {
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.answer-card th[scope='row'] {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    padding: 6px 12px 6px 0;
+    background: var(--paper);
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.answer-card td {
+    min-width: 42px;
+    padding: 5px 4px;
+    border: 1px solid rgba(22, 19, 14, 0.12);
+    text-align: center;
+    vertical-align: middle;
+}
+
+.cell-num {
+    font-weight: 700;
+    color: var(--graphite);
+    background: var(--paper-sunk);
+}
+
+/*
+ * Vəziyyət: YUMŞAQ fon + sol kənarda rəngli zolaq + işarə.
+ * Fon tam doldurulmur ki, mətn oxunaqlı qalsın; rəng tək göstərici deyil.
+ */
+.cell {
+    border-left-width: 3px;
+    border-left-style: solid;
+    line-height: 1.15;
+}
+
+.cell-mark {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.cell-value {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.cell--correct { background: #E6EFEA; border-left-color: var(--correct); color: var(--correct); }
+.cell--partial { background: #F7F0E0; border-left-color: #8A5A05; color: #8A5A05; }
+.cell--wrong { background: #F7E8E9; border-left-color: var(--ink-red); color: var(--ink-red); }
+.cell--empty { background: var(--paper-sunk); border-left-color: rgba(22, 19, 14, 0.3); color: var(--muted); }
+.cell--pending { background: #E9ECF6; border-left-color: var(--pen); color: var(--pen); }
+
+.cell-right {
+    font-weight: 600;
+    color: var(--graphite);
+}
+
+.cell-weight {
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+/* ------------------------------------------------------------- yekun */
+
+.summary {
+    padding: 14px 16px;
+    border: 1px solid rgba(22, 19, 14, 0.12);
+    border-radius: 10px;
+    background: var(--paper-sunk);
+}
+
+.summary-score {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    margin: 0;
+}
+
+.score {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.score--high { color: var(--correct); }
+.score--mid { color: #8A5A05; }
+.score--low { color: var(--ink-red); }
+.score--pending { color: var(--muted); }
+
+.score-max {
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.tag {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.tag--pending {
+    background: #F7F0E0;
+    color: #8A5A05;
+}
+
+.summary-sub {
+    margin: 4px 0 12px;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+    font-size: 0.875rem;
+    color: var(--graphite);
+}
+
+.legend li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex: none;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.dot--correct { background: #E6EFEA; color: var(--correct); }
+.dot--partial { background: #F7F0E0; color: #8A5A05; }
+.dot--wrong { background: #F7E8E9; color: var(--ink-red); }
+.dot--empty { background: #E7E7E4; color: var(--muted); }
+.dot--pending { background: #E9ECF6; color: var(--pen); }
+
+.summary-note {
+    margin: 12px 0 0;
+    font-size: 0.8125rem;
+    color: #8A5A05;
+}
+
+/* -------------------------------------------------- bölmələr və qrafik */
+
+.compare {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--paper-sunk);
+    font-size: 0.9375rem;
+}
+
+.compare p {
+    margin: 0;
+}
+
+.compare p + p {
+    margin-top: 4px;
+}
+
+.up { color: var(--correct); }
+.down { color: var(--ink-red); }
+
+.chart {
+    margin-top: 16px;
+}
+
+.actions {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+@media (min-width: 640px) {
+    .sheet-meta { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+    /* Cavab kartı solda, yekun sağda */
+    .sheet-body {
+        grid-template-columns: minmax(0, 1fr) 280px;
+        align-items: start;
+    }
+}
+
+
+/* -------------------------------------------- mövzu bölgüsü və analiz */
+
+.hint {
+    margin: 0 0 12px;
+    font-size: 0.8125rem;
+    color: var(--muted);
+}
+
+.topics {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 14px;
+}
+
+.topic-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.9375rem;
+}
+
+.topic-name {
+    font-weight: 600;
+    color: var(--graphite);
+}
+
+.bar {
+    margin-top: 6px;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+/*
+ * Analizdəki sual blokları: sərhədlər və fonlar palitradan gəlir.
+ * Daxili quruluş (Tailwind şəbəkəsi) olduğu kimi qalır — yalnız rənglər dəyişir.
+ */
+.analysis > div > div {
+    border-top: 1px dashed var(--ink-red-line);
+}
+
+.analysis > div > div:first-child {
+    border-top: 0;
+}
+
+.analysis :deep(.bg-gray-50) { background: var(--paper-sunk) !important; }
+.analysis :deep(.bg-green-50) { background: #E6EFEA !important; }
+.analysis :deep(.bg-red-50) { background: #F7E8E9 !important; }
+.analysis :deep(.bg-blue-50) { background: #E9ECF6 !important; }
+.analysis :deep(.bg-amber-50) { background: #F7F0E0 !important; }
+.analysis :deep(.text-gray-900) { color: var(--graphite) !important; }
+.analysis :deep(.text-gray-700),
+.analysis :deep(.text-gray-800) { color: var(--graphite) !important; }
+.analysis :deep(.text-gray-500) { color: var(--muted) !important; }
+.analysis :deep(.text-green-800) { color: var(--correct) !important; }
+.analysis :deep(.text-blue-900) { color: var(--pen-deep) !important; }
+.analysis :deep(.text-amber-800) { color: #8A5A05 !important; }
+.analysis :deep(.text-indigo-700),
+.analysis :deep(.text-indigo-800) { color: var(--pen) !important; }
+.analysis :deep(.border-green-200) { border-color: rgba(31, 122, 77, 0.35) !important; }
+.analysis :deep(.border-red-200) { border-color: var(--ink-red-line) !important; }
+
+/* Etiraz düyməsi: toxunma sahəsi 44px */
+.analysis :deep(button) {
+    min-height: 44px;
+}
+
+/* ============================================================== ÇAP */
+
+@media print {
+    .page {
+        padding: 0;
+        max-width: none;
+    }
+
+    /* Düymələr və interaktiv elementlər kağıza düşmür */
+    .actions,
+    .chart {
+        display: none !important;
+    }
+
+    .sheet {
+        border: 1px solid #999;
+        border-top-width: 3px;
+        border-radius: 0;
+        background: #fff;
+    }
+
+    .summary,
+    .cell-num,
+    .compare {
+        background: #fff !important;
+    }
+
+    /* Rəngli fonlar çapda saxlanılsın (brauzer defolt olaraq onları atır) */
+    .cell,
+    .dot {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Cavab kartı çapda tam görünsün */
+    .card-scroll {
+        overflow: visible;
+    }
+
+    .answer-card {
+        font-size: 0.75rem;
+    }
+
+    /* Vərəq və hər sual ortadan kəsilməsin */
+    .sheet,
+    .block {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}
+</style>

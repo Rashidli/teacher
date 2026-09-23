@@ -1,19 +1,31 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PanelHead from '@/Components/Ui/PanelHead.vue';
+import PanelCard from '@/Components/Ui/PanelCard.vue';
+import PanelButton from '@/Components/Ui/PanelButton.vue';
+import PanelRow from '@/Components/Ui/PanelRow.vue';
 import { Head, Link } from '@inertiajs/vue3';
-import { useFeatures } from '@/Composables/useFeatures';
+import { useLocale } from '@/Composables/useLocale';
 
+/**
+ * Nəticə siyahısı.
+ *
+ * Cədvəl əvəzinə sətir siyahısıdır: mobildə üfüqi sürüşmə yaratmır və "Qrup" sütunu
+ * (qrupsuz imtahanlarda boş qalırdı) bölmə adı ilə əvəzləndi.
+ */
 defineProps({
-    attempts: Object,
+    attempts: { type: Object, required: true },
 });
 
-const { teachersEnabled } = useFeatures();
+const { lroute } = useLocale();
 
-const getScoreColor = (attempt) => {
-    const percentage = (attempt.correct_answers / attempt.total_questions) * 100;
-    if (percentage >= 80) return 'text-green-600';
-    if (percentage >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+// Nisbi bal əsas ölçüdür; yoxlanmamış cəhddə rəng neytral qalır
+const scoreClass = (attempt) => {
+    if (attempt.awaiting_review) return 'score--pending';
+    if (attempt.relative_score >= 80) return 'score--high';
+    if (attempt.relative_score >= 60) return 'score--mid';
+
+    return 'score--low';
 };
 </script>
 
@@ -22,140 +34,167 @@ const getScoreColor = (attempt) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Nəticələrim
-            </h2>
+            <PanelHead title="Nəticələrim" lead="Bütün tamamlanmış cəhdlər, ən yenisi əvvəldə.">
+                <template #actions>
+                    <PanelButton :href="route('student.statistics')" variant="ghost">Statistika</PanelButton>
+                </template>
+            </PanelHead>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm rounded-lg">
-                    <div v-if="attempts.data?.length" class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        İmtahan
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Fənn
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Qrup
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Nəticə
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Bal
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tarix
-                                    </th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Əməliyyat
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="attempt in attempts.data" :key="attempt.id">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">
-                                            {{ attempt.exam?.title }}
-                                        </div>
-                                        <div v-if="teachersEnabled && attempt.exam?.teacher" class="text-xs text-gray-500">
-                                            {{ attempt.exam.teacher.full_name }}
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded">
-                                            {{ attempt.exam?.subject?.name }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ attempt.group?.name }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm text-green-600 font-medium">
-                                                {{ attempt.correct_answers }}
-                                            </span>
-                                            <span class="text-gray-400">/</span>
-                                            <span class="text-sm text-red-600 font-medium">
-                                                {{ attempt.wrong_answers }}
-                                            </span>
-                                            <span class="text-gray-400">/</span>
-                                            <span class="text-sm text-gray-500">
-                                                {{ attempt.total_questions }}
-                                            </span>
-                                        </div>
-                                        <div class="text-xs text-gray-500">
-                                            düzgün / səhv / ümumi
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span :class="['text-lg font-bold', getScoreColor(attempt)]">
-                                            {{ attempt.score }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ new Date(attempt.finished_at).toLocaleDateString('az-AZ') }}
-                                        <br>
-                                        <span class="text-xs">
-                                            {{ new Date(attempt.finished_at).toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' }) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <Link
-                                            :href="route('student.exams.result', attempt.id)"
-                                            class="text-indigo-600 hover:text-indigo-900"
-                                        >
-                                            Ətraflı
-                                        </Link>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+        <div class="wrap page">
+            <PanelCard flush>
+                <ul v-if="attempts.data?.length" class="rows">
+                    <PanelRow
+                        v-for="attempt in attempts.data"
+                        :key="attempt.id"
+                        :title="attempt.title"
+                        :trail="attempt.trail"
+                        :href="attempt.url"
+                    >
+                        <template #meta>
+                            <template v-if="attempt.subject">{{ attempt.subject }} · </template>
+                            {{ attempt.finished_at }}
+                            · {{ attempt.correct_answers }}/{{ attempt.questions }} düz
+                        </template>
+                        <template #actions>
+                            <span class="score-block">
+                                <span :class="['score', scoreClass(attempt)]">{{ attempt.relative_score }}</span>
+                                <span class="score-max">/ 100</span>
+                                <span v-if="attempt.awaiting_review" class="tag">ilkin</span>
+                            </span>
+                        </template>
+                    </PanelRow>
+                </ul>
 
-                    <div v-else class="p-12 text-center">
-                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                            </svg>
-                        </div>
-                        <p class="text-gray-500 mb-4">Hələ heç bir imtahan verməmisiniz</p>
-                        <Link
-                            :href="route('student.exams.index')"
-                            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                        >
-                            Mənim imtahanlarım
-                        </Link>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div v-if="attempts.links && attempts.data?.length" class="px-6 py-4 border-t border-gray-200">
-                        <div class="flex justify-between items-center">
-                            <div class="text-sm text-gray-500">
-                                {{ attempts.from }} - {{ attempts.to }} / {{ attempts.total }}
-                            </div>
-                            <div class="flex gap-2">
-                                <Link
-                                    v-for="link in attempts.links"
-                                    :key="link.label"
-                                    :href="link.url"
-                                    :class="[
-                                        'px-3 py-1 text-sm rounded',
-                                        link.active ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-                                        !link.url && 'opacity-50 cursor-not-allowed'
-                                    ]"
-                                    v-html="link.label"
-                                />
-                            </div>
-                        </div>
-                    </div>
+                <div v-else class="empty">
+                    <p class="empty-title">Hələ heç bir imtahan verməmisən.</p>
+                    <p class="empty-lead">Kataloqdan bölməni seç və ilk imtahanını ver.</p>
+                    <PanelButton :href="lroute('exams.catalog')">Kataloqa keç</PanelButton>
                 </div>
-            </div>
+            </PanelCard>
+
+            <!-- Səhifələmə -->
+            <nav v-if="attempts.data?.length && attempts.last_page > 1" class="pager" aria-label="Səhifələr">
+                <span class="pager-state">{{ attempts.from }}–{{ attempts.to }} / {{ attempts.total }}</span>
+                <span class="pager-links">
+                    <Link
+                        v-for="link in attempts.links"
+                        :key="link.label"
+                        :href="link.url || ''"
+                        :class="['pager-link', link.active ? 'pager-link--on' : '', !link.url ? 'pager-link--off' : '']"
+                        :aria-current="link.active ? 'page' : undefined"
+                        preserve-scroll
+                        v-html="link.label"
+                    />
+                </span>
+            </nav>
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.page {
+    padding-block: 28px 64px;
+}
+
+.rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.score-block {
+    display: block;
+    text-align: right;
+}
+
+.score {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.score--high { color: var(--correct); }
+.score--mid { color: #8A5A05; }
+.score--low { color: var(--ink-red); }
+.score--pending { color: var(--muted); }
+
+.score-max {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.tag {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8A5A05;
+}
+
+.empty {
+    padding: 28px 18px;
+    text-align: center;
+}
+
+.empty-title {
+    margin: 0;
+    font-weight: 600;
+    color: var(--graphite);
+}
+
+.empty-lead {
+    margin: 6px 0 18px;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+/* ------------------------------------------------------------ səhifələmə */
+
+.pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.pager-state {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.pager-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pager-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Toxunma sahəsi 44px */
+    min-width: 44px;
+    min-height: 44px;
+    padding-inline: 10px;
+    border: 1px solid rgba(22, 19, 14, 0.25);
+    border-radius: 999px;
+    font-size: 0.9rem;
+    color: var(--graphite);
+    text-decoration: none;
+}
+
+.pager-link--on {
+    background: var(--graphite);
+    border-color: var(--graphite);
+    color: var(--paper);
+    font-weight: 600;
+}
+
+.pager-link--off {
+    opacity: 0.35;
+    pointer-events: none;
+}
+</style>

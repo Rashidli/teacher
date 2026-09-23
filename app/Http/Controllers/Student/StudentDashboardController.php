@@ -9,9 +9,7 @@ use Inertia\Inertia;
 
 class StudentDashboardController extends Controller
 {
-    public function __construct(private readonly StudentStatistics $statistics)
-    {
-    }
+    public function __construct(private readonly StudentStatistics $statistics) {}
 
     public function index()
     {

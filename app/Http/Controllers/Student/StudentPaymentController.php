@@ -23,8 +23,7 @@ class StudentPaymentController extends Controller
         private readonly PaymentGatewayFactory $gateways,
         private readonly PaymentProcessor $payments,
         private readonly ExamAccessService $access,
-    ) {
-    }
+    ) {}
 
     public function store(Exam $exam): RedirectResponse
     {

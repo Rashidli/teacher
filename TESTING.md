@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 493 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 496 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` və `php artisan files:backup`
@@ -181,6 +181,12 @@ bölmələrə) və **`/imtahanlar`** — ağacdan asılı olmayan ümumi siyahı
 | K46 | İmtahan səhifəsi | Bölmə rəngli üst sətir, növ etiketi, müddət/sual/bal bir sətirdə ikonlarla, qiymət və əsas düymə vurğulu blokda |
 | K47 | Daxil olmamış halda başlıq | "Daxil ol" və "Qeydiyyat" görünür |
 | K48 | Daxil olduqdan sonra başlıq | İnisiallı düymə + ad; menyuda Mənim imtahanlarım, Nəticələr, Statistika, Profil, Çıxış (admin hesabında əlavə "Admin panel"). Escape və kənara klik menyunu bağlayır |
+| P1 | Şagird panelindəki səhifələr (panel, mənim imtahanlarım, nəticələr, statistika) | Başlıq, rənglər, kartlar və düymələr ictimai tərəflə **eyni** görünür; sətirlərdə bölmə rəngi var |
+| P2 | Nəticə səhifəsinin yuxarısı | **İmtahan vərəqi**: brend, şagird adı, imtahan, bölmə, tarix; altında cavab kartı və yekun |
+| P3 | Cavab kartına bax | Sətirlər: №, sənin cavabın, düzgün cavab, dəyər. Düz/səhv/cavabsız həm **rənglə**, həm **işarə ilə** (✓ ✗ —) fərqlənir |
+| P4 | Mobildə cavab kartı | Cədvəl **öz konteynerində** sürüşür, səhifə yana çəkilmir; sol sütun (№, Cavabın …) yerində qalır |
+| P5 | Açıq sualı yoxlanmamış cəhdin vərəqi | Balın yanında **"ilkin"** nişanı və izah var |
+| P6 | "Çap et / PDF" düyməsini bas | Menyu, düymələr və qrafik kağıza düşmür; vərəq ağ fonda, sual ortadan kəsilmir |
 | K48a | Şagird kimi panelə keç, sonra menyudan "İmtahanlar" | `/imtahanlar` açılır; loqo da ana səhifəyə aparır — paneldə qapalı qalmırsan |
 | K48b | "Mənim imtahanlarım" boş olanda | "Kataloqdan yeni imtahan seç" + "Kataloqa keç" düyməsi `/imtahanlar`-a aparır |
 | K49 | Pullu imtahanda "Al" bas | Bank səhifəsi açılmır: ödəniş dərhal təsdiqlənir, "Test rejimi" bildirişi görünür, imtahan açılır və "Başla" işləyir |

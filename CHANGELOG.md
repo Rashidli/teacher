@@ -10,6 +10,41 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Şagird panelinin vizual dili və "imtahan vərəqi"
+
+**Panel ictimai tərəflə birləşdi** (nümunənin davamı). Ortaq tokenlər `:root`-da, ortaq
+komponentlər `Components/Ui/`-də: `PanelCard`, `PanelButton`, `PanelHead`, `PanelRow`.
+
+- **Şagird paneli, "Mənim imtahanlarım", "Nəticələrim", "Statistika"** eyni kart sisteminə,
+  şriftlərə və palitraya keçdi. Siyahı sətirlərində imtahanın **bölmə rəngi və yolu** var
+  (kataloq kartındakı ilə eyni), düymələrdə toxunma sahəsi 44px.
+- **Nəticələr səhifəsində iki gizli səhv** tapıldı: şablon `attempt.score` və
+  `attempt.total_questions` sahələrini oxuyurdu, halbuki `exam_attempts` cədvəlində belə
+  sütun yoxdur — "Bal" və "ümumi" sütunları **boş görünürdü**. Payload açıq quruldu; cədvəl
+  sətir siyahısına çevrildi (mobildə üfüqi sürüşmə yoxdur), "Qrup" sütunu isə (qrupsuz
+  imtahanlarda boş qalırdı) bölmə adı ilə əvəzləndi. Siyahıya yoxlama gözləyən cəhdlər də
+  düşür — əvvəl onlar ümumiyyətlə görünmürdü.
+
+**İmtahan vərəqi (yeni).** Nəticə səhifəsinin başında sənəd görünüşü:
+
+- **Başlıq:** brend nişanı və adı, şagirdin adı, imtahan, bölmə, tarix və sərf olunan vaxt.
+- **Cavab kartı:** sual nömrələri sətri, altında şagirdin cavabı (qapalıda variant hərfi),
+  altında düzgün cavab, altında **sualın dəyəri** (qapalı 1 bal, yazılı 2 bal — tiplərin
+  çəkisi fərqlidir). Vəziyyət həm rənglə, həm **işarə ilə** (✓ ✗ — ? ±) verilir: fon tam
+  doldurulmur, yumşaq fon + sol kənarda rəngli zolaq işlənir, mətn oxunaqlı qalır.
+- **Yekun:** nisbi bal, xam bal, düz/qismən/səhv/cavabsız/yoxlanılır sayları.
+- Açıq suallar yoxlanmayıbsa vərəqdə də **"ilkin"** nişanı və izah var.
+- Cədvəl mobildə **öz konteynerində** sürüşür, birinci sütun yapışıq qalır.
+- **`@media print`:** naviqasiya, səhifə başlığı, flash, düymələr və qrafik gizlənir; fon
+  ağ olur, rəngli xanalar `print-color-adjust: exact` ilə saxlanılır, vərəq və bloklar
+  səhifə ortasından kəsilmir. "Çap et / PDF" düyməsi əlavə olundu.
+- Mövcud **sual-cavab analizi** bölməsi olduğu kimi qalır, vərəq onun üstündə xülasədir.
+
+**Testlər:** `ResultSheetTest` (3) — vərəq başlığındakı şagird adı və müddət, variant
+hərflərinin göndərilməsi, sualın xam dəyəri (493 → 496 test).
+
+---
+
 ### 2026-09-23 — Paneldən sayta qayıdış və test paketinin fayl riski
 
 **Paneldən kataloqa qayıdış (səhv düzəlişi).** Şagird panelə keçəndən sonra kataloqa qayıda

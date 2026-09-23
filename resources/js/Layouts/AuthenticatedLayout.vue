@@ -493,4 +493,22 @@ const dashboardRoute = computed(() => {
 @media (min-width: 720px) {
     .account-name { display: inline; }
 }
+
+/*
+ * ÇAP: panelin öz elementləri (naviqasiya, səhifə başlığı, flash) kağıza düşməsin —
+ * çap olunan yalnız səhifənin məzmunu olur. Hər səhifə öz çap qaydalarını özü əlavə edir
+ * (məs. nəticə səhifəsindəki "imtahan vərəqi").
+ */
+@media print {
+    .panel-nav,
+    .page-head,
+    .flash {
+        display: none !important;
+    }
+
+    .panel-shell {
+        background: #fff;
+        min-height: 0;
+    }
+}
 </style>

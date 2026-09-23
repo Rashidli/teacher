@@ -1,8 +1,10 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PanelHead from '@/Components/Ui/PanelHead.vue';
 import PanelCard from '@/Components/Ui/PanelCard.vue';
 import PanelButton from '@/Components/Ui/PanelButton.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import PanelRow from '@/Components/Ui/PanelRow.vue';
+import { Head } from '@inertiajs/vue3';
 import { useLocale } from '@/Composables/useLocale';
 
 /**
@@ -10,9 +12,6 @@ import { useLocale } from '@/Composables/useLocale';
  *
  * Yeni imtahan axtarışı kataloqdadır (kateqoriya ağacı) — burada tövsiyə bloku yoxdur.
  * Onun yerini P3-dəki "Məqsədim" funksiyası tutacaq.
- *
- * DİZAYN: ictimai tərəflə eyni dil — `:root` tokenləri, `PanelCard`/`PanelButton` ortaq
- * komponentləri, sətirlərdə isə imtahanın BÖLMƏ RƏNGİ (kataloq kartındakı ilə eyni).
  */
 defineProps({
     stats: Object,
@@ -21,10 +20,6 @@ defineProps({
 });
 
 const { lroute } = useLocale();
-
-const accent = (item) => item.trail?.color || 'var(--muted)';
-
-const trailText = (item) => [item.trail?.root, item.trail?.leaf].filter(Boolean).join(' › ');
 </script>
 
 <template>
@@ -32,13 +27,11 @@ const trailText = (item) => [item.trail?.root, item.trail?.leaf].filter(Boolean)
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="head">
-                <div>
-                    <h1 class="head-title">Şagird paneli</h1>
-                    <p class="head-lead">Davam edən imtahanların və son nəticələrin burada.</p>
-                </div>
-                <PanelButton :href="lroute('exams.catalog')">İmtahan seç</PanelButton>
-            </div>
+            <PanelHead title="Şagird paneli" lead="Davam edən imtahanların və son nəticələrin burada.">
+                <template #actions>
+                    <PanelButton :href="lroute('exams.catalog')">İmtahan seç</PanelButton>
+                </template>
+            </PanelHead>
         </template>
 
         <div class="wrap page">
@@ -66,18 +59,19 @@ const trailText = (item) => [item.trail?.root, item.trail?.leaf].filter(Boolean)
                 <!-- Davam edən imtahanlar: taymer işlədiyi üçün birinci yerdədir -->
                 <PanelCard title="Davam edən imtahanlar" accent="var(--sign-yellow)" flush>
                     <ul v-if="inProgress.length" class="rows">
-                        <li v-for="item in inProgress" :key="item.id" :style="{ '--accent': accent(item) }">
-                            <div class="row">
-                                <div class="row-text">
-                                    <p v-if="trailText(item)" class="row-trail">
-                                        <span class="row-dot" aria-hidden="true"></span>{{ trailText(item) }}
-                                    </p>
-                                    <p class="row-title">{{ item.title }}</p>
-                                    <p class="row-meta row-meta--urgent">{{ item.remaining_minutes }} dəqiqə qalıb</p>
-                                </div>
+                        <PanelRow
+                            v-for="item in inProgress"
+                            :key="item.id"
+                            :title="item.title"
+                            :trail="item.trail"
+                        >
+                            <template #meta>
+                                <span class="urgent">{{ item.remaining_minutes }} dəqiqə qalıb</span>
+                            </template>
+                            <template #actions>
                                 <PanelButton :href="item.url" small>Davam et</PanelButton>
-                            </div>
-                        </li>
+                            </template>
+                        </PanelRow>
                     </ul>
                     <p v-else class="empty">Davam edən imtahanın yoxdur.</p>
                 </PanelCard>
@@ -91,22 +85,22 @@ const trailText = (item) => [item.trail?.root, item.trail?.leaf].filter(Boolean)
                     </template>
 
                     <ul v-if="recentResults.length" class="rows">
-                        <li v-for="item in recentResults" :key="item.id" :style="{ '--accent': accent(item) }">
-                            <Link :href="item.url" class="row row--link">
-                                <div class="row-text">
-                                    <p v-if="trailText(item)" class="row-trail">
-                                        <span class="row-dot" aria-hidden="true"></span>{{ trailText(item) }}
-                                    </p>
-                                    <p class="row-title">{{ item.title }}</p>
-                                    <p class="row-meta">{{ item.finished_at }}</p>
-                                </div>
-                                <div class="row-score">
+                        <PanelRow
+                            v-for="item in recentResults"
+                            :key="item.id"
+                            :title="item.title"
+                            :trail="item.trail"
+                            :href="item.url"
+                        >
+                            <template #meta>{{ item.finished_at }}</template>
+                            <template #actions>
+                                <span class="score-block">
                                     <span class="score">{{ item.relative_score ?? 0 }}</span>
                                     <span class="score-max">/ 100</span>
                                     <span class="score-note">{{ item.correct_answers }}/{{ item.question_count }} düz</span>
-                                </div>
-                            </Link>
-                        </li>
+                                </span>
+                            </template>
+                        </PanelRow>
                     </ul>
                     <p v-else class="empty">Hələ imtahan verməmisən.</p>
                 </PanelCard>
@@ -116,29 +110,6 @@ const trailText = (item) => [item.trail?.root, item.trail?.leaf].filter(Boolean)
 </template>
 
 <style scoped>
-.head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px 20px;
-}
-
-.head-title {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--graphite);
-}
-
-.head-lead {
-    margin: 4px 0 0;
-    font-size: 0.9375rem;
-    color: var(--muted);
-}
-
 .page {
     padding-block: 28px 64px;
 }
@@ -180,14 +151,12 @@ const trailText = (item) => [item.trail?.root, item.trail?.leaf].filter(Boolean)
     color: var(--muted);
 }
 
-/* ---------------------------------------------------------------- sütunlar */
+/* ------------------------------------------------------------- sütunlar */
 
 .columns {
     display: grid;
     gap: 20px;
 }
-
-/* ---------------------------------------------------------------- sətirlər */
 
 .rows {
     list-style: none;
@@ -195,71 +164,13 @@ const trailText = (item) => [item.trail?.root, item.trail?.leaf].filter(Boolean)
     padding: 0;
 }
 
-.rows > li + li {
-    border-top: 1px dashed var(--ink-red-line);
-}
-
-.row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px 16px;
-    /* Bölmə rəngi sol kənarda: kataloq kartındakı zolağın sətir variantı */
-    border-left: 3px solid var(--accent);
-    padding: 14px 18px;
-    text-decoration: none;
-}
-
-.row--link {
-    color: inherit;
-}
-
-.row--link:hover {
-    background: var(--paper-sunk);
-}
-
-.row-text {
-    min-width: 0;
-}
-
-.row-trail {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0 0 2px;
-    font-size: 0.8125rem;
+.urgent {
     font-weight: 600;
-    color: var(--accent);
-}
-
-.row-dot {
-    width: 7px;
-    height: 7px;
-    flex: none;
-    border-radius: 50%;
-    background: var(--accent);
-}
-
-.row-title {
-    margin: 0;
-    font-weight: 600;
-    color: var(--graphite);
-}
-
-.row-meta {
-    margin: 2px 0 0;
-    font-size: 0.875rem;
-    color: var(--muted);
-}
-
-.row-meta--urgent {
     color: #8A5A05;
-    font-weight: 600;
 }
 
-.row-score {
-    flex: none;
+.score-block {
+    display: block;
     text-align: right;
 }
 
@@ -289,6 +200,5 @@ const trailText = (item) => [item.trail?.root, item.trail?.leaf].filter(Boolean)
 
 @media (min-width: 1024px) {
     .columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .head-title { font-size: 1.75rem; }
 }
 </style>

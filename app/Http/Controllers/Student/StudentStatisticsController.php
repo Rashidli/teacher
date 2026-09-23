@@ -14,9 +14,7 @@ use Inertia\Response;
  */
 class StudentStatisticsController extends Controller
 {
-    public function __construct(private readonly StudentStatistics $statistics)
-    {
-    }
+    public function __construct(private readonly StudentStatistics $statistics) {}
 
     public function index(): Response
     {

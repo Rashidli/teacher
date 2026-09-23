@@ -1,10 +1,15 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import PanelHead from '@/Components/Ui/PanelHead.vue';
+import PanelCard from '@/Components/Ui/PanelCard.vue';
+import PanelButton from '@/Components/Ui/PanelButton.vue';
+import PanelRow from '@/Components/Ui/PanelRow.vue';
+import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { useLocale } from '@/Composables/useLocale';
 
 // Kabinet siyahısı: yeni imtahan axtarışı kataloqdadır (kateqoriya ağacı), burada filtr yoxdur
-defineProps({
+const props = defineProps({
     inProgress: { type: Array, default: () => [] },
     available: { type: Array, default: () => [] },
     completed: { type: Array, default: () => [] },
@@ -17,6 +22,10 @@ const sourceLabels = {
     manual: 'Admin icazəsi',
     free: 'Pulsuz',
 };
+
+const isEmpty = computed(
+    () => !props.inProgress.length && !props.available.length && !props.completed.length,
+);
 </script>
 
 <template>
@@ -24,105 +33,135 @@ const sourceLabels = {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Mənim imtahanlarım</h2>
-                <Link
-                    :href="lroute('exams.catalog')"
-                    class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-                >
-                    Kataloqa keç
-                </Link>
-            </div>
+            <PanelHead title="Mənim imtahanlarım" lead="Davam edənlər, girişi açıq olanlar və tamamlananlar.">
+                <template #actions>
+                    <PanelButton :href="lroute('exams.catalog')">İmtahan seç</PanelButton>
+                </template>
+            </PanelHead>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-5xl space-y-8 sm:px-6 lg:px-8">
-                <!-- Davam edən cəhdlər -->
-                <section v-if="inProgress.length" class="overflow-hidden rounded-lg bg-white shadow-sm">
-                    <h3 class="border-b border-gray-200 p-6 text-lg font-semibold text-gray-900">
-                        Davam edən imtahanlar
-                    </h3>
-                    <ul class="divide-y divide-gray-200">
-                        <li v-for="item in inProgress" :key="item.attempt_id" class="flex flex-wrap items-center justify-between gap-3 p-6">
-                            <div>
-                                <Link :href="item.exam_url" class="font-medium text-gray-900 hover:text-indigo-700">
-                                    {{ item.title }}
-                                </Link>
-                                <p class="text-sm text-amber-700">{{ item.remaining_minutes }} dəqiqə qalıb</p>
-                            </div>
-                            <Link
-                                :href="item.url"
-                                class="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600"
-                            >
-                                Davam et
-                            </Link>
-                        </li>
+        <div class="wrap page">
+            <div class="stack">
+                <!-- Davam edən cəhdlər: taymer işlədiyi üçün birinci yerdədir -->
+                <PanelCard v-if="inProgress.length" title="Davam edən imtahanlar" accent="var(--sign-yellow)" flush>
+                    <ul class="rows">
+                        <PanelRow
+                            v-for="item in inProgress"
+                            :key="item.attempt_id"
+                            :title="item.title"
+                            :trail="item.trail"
+                        >
+                            <template #meta>
+                                <span class="urgent">{{ item.remaining_minutes }} dəqiqə qalıb</span>
+                            </template>
+                            <template #actions>
+                                <PanelButton :href="item.url" small>Davam et</PanelButton>
+                            </template>
+                        </PanelRow>
                     </ul>
-                </section>
+                </PanelCard>
 
                 <!-- Girişi olan imtahanlar -->
-                <section v-if="available.length" class="overflow-hidden rounded-lg bg-white shadow-sm">
-                    <h3 class="border-b border-gray-200 p-6 text-lg font-semibold text-gray-900">
-                        Girişi olan imtahanlar
-                    </h3>
-                    <ul class="divide-y divide-gray-200">
-                        <li v-for="item in available" :key="item.url" class="flex flex-wrap items-center justify-between gap-3 p-6">
-                            <div>
-                                <Link :href="item.url" class="font-medium text-gray-900 hover:text-indigo-700">
-                                    {{ item.title }}
-                                </Link>
-                                <p class="text-sm text-gray-500">
-                                    {{ sourceLabels[item.source] ?? item.source }}
-                                    <template v-if="item.expires_at"> · {{ item.expires_at }} tarixinədək</template>
-                                </p>
-                            </div>
-                            <Link
-                                :href="item.url"
-                                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-                            >
-                                Aç
-                            </Link>
-                        </li>
+                <PanelCard v-if="available.length" title="Girişi olan imtahanlar" accent="var(--pen)" flush>
+                    <ul class="rows">
+                        <PanelRow
+                            v-for="item in available"
+                            :key="item.url"
+                            :title="item.title"
+                            :trail="item.trail"
+                        >
+                            <template #meta>
+                                {{ sourceLabels[item.source] ?? item.source }}
+                                <template v-if="item.expires_at"> · {{ item.expires_at }} tarixinədək</template>
+                            </template>
+                            <template #actions>
+                                <PanelButton :href="item.url" variant="ghost" small>Aç</PanelButton>
+                            </template>
+                        </PanelRow>
                     </ul>
-                </section>
+                </PanelCard>
 
                 <!-- Tamamlanmış cəhdlər -->
-                <section v-if="completed.length" class="overflow-hidden rounded-lg bg-white shadow-sm">
-                    <h3 class="border-b border-gray-200 p-6 text-lg font-semibold text-gray-900">
-                        Tamamlanmış imtahanlar
-                    </h3>
-                    <ul class="divide-y divide-gray-200">
-                        <li v-for="item in completed" :key="item.attempt_id" class="flex flex-wrap items-center justify-between gap-3 p-6">
-                            <div>
-                                <Link :href="item.exam_url" class="font-medium text-gray-900 hover:text-indigo-700">
-                                    {{ item.title }}
-                                </Link>
-                                <p class="text-sm text-gray-500">
-                                    <template v-if="item.finished_at">{{ item.finished_at }} · </template>
-                                    {{ item.relative_score ?? 0 }} / 100
-                                </p>
-                            </div>
-                            <Link :href="item.url" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
-                                Nəticəyə bax
-                            </Link>
-                        </li>
+                <PanelCard v-if="completed.length" title="Tamamlanmış imtahanlar" accent="var(--correct)" flush>
+                    <ul class="rows">
+                        <PanelRow
+                            v-for="item in completed"
+                            :key="item.attempt_id"
+                            :title="item.title"
+                            :trail="item.trail"
+                            :href="item.url"
+                        >
+                            <template #meta>
+                                <template v-if="item.finished_at">{{ item.finished_at }}</template>
+                            </template>
+                            <template #actions>
+                                <span class="score">{{ item.relative_score ?? 0 }}</span>
+                                <span class="score-max">/ 100</span>
+                            </template>
+                        </PanelRow>
                     </ul>
-                </section>
+                </PanelCard>
 
                 <!-- Boş vəziyyət -->
-                <section v-if="!inProgress.length && !available.length && !completed.length" class="rounded-lg bg-white p-10 text-center shadow-sm">
-                    <p class="text-gray-600">Hələ imtahanın yoxdur. Kataloqdan yeni imtahan seç.</p>
-                    <p class="mt-1 text-sm text-gray-500">
-                        Kataloqdan hazırlaşdığın bölməni seç və imtahanı aç.
-                    </p>
-                    <Link
-                        :href="lroute('exams.catalog')"
-                        class="mt-6 inline-block rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
-                    >
-                        Kataloqa keç
-                    </Link>
-                </section>
+                <PanelCard v-if="isEmpty">
+                    <div class="empty">
+                        <p class="empty-title">Hələ imtahanın yoxdur.</p>
+                        <p class="empty-lead">Kataloqdan hazırlaşdığın bölməni seç və imtahanı aç.</p>
+                        <PanelButton :href="lroute('exams.catalog')">Kataloqa keç</PanelButton>
+                    </div>
+                </PanelCard>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.page {
+    padding-block: 28px 64px;
+}
+
+.stack {
+    display: grid;
+    gap: 20px;
+}
+
+.rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.urgent {
+    font-weight: 600;
+    color: #8A5A05;
+}
+
+.score {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--graphite);
+}
+
+.score-max {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.empty {
+    padding: 22px 0;
+    text-align: center;
+}
+
+.empty-title {
+    margin: 0;
+    font-weight: 600;
+    color: var(--graphite);
+}
+
+.empty-lead {
+    margin: 6px 0 18px;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+</style>
