@@ -39,7 +39,8 @@ class Question extends Model
 
     protected $fillable = [
         'subject_id', 'topic_id', 'question_text', 'question_image', 'question_image_alt', 'type', 'difficulty',
-        'language', 'translation_group_id', 'accepted_answers', 'explanation', 'source', 'is_active',
+        'language', 'translation_group_id', 'accepted_answers', 'explanation', 'grading_rubric',
+        'source', 'is_active',
         'is_demo',
     ];
 

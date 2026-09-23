@@ -313,6 +313,8 @@ Sayt müvəqqəti subdomendə olduğu üçün `PAYMENT_DRIVER=fake` **produksiya
       sürücülük və MİQ yalnız qapalı, dövlət qulluğunun BB/AC qrupu yalnız qapalı,
       qalanlarda qarışıq. Qayda admin formasında, generasiyada və seeder-də tətbiq olunur.
 - [ ] `open_written` cavabında şagirdin həll şəklini yükləməsi.
+      **Hazırdır:** cavabların AI ilə avtomatik qiymətləndirilməsi (`AiAnswerGrader`,
+      `GradeOpenAnswer` job-u, DİM şkalası, admin üstünlüyü, şagird etirazı, token logu).
 - [ ] Məhsul növləri: fənn paketi, qrup paketi, abunə (hazırda yalnız tək imtahan satılır).
 - [ ] **Müəllim modulu açılanda** (`FEATURE_TEACHERS=true`) `Teacher/Questions/Create.vue` və
       `Teacher/Questions/Edit.vue` ortaq `Components/Questions/QuestionForm.vue` komponentinə

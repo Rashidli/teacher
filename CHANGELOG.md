@@ -10,6 +10,70 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Nəticə səhifəsinin düzəlişləri və açıq cavabların AI ilə qiymətləndirilməsi
+
+**Nəticə səhifəsi (səhv düzəlişləri).**
+
+- **"Qrup: Tarix: 2026-09-23 12:06"** — `attempt.group?.name` boş idi, çünki MİQ/sürücülük
+  imtahanlarında `group_id` artıq NULL-dur; iki sətir vizual olaraq birləşirdi. İndi qrup
+  varsa qrup, yoxdursa **bölmə adı** göstərilir, tarix ayrıca sətirdədir.
+- **İki fərqli faiz** yan-yana dururdu: nisbi bal (NB) və `düz/cəmi` faizi ("13% düzgün").
+  İkincisi **saya** çevrildi — "8 sualdan 1-i düzgün". NB əsas göstərici qaldı.
+- **İlkin bal:** açıq suallar yoxlanmayıbsa rəqəm neytral boz, yanında **"ilkin"** nişanı;
+  yekun bal yalnız yoxlamadan sonra vurğulanır.
+- **Açıq suallar artıq görünür:** şagirdin cavabı, `open_coded` üçün qəbul olunan cavablar,
+  `open_written` üçün meyar, verilən qiymət (⅓, ½ …), bal və əsaslandırma. Əvvəl şablon
+  yalnız variantları render edirdi — məlumat payload-da var idi, istifadə olunmurdu.
+
+**Açıq cavabların avtomatik qiymətləndirilməsi.** Yalnız `open_written`; `open_coded`
+`AnswerNormalizer`-dədir və AI-yə göndərilmir.
+
+- `questions.grading_rubric` — düzgün cavab və meyarlar. Admin formasında (yalnız açıq yazılı
+  tipdə) və Excel importunda (`meyar` sütunu). **Meyarı olmayan sual AI-yə göndərilmir** —
+  meyarsız qiymət uydurma olardı.
+- Cəhd bitəndə hər açıq cavab üçün `GradeOpenAnswer` job-u `ai-grading` növbəsinə düşür.
+  Sorğu **Laravel `Http` fasadı** ilə birbaşa Messages API-yə gedir — **yeni composer
+  asılılığı əlavə edilmədi**, versiya uyğunsuzluğu riski yoxdur.
+- Cavab DİM şkalasında (0, ⅓, ½, ⅔, 1) qiymət və 1–2 cümləlik əsaslandırma qaytarır.
+  Struktur iki səviyyəlidir: `output_config.format` (json_schema) **və** promptda "yalnız
+  JSON qaytar"; format işləməsə mətndən JSON çıxarılır. **Parse edilməyən və ya şkalaya
+  düşməyən cavab rədd olunur** — sual əl ilə yoxlamaya qalır.
+- Hamısı qiymətlənəndə bal yenidən hesablanır və status `completed` olur.
+- **Model:** defolt `claude-sonnet-5` (qısa cavablar üçün kifayətdir, xərci Opus-dan
+  qat-qat azdır). `AI_GRADING_ESSAY_MODEL` ilə uzun cavablar üçün ayrıca model təyin edilir.
+- **Prompt injection:** şagirdin mətni `<sagird_cavabi>` teqləri arasındadır, sistem promptu
+  həmin blokdakı təlimatlara **əməl etməməyi** açıq tapşırır. Mətn config-dəki hədə qədər
+  kəsilir və kəsildiyi modelə bildirilir (səssiz kəsmə yoxdur).
+- **Xəta halında sistem sınmır:** açar yoxdursa, API xəta verirsə, model imtina edirsə və ya
+  cavab yararsızdırsa — cavab `pending_review` qalır, hadisə loglanır, job "failed" sayılmır.
+- **AI qiyməti son deyil:** admin növbədə qiyməti, əsaslandırmanı, modeli və token sayını
+  görür; başqa qiymət seçəndə `grade_source = admin` olur və AI-nikini üstələyir.
+- **Şagird etirazı:** "İlkin qiymət avtomatik verilib" izahı + **"Yenidən baxılsın"** düyməsi.
+  Bal dəyişmir, status oynamır — yalnız `review_requested_at` qoyulur və cavab adminin
+  növbəsində "Etiraz edilib" nişanı ilə çıxır. Admin qiymət verəndə etiraz bağlanır.
+- **Xərc nəzarəti:** hər cavabda model və token sayları (uğursuz sorğularda da — pul onda da
+  yanır); admin qiymətləndirmə səhifəsində ümumi göstərici.
+
+**Növbə infrastrukturu.** Yoxladım: `QUEUE_CONNECTION=database`, amma **işləyən worker yox
+idi** — növbəyə qoyulan iş heç vaxt icra olunmazdı. Serverdə **supervisor quraşdırılmayıb**
+(34 sayt, PID 1 systemd-dir), ona görə işçi **systemd xidməti**dir: yeni paket lazım deyil,
+xidmət yalnız bu sayta aiddir, `MemoryMax=256M` ilə məhdudlanıb.
+
+- `deploy/teacher-queue.service` — xidmət faylı (repoda, **serverə tətbiq edilməyib**).
+- `deploy/crontab.txt` — bu saytda olmayan `schedule:run` sətri.
+- **DEPLOY.md:** deploy addımlarına **7-ci addım `php artisan queue:restart`** əlavə olundu —
+  `queue:work` kodu yaddaşda saxlayır, restart olmadan işçi köhnə kodla qalır.
+
+**Açar:** `.env` və `.env.example`-a boş `ANTHROPIC_API_KEY=` sətri əlavə olundu. Açar repoda,
+logda və hesabatda **saxlanılmır**.
+
+**Testlər:** `AiGradingTest` (15) — API mock-lanır: uğurlu qiymət və yenidən hesablama,
+şkalaya düşməyən cavab, parse edilməyən cavab, API xətası, açarsız iş, meyarsız sual,
+növbənin idempotentliyi, prompt injection izolyasiyası, uzun cavabın kəsilməsi, adminin
+üstünlüyü, şagird etirazı (472 → 487 test).
+
+---
+
 ### 2026-09-23 — Filtr panelinin sürüşməsi, şəkilli suallar və sual tipi qaydaları
 
 **Filtr paneli (səhv düzəlişi).** `/imtahanlar`-da yan panel səhifə ilə birlikdə yuxarı

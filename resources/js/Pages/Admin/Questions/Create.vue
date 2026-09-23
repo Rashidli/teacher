@@ -21,6 +21,7 @@ const form = useForm({
     options: [],
     accepted_answers: [''],
     explanation: '',
+    grading_rubric: '',
     topic_id: null,
     difficulty: 'medium',
     source: '',

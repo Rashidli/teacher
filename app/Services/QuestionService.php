@@ -188,7 +188,8 @@ class QuestionService
         return DB::transaction(function () use ($exam, $question) {
             $copy = Question::create($question->only([
                 'subject_id', 'topic_id', 'question_text', 'question_image', 'question_image_alt', 'type', 'language',
-                'translation_group_id', 'difficulty', 'accepted_answers', 'explanation', 'source', 'is_active',
+                'translation_group_id', 'difficulty', 'accepted_answers', 'explanation', 'grading_rubric',
+                'source', 'is_active',
             ]));
 
             foreach ($question->options as $option) {
@@ -402,6 +403,10 @@ class QuestionService
             'difficulty' => $data['difficulty'] ?? $question?->difficulty ?? Question::DIFFICULTY_MEDIUM,
             'source' => $data['source'] ?? $question?->source,
             'explanation' => $data['explanation'] ?? null,
+            // Meyar yalnız açıq yazılı sualda mənalıdır
+            'grading_rubric' => $type === Question::TYPE_OPEN_WRITTEN
+                ? ($data['grading_rubric'] ?? $question?->grading_rubric)
+                : null,
             'accepted_answers' => $type === Question::TYPE_OPEN_CODED
                 ? array_values($data['accepted_answers'] ?? [])
                 : null,

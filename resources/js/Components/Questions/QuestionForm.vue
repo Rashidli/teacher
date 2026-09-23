@@ -421,6 +421,23 @@ const visibleExistingImage = computed(
                     </div>
                 </div>
 
+                <!-- Qiymətləndirmə meyarı: yalnız açıq yazılı sual üçün -->
+                <div v-if="form.type === 'open_written'">
+                    <InputLabel for="grading_rubric" value="Qiymətləndirmə meyarı (düzgün cavab və tələblər)" />
+                    <textarea
+                        id="grading_rubric"
+                        v-model="form.grading_rubric"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                        rows="4"
+                        placeholder="Məs: Tam cavab üçün (1) düsturun yazılması, (2) düzgün hesablama, (3) nəticənin vahidi. Yalnız düstur — 1/2, yalnız nəticə — 1/3."
+                    ></textarea>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Avtomatik qiymətləndirmə məhz bu mətnə görə işləyir. Boş qalsa, cavab
+                        AI-yə göndərilmir və əl ilə yoxlanır. Nəticə səhifəsində şagirdə də göstərilir.
+                    </p>
+                    <InputError :message="form.errors.grading_rubric" class="mt-2" />
+                </div>
+
                 <!-- İzah -->
                 <div>
                     <InputLabel for="explanation" value="İzah (istəyə bağlı, nəticə səhifəsində göstərilir)" />

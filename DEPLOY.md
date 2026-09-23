@@ -29,7 +29,13 @@ composer install --no-dev --optimize-autoloader   # 3. Asılılıqlar
 php artisan migrate --force           # 4. Baza
 npm ci && npm run build               # 5. Frontend
 php artisan optimize:clear            # 6. Keşlər
+php artisan queue:restart             # 7. Növbə işçisi YENİ kodu götürsün
 ```
+
+**7-ci addım vacibdir:** `queue:work` prosesi kodu bir dəfə yükləyir və yaddaşda saxlayır.
+`queue:restart` olmadan işçi köhnə kodla işləməyə davam edir — deploy-dan sonrakı işlər
+köhnə məntiqlə icra olunar. Əmr işçiyə siqnal göndərir, o cari işi bitirib dayanır,
+systemd isə onu dərhal geri qaldırır (`Restart=always`).
 
 Kateqoriya ağacı və ya bal matrisi dəyişibsə, əlavə olaraq:
 
@@ -39,6 +45,34 @@ php artisan db:seed --class=CategorySeeder --force
 ```
 
 Seeder-lər idempotentdir (təkrar işlədilə bilər). `migrate:fresh` **işlədilmir**.
+
+## Növbə işçisi (systemd)
+
+Açıq yazılı cavabların avtomatik qiymətləndirilməsi növbə ilə işləyir. **Serverdə supervisor
+quraşdırılmayıb** (34 sayt, PID 1 systemd-dir), ona görə işçi systemd xidmətidir — yeni paket
+lazım deyil və xidmət yalnız bu sayta aiddir.
+
+Konfiqurasiya repodadır: **`deploy/teacher-queue.service`**. İlk dəfə quraşdırma (root):
+
+```bash
+cp deploy/teacher-queue.service /etc/systemd/system/teacher-queue.service
+systemctl daemon-reload
+systemctl enable --now teacher-queue
+systemctl status teacher-queue --no-pager
+```
+
+Yoxlama və loglar:
+
+```bash
+systemctl status teacher-queue --no-pager
+tail -f storage/logs/queue.log
+php artisan queue:failed          # uğursuz işlər
+```
+
+`.env`-də **`ANTHROPIC_API_KEY`** boşdursa avtomatik qiymətləndirmə söndürülür: cavablar
+`pending_review` qalır və admin əl ilə qiymətləndirir. Sistem sınmır.
+
+Laravel planlayıcısı üçün cron sətri: **`deploy/crontab.txt`** (bu saytda yox idi).
 
 ## Deploydan sonra yoxlama
 

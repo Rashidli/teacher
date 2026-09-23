@@ -100,6 +100,7 @@ class QuestionImportService
                         ? $row->acceptedAnswers
                         : null,
                     'explanation' => $row->explanation,
+                    'grading_rubric' => $row->gradingRubric,
                 ]);
 
                 $exam->questions()->attach($question->id, [
@@ -191,6 +192,8 @@ class QuestionImportService
             options: $options,
             acceptedAnswers: $acceptedAnswers,
             explanation: ($row['izah'] ?? '') !== '' ? (string) $row['izah'] : null,
+            // Açıq yazılı sualın qiymətləndirmə meyarı (avtomatik yoxlama üçün)
+            gradingRubric: ($row['meyar'] ?? '') !== '' ? (string) $row['meyar'] : null,
             errors: $errors,
             topicId: $topicId,
             difficulty: $difficulty,

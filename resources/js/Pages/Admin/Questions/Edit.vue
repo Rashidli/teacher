@@ -27,6 +27,7 @@ const form = useForm({
     })),
     accepted_answers: props.question.accepted_answers?.length ? [...props.question.accepted_answers] : [''],
     explanation: props.question.explanation ?? '',
+    grading_rubric: props.question.grading_rubric ?? '',
     topic_id: props.question.topic_id ?? null,
     difficulty: props.question.difficulty ?? 'medium',
     source: props.question.source ?? '',

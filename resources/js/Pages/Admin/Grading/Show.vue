@@ -68,7 +68,15 @@ const isSelected = (answer, value) =>
                             <MathText :text="answer.question_text" class="font-medium text-gray-900" />
                             <QuestionImage :path="answer.question_image" :alt="answer.question_image_alt" />
                         </div>
-                        <span v-if="answer.grade_ratio !== null" class="text-xs text-green-700">Yoxlanıb</span>
+                        <span
+                            v-if="answer.review_requested_at"
+                            class="rounded bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-800"
+                        >Etiraz edilib</span>
+                        <span
+                            v-else-if="answer.grade_source === 'ai'"
+                            class="rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
+                        >Avtomatik</span>
+                        <span v-else-if="answer.grade_ratio !== null" class="text-xs text-green-700">Yoxlanıb</span>
                     </div>
 
                     <div class="mt-4">
@@ -78,9 +86,26 @@ const isSelected = (answer, value) =>
                         </div>
                     </div>
 
+                    <div v-if="answer.grading_rubric" class="mt-3">
+                        <p class="text-xs font-medium text-gray-500">Qiymətləndirmə meyarı</p>
+                        <p class="mt-1 whitespace-pre-line text-sm text-gray-700">{{ answer.grading_rubric }}</p>
+                    </div>
+
                     <div v-if="answer.explanation" class="mt-3">
                         <p class="text-xs font-medium text-gray-500">Sualın izahı (yalnız sizə görünür)</p>
                         <p class="mt-1 text-sm text-gray-600">{{ answer.explanation }}</p>
+                    </div>
+
+                    <!-- Avtomatik qiymət SON DEYİL: aşağıdan dəyişmək kifayətdir -->
+                    <div v-if="answer.grade_source === 'ai'" class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
+                        <p class="font-medium text-amber-900">
+                            Avtomatik qiymət: {{ scale.find((step) => isSelected(answer, step.value))?.label ?? answer.grade_ratio }}
+                        </p>
+                        <p v-if="answer.grade_comment" class="mt-1 text-amber-900">{{ answer.grade_comment }}</p>
+                        <p class="mt-1 text-xs text-amber-700">
+                            {{ answer.ai_model }} · {{ answer.ai_tokens }} token.
+                            Aşağıdan başqa qiymət seçsəniz, sizin qiymətiniz qüvvədə qalır.
+                        </p>
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2">

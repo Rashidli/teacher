@@ -54,7 +54,7 @@ class QuestionTemplateSheet implements Export, FromArray, WithHeadings, WithTitl
                 fn (string $letter) => 'variant_'.mb_strtolower($letter),
                 array_slice(QuestionImportService::LETTERS, 0, $this->exam->options_per_question)
             ),
-            ['duzgun', 'movzu', 'cetinlik', 'izah'],
+            ['duzgun', 'movzu', 'cetinlik', 'izah', 'meyar'],
         );
     }
 
@@ -115,6 +115,8 @@ class QuestionTemplateHelpSheet implements Export, FromArray, WithHeadings, With
             ['movzu', 'İstəyə bağlı. Fənnin mövzularından birinin ADI (admin paneldəki "Mövzular" siyahısı). Boş buraxıla bilər.'],
             ['cetinlik', 'sade / orta / murekkeb. Boş buraxılsa "orta" sayılır.'],
             ['izah', 'İstəyə bağlı. Nəticə səhifəsində şagirdə göstərilir.'],
+            ['meyar', 'Yalnız "aciq" sual üçün: düzgün cavab və qiymətləndirmə tələbləri. '
+                .'Avtomatik yoxlama məhz bu mətnə görə işləyir; boş qalsa cavab əl ilə yoxlanır.'],
             ['', ''],
             ['Qeyd', 'Rəqəm cavabları ədəd kimi müqayisə olunur: 0,5 yazsanız 0.5, .5 və 1/2 də qəbul olunur.'],
             ['Qeyd', 'Fayl əvvəlcə önizləmədə yoxlanır. Bir sətirdə xəta varsa heç bir sual yazılmır.'],

@@ -76,6 +76,8 @@ class StoreQuestionRequest extends FormRequest
                 Rule::exists('exam_sections', 'id')->where('exam_id', $this->exam()->id),
             ],
             'explanation' => ['nullable', 'string', 'max:1000'],
+            // Açıq yazılı sualın qiymətləndirmə meyarı: avtomatik yoxlama ona görə işləyir
+            'grading_rubric' => ['nullable', 'string', 'max:4000'],
 
             // Variantlı test: variant sayı imtahandakı ilə eyni olmalıdır.
             // Açıq suallarda forma köhnə variantları göndərə bilər — onlar nəzərə alınmır.

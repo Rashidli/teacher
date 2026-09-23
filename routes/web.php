@@ -257,6 +257,10 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::post('/attempts/{attempt}/finish', [StudentExamController::class, 'finish'])->name('exams.finish');
         Route::get('/attempts/{attempt}/result', [StudentExamController::class, 'result'])->name('exams.result');
 
+        // Avtomatik verilmiş qiymətə etiraz: cavab adminin yoxlama növbəsinə düşür
+        Route::post('/attempts/{attempt}/answers/{answer}/review', [StudentExamController::class, 'requestReview'])
+            ->name('exams.request-review');
+
         // Nəticələr və statistika
         Route::get('/results', [StudentResultController::class, 'index'])->name('results.index');
         Route::get('/statistics', [StudentStatisticsController::class, 'index'])->name('statistics');

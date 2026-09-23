@@ -1,0 +1,46 @@
+# Laravel növbə işçisi — teacher.cvhazirla.az
+#
+# Serverdə supervisor QURAŞDIRILMAYIB (34 sayt işləyir, PID 1 systemd-dir), ona görə
+# worker systemd ilə idarə olunur: yeni paket lazım deyil, xidmət yalnız bu sayta aiddir.
+#
+# Quraşdırma (root olaraq):
+#   cp deploy/teacher-queue.service /etc/systemd/system/teacher-queue.service
+#   systemctl daemon-reload
+#   systemctl enable --now teacher-queue
+#   systemctl status teacher-queue --no-pager
+#
+# Deploy-dan sonra: `php artisan queue:restart` — işçi cari işi bitirib özü dayanır,
+# systemd onu YENİ kodla qaldırır. `systemctl restart` lazım deyil.
+
+[Unit]
+Description=teacher.cvhazirla.az — Laravel queue worker
+After=network.target mariadb.service
+Requires=mariadb.service
+
+[Service]
+Type=simple
+User=websites
+Group=websites
+WorkingDirectory=/home/websites/web/teacher.cvhazirla.az/public_html
+
+# ai-grading növbəsi əvvəl işlənir: şagird nəticəsini gözləyir
+ExecStart=/usr/bin/php artisan queue:work \
+    --queue=ai-grading,default \
+    --sleep=3 \
+    --tries=3 \
+    --timeout=120 \
+    --max-time=3600 \
+    --max-jobs=500
+
+# queue:restart siqnalından sonra proses dayanır — systemd onu geri qaldırır
+Restart=always
+RestartSec=5
+
+# Yaddaş sızması olsa xidmət bütün serveri yıxmasın (34 sayt var)
+MemoryMax=256M
+
+StandardOutput=append:/home/websites/web/teacher.cvhazirla.az/public_html/storage/logs/queue.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

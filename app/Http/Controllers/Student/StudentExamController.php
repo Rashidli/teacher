@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttemptAnswer;
 use App\Models\Exam;
 use App\Models\ExamAccess;
 use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\SubjectGroupScore;
+use App\Services\Grading\OpenAnswerGradingQueue;
 use App\Services\Payment\ExamAccessService;
 use App\Services\Scoring\AttemptScorer;
 use App\Services\Statistics\StudentStatistics;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -23,6 +26,7 @@ class StudentExamController extends Controller
         private readonly ExamAccessService $access,
         private readonly AttemptScorer $scorer,
         private readonly StudentStatistics $statistics,
+        private readonly OpenAnswerGradingQueue $aiGrading,
     ) {
     }
 
@@ -306,6 +310,33 @@ class StudentExamController extends Controller
         }
 
         $this->scorer->score($attempt);
+
+        /*
+         * Açıq yazılı cavablar avtomatik qiymətləndirmə növbəsinə düşür. Növbə işləmirsə
+         * və ya API açarı yoxdursa heç nə dəyişmir: cavablar `pending_review` qalır və
+         * admin əl ilə qiymətləndirir.
+         */
+        $this->aiGrading->dispatchFor($attempt->fresh());
+    }
+
+    /**
+     * "Yenidən baxılsın": şagird avtomatik verilmiş qiymətə etiraz edir.
+     *
+     * Bal DƏYİŞMİR və cəhdin statusu oynamır — yalnız bayraq qoyulur və cavab adminin
+     * qiymətləndirmə növbəsində görünür. Yalnız AI-nin verdiyi qiymətə etiraz edilə bilər:
+     * admin qiymət veribsə, qərar onundur.
+     */
+    public function requestReview(ExamAttempt $attempt, AttemptAnswer $answer): RedirectResponse
+    {
+        abort_unless($attempt->user_id === auth()->id(), 403);
+        abort_unless($answer->attempt_id === $attempt->id, 404);
+        abort_unless($answer->gradedByAi(), 422, 'Bu cavabın qiyməti avtomatik verilməyib.');
+
+        if ($answer->review_requested_at === null) {
+            $answer->forceFill(['review_requested_at' => now()])->save();
+        }
+
+        return back()->with('success', 'Cavab yenidən baxışa göndərildi.');
     }
 
     public function result(ExamAttempt $attempt)
@@ -314,7 +345,7 @@ class StudentExamController extends Controller
             abort(403);
         }
 
-        $attempt->load(['exam.subject', 'exam.teacher', 'group', 'answers.question.options', 'answers.selectedOption']);
+        $attempt->load(['exam.subject', 'exam.teacher', 'exam.category.parent.parent', 'group', 'answers.question.options', 'answers.selectedOption']);
 
         // "Yenidən imtahan ver" ictimai imtahan səhifəsinə aparır (kabinetdə ayrıca səhifə yoxdur)
         $examUrl = $attempt->exam->publicUrl();
@@ -354,6 +385,14 @@ class StudentExamController extends Controller
                     'grade_ratio' => $answer?->grade_ratio,
                     'awaiting_review' => $question->type === Question::TYPE_OPEN_WRITTEN
                         && $answer?->grade_ratio === null,
+                    // Avtomatik qiymət: şagird izahı görür və yenidən baxış istəyə bilər
+                    'grade_source' => $answer?->grade_source,
+                    'grade_comment' => $answer?->grade_comment,
+                    'review_requested' => $answer?->review_requested_at !== null,
+                    'answer_id' => $answer?->id,
+                    'grading_rubric' => $question->type === Question::TYPE_OPEN_WRITTEN
+                        ? $question->grading_rubric
+                        : null,
                 ];
             });
 
@@ -369,7 +408,11 @@ class StudentExamController extends Controller
 
         return Inertia::render('Student/Exams/Result', [
             'attempt' => $attemptData,
-            'exam' => $attempt->exam,
+            'exam' => array_merge($attempt->exam->toArray(), [
+                'subject' => $attempt->exam->subject,
+                // Qrupsuz imtahanlarda (MİQ, sürücülük) başlıq altında bölmə adı göstərilir
+                'category' => $attempt->exam->category?->trail()['root'] ?? null,
+            ]),
             'examUrl' => $examUrl,
             'answers' => $questionsWithAnswers,
             // Eyni imtahanın əvvəlki cəhdləri ilə müqayisə və mövzu bölgüsü (Mərhələ 7)

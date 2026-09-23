@@ -1,0 +1,8 @@
+# teacher.cvhazirla.az — Laravel planlayıcısı
+#
+# Bu sayt üçün `schedule:run` sətri yox idi (digər saytlarda var). Root crontab-a əlavə edin:
+#   crontab -e
+#
+# Növbə işçisi ayrıca systemd xidmətidir (deploy/teacher-queue.service), cron-a aid deyil.
+
+* * * * * cd /home/websites/web/teacher.cvhazirla.az/public_html && /usr/bin/php artisan schedule:run >> /dev/null 2>&1

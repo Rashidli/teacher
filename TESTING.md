@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 472 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 487 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
@@ -26,6 +26,37 @@ buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 Qayda üç yerdə tətbiq olunur: **admin sual forması** (yalnız icazəli növ seçilir),
 **bankdan generasiya** (icazəsiz tip hovuza düşmür) və **nümunə məzmun seeder-i**.
 Uyğunluq ən uzun prefiksə görədir, yəni alt düyün valideyndən dəqiq qayda təyin edə bilər.
+
+## Açıq cavabların avtomatik qiymətləndirilməsi
+
+Yazılı (`open_written`) cavablar cəhd bitəndən sonra növbəyə düşür və Anthropic API ilə
+DİM şkalasında (0, ⅓, ½, ⅔, 1) qiymətləndirilir. `open_coded` cavablar AI-yə **getmir** —
+onlar `AnswerNormalizer` ilə yoxlanır.
+
+```bash
+systemctl status teacher-queue --no-pager   # işçi işləyirmi
+tail -f storage/logs/queue.log              # loglar
+php artisan queue:failed                    # uğursuz işlər
+```
+
+- **Açar `.env`-dədir** (`ANTHROPIC_API_KEY`). Boş olanda modul özünü söndürür: cavablar
+  `pending_review` qalır, admin əl ilə qiymətləndirir. Sistem sınmır.
+- **Meyar mütləqdir:** sualın `grading_rubric` sahəsi boşdursa cavab AI-yə göndərilmir.
+  Meyar admin sual formasında (yalnız açıq yazılı tipdə) və Excel importunda (`meyar` sütunu).
+- **Avtomatik qiymət son deyil:** admin qiymətləndirmə növbəsində onu görür və dəyişə bilər —
+  adminin qiyməti həmişə üstələyir və şagirdin etirazını bağlayır.
+- **Model:** defolt `claude-sonnet-5` (config-dən dəyişilir; esse üçün ayrıca model təyin
+  etmək olar). Token sərfi admin qiymətləndirmə səhifəsində görünür.
+
+| # | Addım | Gözlənilən nəticə |
+|---|---|---|
+| G1 | Açıq yazılı sualı olan imtahanı bitir | Nəticədə bal **"ilkin"** nişanı ilə, rəng neytral |
+| G2 | Bir-iki dəqiqə sonra səhifəni yenilə | Qiymət gəlib, bal vurğulu olub, status tamamlanıb |
+| G3 | Açıq sualın altına bax | Sənin cavabın, düzgün cavab/meyar, qiymət və **əsaslandırma** görünür |
+| G4 | "İlkin qiymət avtomatik verilib" yazısının altında "Yenidən baxılsın" bas | Cavab adminin növbəsində "Etiraz edilib" nişanı ilə görünür |
+| G5 | Admin → qiymətləndirmə növbəsi | Avtomatik qiymət, əsaslandırma, model və token sayı görünür; başqa qiymət seçmək olur |
+| G6 | Admin qiymət verəndən sonra şagird nəticəsinə bax | Yeni qiymət qüvvədədir, etiraz nişanı yoxdur |
+| G7 | `.env`-də açarı boşalt, imtahanı bitir | Cavab yoxlanmamış qalır, səhifə sınmır, logda izah var |
 
 ## Demo məzmun
 
