@@ -10,6 +10,28 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Nəticə səhifəsində təkrar blokların təmizlənməsi
+
+"Bölmələr və irəliləyiş" bloku imtahan vərəqindəki eyni rəqəmləri üçüncü dəfə göstərirdi
+(vərəqin xülasəsi, iri "Düzgün / Səhv / Boş" sətri və tək sətirlik bölmə cədvəli).
+Blok bölündü və hər parça **yalnız yeni məlumat verəndə** çıxır:
+
+- İri rəqəmli "Düzgün / Səhv / Boş" sətri **tamamilə silindi** — vərəqin xülasəsində var.
+- **Fənn üzrə bölgü** cədvəli yalnız çoxfənli imtahanda (`sections.length > 1`). Tək bölmədə
+  sətir vərəqdəki yekunun eynisi olurdu.
+- **İrəliləyiş**: bir cəhddə blok yoxdur; iki cəhddə bir sətir ("Əvvəlki cəhd: X, dəyişmə: +Y");
+  qrafik yalnız üç və daha çox cəhddə.
+- **Mövzu üzrə bölgü** ən azı iki mövzu olanda göstərilir — tək mövzuda "zəif yer" anlamı yoxdur.
+- Blokların ardıcıllığı: vərəq → (fənn üzrə bölgü) → mövzu üzrə bölgü → sual-cavab analizi → (irəliləyiş).
+- Cədvəlin Tailwind sinifləri palitra tokenlərinə keçirildi.
+
+**`LineChart`:** kənar etiketlər mərkəzə görə hizalandığı üçün birinci və sonuncu tarixin
+yarısı SVG sərhədindən kənarda qalıb kəsilirdi. İndi kənar nöqtələrdə hizalama içəriyə
+çevrilir (`start` / `end`); qrafik konteynerinə də sağdan boşluq verildi. Bu düzəliş
+`Student/Statistics` səhifəsindəki qrafiyə də aiddir.
+
+---
+
 ### 2026-09-23 — İmtahan etiketləri və kartda "Ətraflı" akkordeonu
 
 **Etiketlər (çox-çoxa).** `tags` + `exam_tag` cədvəlləri. Etiket kateqoriya ağacına

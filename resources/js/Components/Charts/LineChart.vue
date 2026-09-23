@@ -35,6 +35,18 @@ const coords = computed(() => {
     });
 });
 
+/*
+ * Kənar etiketlər: birinci və sonuncu nöqtənin tarixi SVG sərhədini keçib kəsilirdi
+ * (mərkəzə görə hizalananda yarısı görünmür). Kənarlarda hizalama içəriyə çevrilir.
+ */
+const labelAnchor = (index, count) => {
+    if (index === 0) {
+        return 'start';
+    }
+
+    return index === count - 1 ? 'end' : 'middle';
+};
+
 const path = computed(() => coords.value.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' '));
 
 // Y oxu: 0, yarı və maksimum
@@ -82,7 +94,7 @@ const gridLines = computed(() => [0, props.max / 2, props.max].map((value) => ({
                 :key="`l-${index}`"
                 :x="point.x"
                 :y="height - 8"
-                text-anchor="middle"
+                :text-anchor="labelAnchor(index, coords.length)"
                 class="fill-gray-500 text-[10px]"
             >{{ index === 0 || index === coords.length - 1 ? point.label : '' }}</text>
         </svg>

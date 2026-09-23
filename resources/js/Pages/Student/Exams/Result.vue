@@ -58,6 +58,19 @@ const trailText = computed(
     () => [props.attempt.trail?.root, props.attempt.trail?.leaf].filter(Boolean).join(' › '),
 );
 
+/*
+ * Vərəq onsuz da düz/səhv/boş saylarını və balı göstərir, ona görə aşağıdakı bloklar
+ * yalnız YENİ məlumat verəndə çıxır:
+ *  - bölmə cədvəli: imtahan çoxfənlidirsə (tək bölmədə rəqəmlər eynidir);
+ *  - irəliləyiş: ən azı iki cəhd varsa;
+ *  - qrafik: ən azı üç cəhd varsa (iki nöqtəli qrafik sətirdən artıq şey demir).
+ */
+const showSections = computed(() => props.sections.length > 1);
+
+const showChart = computed(() => historyPoints.value.length > 2);
+
+const showProgress = computed(() => Boolean(props.comparison.previous) || showChart.value);
+
 const finishedAt = computed(() => (props.attempt.finished_at
     ? new Date(props.attempt.finished_at).toLocaleString('az-AZ')
     : null));
@@ -264,72 +277,41 @@ const getAnswerStatus = (answer) => statusOf(answer);
                 </div>
             </article>
 
-            <!-- Fənn üzrə bölgü, müqayisə və qrafik -->
-            <PanelCard v-if="sections.length || comparison.previous || historyPoints.length > 1" title="Bölmələr və irəliləyiş" class="block">
-                                                <div v-if="sections.length" class="card-scroll">
-                            <table class="min-w-full text-sm">
-                                <thead>
-                                    <tr class="text-gray-500">
-                                        <th class="px-3 py-2 text-left font-medium">Fənn</th>
-                                        <th class="px-3 py-2 text-right font-medium">Düzgün</th>
-                                        <th class="px-3 py-2 text-right font-medium">Səhv</th>
-                                        <th class="px-3 py-2 text-right font-medium">Boş</th>
-                                        <th class="px-3 py-2 text-right font-medium">Nisbi bal</th>
-                                        <th class="px-3 py-2 text-right font-medium">Fənn balı</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    <tr v-for="section in sections" :key="section.title">
-                                        <td class="px-3 py-2 text-left font-medium text-gray-900">{{ section.title }}</td>
-                                        <td class="px-3 py-2 text-right text-green-700">{{ section.correct_answers }}</td>
-                                        <td class="px-3 py-2 text-right text-red-700">{{ section.wrong_answers }}</td>
-                                        <td class="px-3 py-2 text-right text-gray-500">{{ section.unanswered }}</td>
-                                        <td class="px-3 py-2 text-right">{{ section.relative_score }}</td>
-                                        <td class="px-3 py-2 text-right font-semibold text-gray-900">
-                                            {{ section.subject_score }}
-                                            <span class="text-gray-400">/ {{ section.max_score }}</span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-4 mt-8 max-w-md mx-auto">
-                            <div class="text-center">
-                                <p class="text-2xl font-bold text-green-600">{{ attempt.correct_answers }}</p>
-                                <p class="text-sm text-gray-500">Düzgün</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-2xl font-bold text-red-600">{{ attempt.wrong_answers }}</p>
-                                <p class="text-sm text-gray-500">Səhv</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-2xl font-bold text-gray-600">
-                                    {{ attempt.total_questions - attempt.correct_answers - attempt.wrong_answers }}
-                                </p>
-                                <p class="text-sm text-gray-500">Boş</p>
-                            </div>
-                        </div>
-                <div v-if="comparison.previous" class="compare">
-                    <p>
-                        Əvvəlki cəhd ({{ comparison.previous.date }}):
-                        <b>{{ comparison.previous.relative_score }}</b> (100-lük)
-                    </p>
-                    <p>
-                        Dəyişmə:
-                        <b :class="comparison.change >= 0 ? 'up' : 'down'">
-                            {{ comparison.change > 0 ? '+' : '' }}{{ comparison.change }}
-                        </b>
-                    </p>
-                </div>
-
-                <div v-if="historyPoints.length > 1" class="chart">
-                    <LineChart :points="historyPoints" :max="100" label="Bu imtahandakı cəhdlərin nisbi balı" />
+            <!--
+                Bölmə cədvəli YALNIZ çoxfənli imtahanda göstərilir: tək bölməli imtahanda
+                rəqəmlər vərəqdəki yekunla eynidir, təkrar olardı.
+            -->
+            <PanelCard v-if="showSections" title="Fənn üzrə bölgü" class="block" flush>
+                <div class="card-scroll">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th class="cell-left">Fənn</th>
+                                <th>Düz</th>
+                                <th>Səhv</th>
+                                <th>Boş</th>
+                                <th>Nisbi bal</th>
+                                <th>Fənn balı</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="section in sections" :key="section.title">
+                                <td class="cell-left cell-name">{{ section.title }}</td>
+                                <td class="up">{{ section.correct_answers }}</td>
+                                <td class="down">{{ section.wrong_answers }}</td>
+                                <td class="muted">{{ section.unanswered }}</td>
+                                <td>{{ section.relative_score }}</td>
+                                <td class="cell-name">
+                                    {{ section.subject_score }}<span class="muted"> / {{ section.max_score }}</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </PanelCard>
 
             <!-- Mövzu bölgüsü -->
-            <PanelCard v-if="topics.length" title="Mövzu üzrə bölgü" class="block">
+            <PanelCard v-if="topics.length > 1" title="Mövzu üzrə bölgü" class="block">
                 <p class="hint">Ən zəif mövzu yuxarıdadır.</p>
                 <ul class="topics">
                     <li v-for="topic in topics" :key="topic.topic">
@@ -471,6 +453,25 @@ const getAnswerStatus = (answer) => statusOf(answer);
                             </div>
                         </div>
                     </div>
+            </PanelCard>
+
+            <!--
+                İrəliləyiş: bir cəhddə bölmə ümumiyyətlə yoxdur, iki cəhddə bir sətir,
+                üç və daha çox cəhddə qrafik.
+            -->
+            <PanelCard v-if="showProgress" title="İrəliləyiş" class="block">
+                <p v-if="comparison.previous" class="compare">
+                    Əvvəlki cəhd ({{ comparison.previous.date }}):
+                    <b>{{ comparison.previous.relative_score }}</b>,
+                    dəyişmə:
+                    <b :class="comparison.change >= 0 ? 'up' : 'down'">
+                        {{ comparison.change > 0 ? '+' : '' }}{{ comparison.change }}
+                    </b>
+                </p>
+
+                <div v-if="showChart" class="chart">
+                    <LineChart :points="historyPoints" :max="100" label="Bu imtahandakı cəhdlərin nisbi balı" />
+                </div>
             </PanelCard>
 
             <div class="actions">
@@ -748,26 +749,52 @@ const getAnswerStatus = (answer) => statusOf(answer);
 /* -------------------------------------------------- bölmələr və qrafik */
 
 .compare {
-    margin-top: 14px;
-    padding: 12px 14px;
-    border-radius: 10px;
-    background: var(--paper-sunk);
-    font-size: 0.9375rem;
-}
-
-.compare p {
     margin: 0;
-}
-
-.compare p + p {
-    margin-top: 4px;
+    font-size: 0.9375rem;
+    color: var(--graphite);
 }
 
 .up { color: var(--correct); }
 .down { color: var(--ink-red); }
 
 .chart {
-    margin-top: 16px;
+    margin-top: 14px;
+    /*
+     * Qrafikin sağındakı son tarix kəsilməsin: konteynerin sağında boşluq saxlanılır.
+     */
+    padding-right: 12px;
+}
+
+/* --------------------------------------------------------- bölmə cədvəli */
+
+.table {
+    width: 100%;
+    min-width: 520px;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.table th {
+    padding: 10px 12px;
+    text-align: right;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 10px 12px;
+    text-align: right;
+    border-top: 1px dashed var(--ink-red-line);
+}
+
+.cell-left {
+    text-align: left;
+}
+
+.cell-name {
+    font-weight: 600;
+    color: var(--graphite);
 }
 
 .actions {
