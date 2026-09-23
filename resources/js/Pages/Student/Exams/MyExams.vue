@@ -27,7 +27,7 @@ const sourceLabels = {
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">Mənim imtahanlarım</h2>
                 <Link
-                    :href="lroute('home')"
+                    :href="lroute('exams.catalog')"
                     class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
                 >
                     Kataloqa keç
@@ -111,12 +111,12 @@ const sourceLabels = {
 
                 <!-- Boş vəziyyət -->
                 <section v-if="!inProgress.length && !available.length && !completed.length" class="rounded-lg bg-white p-10 text-center shadow-sm">
-                    <p class="text-gray-600">Hələ imtahanın yoxdur.</p>
+                    <p class="text-gray-600">Hələ imtahanın yoxdur. Kataloqdan yeni imtahan seç.</p>
                     <p class="mt-1 text-sm text-gray-500">
                         Kataloqdan hazırlaşdığın bölməni seç və imtahanı aç.
                     </p>
                     <Link
-                        :href="lroute('home')"
+                        :href="lroute('exams.catalog')"
                         class="mt-6 inline-block rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
                     >
                         Kataloqa keç

@@ -34,12 +34,7 @@ class DemoContentTest extends TestCase
     {
         parent::setUp();
 
-        /*
-         * DİSK SAXTALAŞDIRILIR. `demo:clear` nümunə yol nişanı qovluğunu silir; fake disk
-         * olmasa test PRODUKSİYADAKI şəkilləri silərdi (bir dəfə belə oldu — 404).
-         * Test heç vaxt real fayl sisteminə toxunmamalıdır.
-         */
-        Storage::fake('public');
+        // İctimai disk `Tests\TestCase`-də onsuz da saxtalaşdırılır
 
         // Rollar bazanın özü ilə birlikdə `Tests\TestCase`-də yüklənir
         $this->seed([

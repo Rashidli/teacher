@@ -22,7 +22,7 @@ const { lroute } = useLocale();
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">Şagird Paneli</h2>
                 <Link
-                    :href="lroute('home')"
+                    :href="lroute('exams.catalog')"
                     class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
                 >
                     Kataloqa keç

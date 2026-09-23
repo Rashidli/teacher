@@ -7,6 +7,7 @@ import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { useFeatures } from '@/Composables/useFeatures';
+import { useLocale } from '@/Composables/useLocale';
 
 const showingNavigationDropdown = ref(false);
 
@@ -16,6 +17,8 @@ const user = computed(() => page.props.auth.user);
 const roles = computed(() => user.value?.roles || []);
 
 const { teachersEnabled } = useFeatures();
+// Kataloq linki interfeys dilinə uyğun olsun (/imtahanlar və ya /ru/imtahanlar)
+const { lroute } = useLocale();
 
 const isAdmin = computed(() => roles.value.includes('admin'));
 // Müəllim menyusu yalnız müəllim modulu aktiv olanda
@@ -45,13 +48,22 @@ const dashboardRoute = computed(() => {
                         <div class="flex">
                             <!-- Logo -->
                             <div class="flex shrink-0 items-center">
-                                <Link :href="route(dashboardRoute)">
+                                <!-- Loqo ANA SƏHİFƏYƏ aparır: paneldən sayta qayıdış yolu budur -->
+                                <Link :href="lroute('home')">
                                     <span class="text-xl font-bold text-indigo-600">İmtahan</span>
                                 </Link>
                             </div>
 
                             <!-- Navigation Links -->
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                                <!--
+                                    Kataloq: şagirdin YENİ imtahan tapmaq yolu. Panel daxilində
+                                    ictimai səhifələrə keçid olmadığı üçün görünən yerdə durur.
+                                -->
+                                <NavLink :href="lroute('exams.catalog')" :active="false">
+                                    İmtahanlar
+                                </NavLink>
+
                                 <!-- Admin Navigation -->
                                 <template v-if="isAdmin">
                                     <NavLink
@@ -213,6 +225,11 @@ const dashboardRoute = computed(() => {
                     class="sm:hidden"
                 >
                     <div class="space-y-1 pb-3 pt-2">
+                        <!-- Kataloq: paneldən sayta qayıdış (mobil) -->
+                        <ResponsiveNavLink :href="lroute('exams.catalog')" :active="false">
+                            İmtahanlar
+                        </ResponsiveNavLink>
+
                         <!-- Admin Navigation -->
                         <template v-if="isAdmin">
                             <ResponsiveNavLink

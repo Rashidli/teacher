@@ -279,6 +279,18 @@ Sayt müvəqqəti subdomendə olduğu üçün `PAYMENT_DRIVER=fake` **produksiya
 - [ ] Real driver yazılana qədər `FakePaymentGateway` yeganə provayderdir; yeni driver
       `PaymentGateway` interfeysini tətbiq edir, qalan kod dəyişmir.
 
+**⚠️ TESTLƏR PRODUKSİYA QOVLUĞUNDA İŞLƏYİR (23.09.2026):**
+
+Ayrıca staging mühiti olmadığı üçün `php artisan test` elə produksiya qovluğunda icra olunur.
+Baza təhlükəsizdir (testlər sqlite `:memory:` işlədir), amma **fayl sistemi ortaqdır**: bir
+dəfə `demo:clear` çağıran test produksiyadakı sual şəkillərini sildi və imtahan səhifəsində
+bütün şəkillər 404 verdi.
+
+- Müvəqqəti qoruyucular qoyuldu: `Tests\TestCase`-də `Storage::fake('public')` defoltdur və
+  `demo:clear` test mühitində saxta olmayan diskdə fayl silmir.
+- [ ] **Öz domenimizə keçəndə testlər ayrıca mühitə köçürülməlidir** (staging qovluğu və ya
+      CI). Qoruyucular yalnız bilinən halı bağlayır — ortaq fayl sistemi özü risk mənbəyidir.
+
 **Domen alınanda (təsdiq gözləyir):**
 
 - [ ] Yeni domen + DNS + SSL; qovluq və baza (yeni produksiya nüsxəsi).
@@ -293,7 +305,8 @@ Sayt müvəqqəti subdomendə olduğu üçün `PAYMENT_DRIVER=fake` **produksiya
       çıxarılır (kod redaktəsi produksiyada aparılmır).
 - [ ] Produksiyada `composer install --no-dev --optimize-autoloader` (testlər staging-də işləyir).
 - [ ] Yeni domendə Search Console + sitemap göndərilməsi; köhnə domendən 301 (istənilsə).
-- [ ] Deploydan əvvəl backup-ın avtomatlaşdırılması (cron və ya deploy skripti).
+- [ ] Deploydan əvvəl backup-ın avtomatlaşdırılması (cron və ya deploy skripti) — həm
+      `db:backup`, həm `files:backup` (şəkillər bazada deyil).
 
 ## P3: Vizyondan qalan, sonraya saxlanılan
 

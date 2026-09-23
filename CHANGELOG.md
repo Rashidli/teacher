@@ -10,6 +10,42 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Paneldən sayta qayıdış və test paketinin fayl riski
+
+**Paneldən kataloqa qayıdış (səhv düzəlişi).** Şagird panelə keçəndən sonra kataloqa qayıda
+bilmirdi — yəni yeni imtahan seçə bilmirdi. Panel loqosu `dashboard`-a, "Kataloqa keç"
+düymələri isə ANA SƏHİFƏYƏ aparırdı.
+
+- `AuthenticatedLayout.vue`: loqo artıq **ana səhifəyə** aparır; menyuya sabit
+  **"İmtahanlar"** linki əlavə olundu (`exams.catalog`) — həm masaüstü, həm mobil menyuda,
+  bütün rollar üçün.
+- `MyExams.vue` və `Dashboard.vue`-dakı "Kataloqa keç" düymələri `home` yerinə
+  **`exams.catalog`**-a gedir. Boş haldakı mətn də kataloqa yönləndirir.
+- Linklər `lroute()` ilə qurulur, yəni rus interfeysində `/ru/imtahanlar`-a düşür.
+
+**Test paketinin produksiya fayllarını silməsi riski.**
+
+- **`Tests\TestCase`-də `Storage::fake('public')` defolt oldu** — hər yeni testdə ayrıca
+  yazmaq lazım deyil. Testlər produksiya qovluğunda işlədiyi üçün real diskə toxunan bir
+  test bütün sayta zərər verə bilirdi.
+- **`demo:clear` fayl silməzdən əvvəl ayrıca qoruyucudan keçir:** `testing` mühitində disk
+  saxta deyilsə **ümumiyyətlə silmir** (məhz bu hal şəkilləri məhv etmişdi); digər
+  mühitlərdə `--force` yoxdursa qovluq və fayl sayı göstərilib təsdiq soruşulur.
+- **`php artisan files:backup`** — yeni əmr. `db:backup` yalnız bazanı götürürdü, şəkillər
+  isə `storage/app/public`-dədir: baza geri qaytarılsa sual sətirlərindəki yollar qalır,
+  fayllar itir. Arxiv `public_html`-dən kənarda, `0600` hüququ ilə, son 3 nüsxə.
+  DEPLOY.md-də 2-ci addım kimi `db:backup`-ın yanındadır.
+- **ROADMAP P2.5:** testlərin produksiya qovluğunda işləməsi ayrıca risk kimi yazıldı —
+  qoruyucular yalnız bilinən halı bağlayır, öz domenimizə keçəndə testlər ayrıca mühitə
+  (staging və ya CI) köçürülməlidir.
+
+**Testlər:** `PanelNavigationTest` (4) — kataloq route-u hər iki dildə mövcuddur, panel
+səhifələri onu Ziggy ilə cliente ötürür, şagird kataloqu paneldən aça bilir və ictimai
+başlıqdakı hesab menyusu üçün lazım olan `auth.user` prop-u yerindədir, yəni iki layout
+arasında keçid qırılmır (489 → 493 test).
+
+---
+
 ### 2026-09-23 — Sual şəkillərinin 404-ü və alt mətnindəki cavab sızması
 
 **404 (səbəb tapıldı).** `public/storage` linki də, veb-server də düzgün idi — **fayllar

@@ -7,9 +7,9 @@ use App\Models\Exam;
 use App\Models\Question;
 use App\Models\Topic;
 use App\Models\User;
+use Database\Seeders\Demo\DemoRoadSigns;
 use Illuminate\Console\Command;
 use Illuminate\Console\ConfirmableTrait;
-use Database\Seeders\Demo\DemoRoadSigns;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -70,14 +70,58 @@ class ClearDemoContent extends Command
 
         DB::transaction(fn () => $this->delete($plan));
 
-        // Nümunə yol nişanı SVG-ləri: qovluq bütöv silinir (seeder onu yenidən yazır)
-        Storage::disk('public')->deleteDirectory(DemoRoadSigns::DIRECTORY);
+        $this->deleteRoadSignImages();
 
         SitemapController::forget();
 
         $this->info('Demo məzmun silindi.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Nümunə yol nişanı SVG-lərini silir — AYRICA TƏSDİQLƏ.
+     *
+     * Bu addım fayl sisteminə toxunur, ona görə bazadakı silmədən daha ehtiyatlı davranır:
+     *
+     *  - `testing` mühitində disk SAXTA deyilsə ümumiyyətlə silmir. Testlər produksiya
+     *    qovluğunda işləyir (ayrıca mühit yoxdur — ROADMAP P2.5), ona görə fake olmayan
+     *    disklə işləyən test real şəkilləri silərdi. Bir dəfə məhz belə oldu.
+     *  - Digər mühitlərdə `--force` yoxdursa təsdiq soruşulur: qovluq və fayl sayı göstərilir.
+     */
+    private function deleteRoadSignImages(): void
+    {
+        $disk = Storage::disk('public');
+        $directory = DemoRoadSigns::DIRECTORY;
+
+        if (! $disk->exists($directory)) {
+            return;
+        }
+
+        $files = count($disk->files($directory));
+
+        // Saxta disk `storage/framework/testing` altında yaşayır; real disk yox
+        $isFake = str_contains((string) $disk->path(''), 'framework'.DIRECTORY_SEPARATOR.'testing');
+
+        if (app()->environment('testing') && ! $isFake) {
+            $this->warn(
+                'Şəkil qovluğuna toxunulmadı: test mühitində disk saxta deyil. '
+                .'`Storage::fake(\'public\')` olmadan bu əmr real faylları silərdi.'
+            );
+
+            return;
+        }
+
+        if (! $this->option('force')
+            && ! $this->confirm("«{$directory}» qovluğundakı {$files} nümunə şəkil silinsin?", false)) {
+            $this->warn('Şəkil qovluğu saxlanıldı.');
+
+            return;
+        }
+
+        $disk->deleteDirectory($directory);
+
+        $this->line("Silindi: {$files} nümunə şəkil ({$directory}).");
     }
 
     /**

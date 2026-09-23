@@ -23,16 +23,21 @@ fayl adındakı vaxt UTC-dir, silinmə isə fayl tarixinə görə aparılır).
 ```bash
 cd /home/websites/web/teacher.cvhazirla.az/public_html
 
-php artisan db:backup                 # 1. Nüsxə (migration-dan ƏVVƏL)
-git pull                              # 2. Kod
-composer install --no-dev --optimize-autoloader   # 3. Asılılıqlar
-php artisan migrate --force           # 4. Baza
-npm ci && npm run build               # 5. Frontend
-php artisan optimize:clear            # 6. Keşlər
-php artisan queue:restart             # 7. Növbə işçisi YENİ kodu götürsün
+php artisan db:backup                 # 1. Baza nüsxəsi (migration-dan ƏVVƏL)
+php artisan files:backup              # 2. Yüklənmiş fayllar (şəkillər bazada deyil)
+git pull                              # 3. Kod
+composer install --no-dev --optimize-autoloader   # 4. Asılılıqlar
+php artisan migrate --force           # 5. Baza
+npm ci && npm run build               # 6. Frontend
+php artisan optimize:clear            # 7. Keşlər
+php artisan queue:restart             # 8. Növbə işçisi YENİ kodu götürsün
 ```
 
-**7-ci addım vacibdir:** `queue:work` prosesi kodu bir dəfə yükləyir və yaddaşda saxlayır.
+**2-ci addım vacibdir:** sual və variant şəkilləri `storage/app/public`-dədir, **baza
+nüsxəsində yoxdur**. Yalnız baza geri qaytarılsa, sual sətirlərindəki yollar qalır, fayllar
+isə itir (səhifədə 404). Arxiv `public_html`-dən kənarda, `0600` hüququ ilə, son 3 nüsxə.
+
+**8-ci addım vacibdir:** `queue:work` prosesi kodu bir dəfə yükləyir və yaddaşda saxlayır.
 `queue:restart` olmadan işçi köhnə kodla işləməyə davam edir — deploy-dan sonrakı işlər
 köhnə məntiqlə icra olunar. Əmr işçiyə siqnal göndərir, o cari işi bitirib dayanır,
 systemd isə onu dərhal geri qaldırır (`Restart=always`).
