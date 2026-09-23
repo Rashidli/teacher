@@ -139,9 +139,9 @@ const deleteQuestion = (question) => {
                                         </div>
                                     </div>
 
-                                    <div v-if="question.image_path" class="mt-3">
+                                    <div v-if="question.question_image_url" class="mt-3">
                                         <img
-                                            :src="`/storage/${question.image_path}`"
+                                            :src="question.question_image_url"
                                             alt="Sual şəkli"
                                             class="max-w-xs rounded-lg border border-gray-200"
                                         />

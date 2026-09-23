@@ -289,11 +289,14 @@ const visibleExistingImage = computed(
                             type="text"
                             class="mt-1 block w-full"
                             maxlength="255"
-                            placeholder="Məs: üçbucaq nişan, içində əyri ox"
+                            placeholder="Məs: Yol nişanı"
                         />
                         <p class="mt-1 text-xs text-gray-500">
-                            Şəkli görməyən istifadəçi üçün. Cavabı verməsin: “üçbucaq nişan, içində
-                            əyri ox” olar, “təhlükəli döngə nişanı” olmaz.
+                            Şəkli görməyən istifadəçi üçün. <strong>Yalnız şəklin NÖVÜNÜ yaz,
+                            məzmununu açma</strong> — əks halda şagird şəklə baxmadan cavabı
+                            tapar. Düzgün: “Yol nişanı”, “Yolayrıcı sxemi”, “Funksiyanın qrafiki”.
+                            Səhv: “dairəvi nişan, qırmızı fon, ağ üfüqi zolaq” (bu, birbaşa
+                            cavabdır).
                         </p>
                         <InputError :message="form.errors.question_image_alt" class="mt-2" />
                     </div>

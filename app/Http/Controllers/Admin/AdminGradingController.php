@@ -97,7 +97,7 @@ class AdminGradingController extends Controller
                 'id' => $answer->id,
                 'question_text' => $answer->question->question_text,
                 // Şəkilli sualda cavabı qiymətləndirmək üçün şəkil də lazımdır
-                'question_image' => $answer->question->question_image,
+                'question_image_url' => $answer->question->imageUrl(),
                 'question_image_alt' => $answer->question->question_image_alt,
                 'explanation' => $answer->question->explanation,
                 'grading_rubric' => $answer->question->grading_rubric,

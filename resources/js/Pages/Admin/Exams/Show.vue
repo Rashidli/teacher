@@ -270,7 +270,7 @@ const toggleActive = () => {
                                                     </span>
                                                 </div>
 
-                                                <img v-if="question.question_image" :src="`/storage/${question.question_image}`"
+                                                <img v-if="question.question_image_url" :src="question.question_image_url"
                                                     alt="Sual şəkli" class="mt-3 max-w-xs rounded border border-gray-200" />
 
                                                 <div v-if="question.options?.length" class="mt-3 space-y-2">

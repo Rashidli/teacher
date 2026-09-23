@@ -8,9 +8,11 @@ namespace Database\Seeders\Demo;
  * Xarici şəkil yüklənmir: fayllar deterministik SVG mətnindən qurulur, ona görə seeder
  * təkrar işlədiləndə eyni fayl yazılır və `demo:clear` onları qovluqla birlikdə silir.
  *
- * DİQQƏT: nişanın ÜZƏRİNDƏ adı yazılmır — əks halda sual öz cavabını verərdi. Yalnız
- * standart forma, rəng və piktoqram çəkilir; `alt` mətni də formanı təsvir edir, mənasını
- * yox ("üçbucaq nişan, içində əyri ox" — "təhlükəli döngə" deyil).
+ * DİQQƏT — CAVAB SIZMASI: nişanın ÜZƏRİNDƏ adı yazılmır və `alt` mətni də nişanın nə
+ * olduğunu AÇMIR. Alt mətni yalnız şəklin NÖVÜNÜ bildirir ("Yol nişanı", "Yolayrıcı
+ * sxemi"): əks halda şəkil açılmayan (və ya ekran oxuyucusu ilə oxunan) halda şagird
+ * cavabı elə təsvirdən tapardı — "dairəvi nişan, qırmızı fon, ağ üfüqi zolaq" birbaşa
+ * "giriş qadağandır" deməkdir.
  */
 class DemoRoadSigns
 {
@@ -29,19 +31,19 @@ class DemoRoadSigns
     {
         return [
             self::sign('giris-qadagan', 'Giriş qadağandır', 'Qadağan nişanı',
-                'Dairəvi nişan: qırmızı fon, ortasında geniş ağ üfüqi zolaq',
+                'Yol nişanı',
                 self::circle('#C8354E', '<rect x="22" y="44" width="56" height="12" rx="2" fill="#fff"/>')),
 
             self::sign('suret-50', 'Sürət həddi 50 km/saat', 'Qadağan nişanı',
-                'Dairəvi nişan: ağ fon, qalın qırmızı halqa, ortasında "50" rəqəmi',
+                'Yol nişanı',
                 self::ring('<text x="50" y="62" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#1E2227">50</text>')),
 
             self::sign('suret-90', 'Sürət həddi 90 km/saat', 'Qadağan nişanı',
-                'Dairəvi nişan: ağ fon, qalın qırmızı halqa, ortasında "90" rəqəmi',
+                'Yol nişanı',
                 self::ring('<text x="50" y="62" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#1E2227">90</text>')),
 
             self::sign('otmek-qadagan', 'Ötmək qadağandır', 'Qadağan nişanı',
-                'Dairəvi nişan: ağ fon, qırmızı halqa, içində yan-yana iki avtomobil — soldakı qırmızı',
+                'Yol nişanı',
                 self::ring(
                     '<rect x="26" y="40" width="20" height="26" rx="4" fill="#C8354E"/>'
                     .'<rect x="30" y="44" width="12" height="8" rx="2" fill="#fff"/>'
@@ -50,15 +52,15 @@ class DemoRoadSigns
                 )),
 
             self::sign('duz-hereket', 'Yalnız düz hərəkət', 'Məcburi hərəkət nişanı',
-                'Dairəvi mavi nişan: içində yuxarı yönəlmiş ağ ox',
+                'Yol nişanı',
                 self::circle('#2440A0', '<path d="M50 74V34M50 30l-14 14M50 30l14 14" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>')),
 
             self::sign('saga-hereket', 'Yalnız sağa hərəkət', 'Məcburi hərəkət nişanı',
-                'Dairəvi mavi nişan: içində sağa yönəlmiş ağ ox',
+                'Yol nişanı',
                 self::circle('#2440A0', '<path d="M28 50h42M74 50l-14-14M74 50l-14 14" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>')),
 
             self::sign('dairevi-hereket', 'Dairəvi hərəkət', 'Məcburi hərəkət nişanı',
-                'Dairəvi mavi nişan: içində dairə üzrə düzülmüş üç ağ ox',
+                'Yol nişanı',
                 self::circle('#2440A0',
                     '<path d="M50 26a24 24 0 1 1-17 41" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>'
                     .'<path d="M50 18l12 8-12 8z" fill="#fff"/>'
@@ -66,11 +68,11 @@ class DemoRoadSigns
                 )),
 
             self::sign('dayanacaq', 'Dayanacaq yeri', 'Məlumatverici nişan',
-                'Kvadrat mavi nişan: ortasında iri ağ "P" hərfi',
+                'Yol nişanı',
                 self::square('#2440A0', '<text x="50" y="68" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="700" fill="#fff">P</text>')),
 
             self::sign('piyada-kecidi', 'Piyada keçidi', 'Məlumatverici nişan',
-                'Kvadrat mavi nişan: içində ağ üçbucaq, üçbucaqda addımlayan insan fiquru və zolaqlar',
+                'Yol nişanı',
                 self::square('#2440A0',
                     '<path d="M50 20L84 80H16z" fill="#fff"/>'
                     .'<circle cx="46" cy="46" r="5" fill="#1E2227"/>'
@@ -79,11 +81,11 @@ class DemoRoadSigns
                 )),
 
             self::sign('tehlukeli-donge', 'Təhlükəli döngə (sağa)', 'Xəbərdarlıq nişanı',
-                'Üçbucaq nişan: ağ fon, qırmızı kənar, içində sağa əyilən qara ox',
+                'Yol nişanı',
                 self::triangle('<path d="M43 72V56c0-10 8-14 14-14M57 42l-8-7M57 42l-8 7" fill="none" stroke="#1E2227" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>')),
 
             self::sign('yol-isleri', 'Yol işləri', 'Xəbərdarlıq nişanı',
-                'Üçbucaq nişan: ağ fon, qırmızı kənar, içində bel tutan işçi fiquru',
+                'Yol nişanı',
                 self::triangle(
                     '<circle cx="46" cy="42" r="5" fill="#1E2227"/>'
                     .'<path d="M46 48v12M46 52l10 6M40 72l6-12 6 12" stroke="#1E2227" stroke-width="4.5" stroke-linecap="round" fill="none"/>'
@@ -92,7 +94,7 @@ class DemoRoadSigns
                 )),
 
             self::sign('yol-verin', 'Yol verin', 'Üstünlük nişanı',
-                'Tərsinə çevrilmiş üçbucaq: ağ fon, qalın qırmızı kənar, içi boş',
+                'Yol nişanı',
                 self::invertedTriangle()),
         ];
     }
@@ -106,19 +108,19 @@ class DemoRoadSigns
     {
         return [
             self::sign('yolayrici-saginda', 'Sağdan gələn avtomobil', 'Yolayrıcı sxemi',
-                'Sxem: bərabərhüquqlu yolayrıcı, aşağıdan mavi, sağdan qırmızı avtomobil yaxınlaşır',
+                'Yolayrıcı sxemi',
                 self::junction(bottom: true, right: true)),
 
             self::sign('yolayrici-duz', 'Düz gedən avtomobil', 'Yolayrıcı sxemi',
-                'Sxem: yolayrıcı, aşağıdan mavi avtomobil düz gedir, qarşıdan qırmızı avtomobil sola dönür',
+                'Yolayrıcı sxemi',
                 self::junction(bottom: true, top: true)),
 
             self::sign('yolayrici-solda', 'Aşağıdan gələn avtomobil', 'Yolayrıcı sxemi',
-                'Sxem: bərabərhüquqlu yolayrıcı, aşağıdan mavi, soldan qırmızı avtomobil yaxınlaşır',
+                'Yolayrıcı sxemi',
                 self::junction(bottom: true, left: true)),
 
             self::sign('yolayrici-esas-yol', 'Əsas yolda gedən avtomobil', 'Yolayrıcı sxemi',
-                'Sxem: üfüqi yol qalın (əsas yol), şaquli yol nazik; hər iki yolda bir avtomobil',
+                'Yolayrıcı sxemi',
                 self::junction(bottom: true, right: true, mainRoad: true)),
         ];
     }

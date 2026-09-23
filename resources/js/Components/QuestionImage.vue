@@ -11,13 +11,18 @@ import { computed } from 'vue';
  * Mobildə responsivdir: konteynerdən enli olmur, hündürlüyü nisbəti saxlayır.
  */
 const props = defineProps({
-    path: { type: String, default: null },
+    /*
+     * HAZIR URL. Yol birləşdirilməsi burada EDİLMİR: URL backend-də
+     * `Storage::disk('public')->url()` ilə qurulur (bax `Question::imageUrl()`),
+     * beləliklə disk konfiqurasiyası və ya CDN dəyişəndə şablonlar sınmır.
+     */
+    url: { type: String, default: null },
     alt: { type: String, default: null },
     // 'question' — böyük, 'option' — variant sətrindəki kiçik şəkil
     size: { type: String, default: 'question' },
 });
 
-const src = computed(() => (props.path ? `/storage/${props.path}` : null));
+const src = computed(() => props.url || null);
 </script>
 
 <template>

@@ -66,7 +66,7 @@ const isSelected = (answer, value) =>
                         <span class="px-2 py-1 bg-indigo-100 text-indigo-800 text-sm rounded">{{ index + 1 }}</span>
                         <div class="flex-1">
                             <MathText :text="answer.question_text" class="font-medium text-gray-900" />
-                            <QuestionImage :path="answer.question_image" :alt="answer.question_image_alt" />
+                            <QuestionImage :url="answer.question_image_url" :alt="answer.question_image_alt" />
                         </div>
                         <span
                             v-if="answer.review_requested_at"

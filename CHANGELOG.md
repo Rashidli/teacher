@@ -10,6 +10,38 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Sual şəkillərinin 404-ü və alt mətnindəki cavab sızması
+
+**404 (səbəb tapıldı).** `public/storage` linki də, veb-server də düzgün idi — **fayllar
+yox idi**. Onları `php artisan test` silmişdi: `DemoContentTest` `demo:clear` əmrini
+çağırır, o isə `Storage::disk('public')->deleteDirectory()` ilə nümunə yol nişanı qovluğunu
+silir. Testdə disk saxtalaşdırılmadığı üçün əmr **produksiyadakı** qovluğa düşürdü.
+
+- `DemoContentTest`-ə **`Storage::fake('public')`** əlavə olundu — test artıq real fayl
+  sisteminə toxunmur. Şəkillər seeder ilə bərpa edildi (16 SVG, `200 image/svg+xml`).
+- **URL artıq əl ilə birləşdirilmir.** Şablonlarda beş yerdə `` `/storage/${path}` `` vardı;
+  hamısı `Question::imageUrl()` / `QuestionOption::imageUrl()`-a keçdi, onlar da
+  **`Storage::disk('public')->url()`** işlədir. Disk konfiqurasiyası (`APP_URL`, disk `url`,
+  CDN) dəyişsə şablonlar sınmır. Model bütöv göndəriləndə `question_image_url` avtomatik
+  əlavə olunur (`$appends`), ona görə admin redaktə formaları da yolu özü qurmur.
+- Dəyişən səhifələr: imtahan verilişi, nəticə, admin qiymətləndirmə, admin imtahan səhifəsi,
+  admin və müəllim sual formaları.
+
+**Alt mətni cavabı açırdı.** "Dairəvi nişan: qırmızı fon, ortasında geniş ağ üfüqi zolaq"
+birbaşa "giriş qadağandır" deməkdir — şəkil açılmayanda (və ya ekran oxuyucusunda) şagird
+cavabı elə təsvirdən tapırdı.
+
+- Nümunə suallarda alt mətni **neytraldır**: yalnız **"Yol nişanı"** və ya
+  **"Yolayrıcı sxemi"**.
+- Admin formasındakı izah gücləndirildi: alt mətni **yalnız şəklin NÖVÜNÜ** bildirməlidir,
+  məzmununu yox; düzgün və səhv nümunələr göstərilir.
+
+**Testlər:** nümunə şəkillərin alt mətni variant mətnlərinin heç birini təkrarlamır və
+nişanın adını daşımır; şəkil URL-i `Storage` diskindən qurulur, şəkli olmayan sualda null
+qaytarır (487 → 489 test).
+
+---
+
 ### 2026-09-23 — Nəticə səhifəsinin düzəlişləri və açıq cavabların AI ilə qiymətləndirilməsi
 
 **Nəticə səhifəsi (səhv düzəlişləri).**

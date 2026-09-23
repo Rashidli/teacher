@@ -382,7 +382,7 @@ const getQuestionStatus = (question) => {
                             <!-- Question Text -->
                             <div class="mb-4 sm:mb-6">
                                 <p class="text-base sm:text-lg text-gray-900"><MathText :text="question.question_text" /></p>
-                                <QuestionImage :path="question.question_image" :alt="question.question_image_alt" />
+                                <QuestionImage :url="question.question_image_url" :alt="question.question_image_alt" />
                             </div>
 
                             <!-- Options -->
@@ -411,8 +411,8 @@ const getQuestionStatus = (question) => {
                                     <span class="flex-1 text-sm sm:text-base">
                                         <MathText :text="option.option_text" />
                                         <QuestionImage
-                                            v-if="option.option_image"
-                                            :path="option.option_image"
+                                            v-if="option.option_image_url"
+                                            :url="option.option_image_url"
                                             :alt="option.option_text || `Variant ${option.option_letter}`"
                                             size="option"
                                             class="mt-2"

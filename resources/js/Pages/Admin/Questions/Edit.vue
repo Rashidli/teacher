@@ -40,9 +40,8 @@ const duplicate = () => {
     }
 };
 
-const existingImageUrl = props.question.question_image
-    ? `/storage/${props.question.question_image}`
-    : null;
+// URL backend-də `Storage::disk('public')->url()` ilə qurulur
+const existingImageUrl = props.question.question_image_url ?? null;
 
 const submit = () => {
     form.post(route('admin.exams.questions.update', [props.exam.id, props.question.id]), {

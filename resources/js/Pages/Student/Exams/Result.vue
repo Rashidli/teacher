@@ -251,7 +251,7 @@ const getAnswerStatus = (answer) => {
                                 </span>
                                 <div class="flex-1">
                                     <p class="text-gray-900 font-medium"><MathText :text="answer.question_text" /></p>
-                                    <QuestionImage :path="answer.question_image" :alt="answer.question_image_alt" />
+                                    <QuestionImage :url="answer.question_image_url" :alt="answer.question_image_alt" />
 
                                     <div v-if="answer.options?.length" class="mt-4 space-y-2">
                                         <div
@@ -270,8 +270,8 @@ const getAnswerStatus = (answer) => {
                                                 <span>
                                                     <MathText :text="option.option_text" />
                                                     <QuestionImage
-                                                        v-if="option.option_image"
-                                                        :path="option.option_image"
+                                                        v-if="option.option_image_url"
+                                                        :url="option.option_image_url"
                                                         :alt="option.option_text || 'Variant'"
                                                         size="option"
                                                         class="mt-2"

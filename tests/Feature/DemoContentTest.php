@@ -9,13 +9,13 @@ use App\Models\Question;
 use App\Models\Subject;
 use App\Models\Topic;
 use App\Models\User;
+use App\Support\QuestionTypes;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\DemoContentSeeder;
 use Database\Seeders\GroupSeeder;
 use Database\Seeders\SubjectGroupScoreSeeder;
 use Database\Seeders\SubjectSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Support\QuestionTypes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -33,6 +33,13 @@ class DemoContentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        /*
+         * DİSK SAXTALAŞDIRILIR. `demo:clear` nümunə yol nişanı qovluğunu silir; fake disk
+         * olmasa test PRODUKSİYADAKI şəkilləri silərdi (bir dəfə belə oldu — 404).
+         * Test heç vaxt real fayl sisteminə toxunmamalıdır.
+         */
+        Storage::fake('public');
 
         // Rollar bazanın özü ilə birlikdə `Tests\TestCase`-də yüklənir
         $this->seed([
@@ -143,6 +150,58 @@ class DemoContentTest extends TestCase
             $this->assertTrue(Storage::disk('public')->exists($question->question_image));
             $this->assertStringEndsWith('.svg', $question->question_image);
         }
+    }
+
+    /**
+     * Alt mətni CAVABI AÇMAMALIDIR.
+     *
+     * Şəkil açılmayanda (və ya ekran oxuyucusunda) şagird yalnız `alt` mətnini görür.
+     * "Dairəvi nişan: qırmızı fon, ağ üfüqi zolaq" birbaşa "giriş qadağandır" deməkdir —
+     * belə təsvir sualı mənasız edir.
+     */
+    public function test_demo_image_alt_text_does_not_leak_the_answer(): void
+    {
+        $this->seed(DemoContentSeeder::class);
+
+        $questions = Question::demo()->with('options')->whereNotNull('question_image')->get();
+
+        $this->assertGreaterThan(0, $questions->count());
+
+        foreach ($questions as $question) {
+            $alt = mb_strtolower(trim((string) $question->question_image_alt));
+
+            $this->assertNotEmpty($alt, "Alt mətni boşdur: {$question->id}");
+
+            // Alt mətni yalnız şəklin NÖVÜNÜ bildirir
+            $this->assertContains($alt, ['yol nişanı', 'yolayrıcı sxemi'], "Alt mətni çox danışır: «{$alt}»");
+
+            foreach ($question->options as $option) {
+                $optionText = mb_strtolower(trim((string) $option->option_text));
+
+                // Nə variantın mətni alt-da, nə alt variantın içində olmalıdır
+                $this->assertStringNotContainsString($optionText, $alt);
+                $this->assertStringNotContainsString($alt, $optionText);
+            }
+        }
+    }
+
+    /** Şəkil URL-i `Storage::disk('public')->url()` ilə qurulur, əl ilə birləşdirilmir. */
+    public function test_demo_image_urls_are_built_from_the_storage_disk(): void
+    {
+        $this->seed(DemoContentSeeder::class);
+
+        $question = Question::demo()->whereNotNull('question_image')->firstOrFail();
+
+        $this->assertSame(
+            Storage::disk('public')->url($question->question_image),
+            $question->imageUrl(),
+        );
+
+        // Model şablona bütöv göndəriləndə də URL gedir
+        $this->assertSame($question->imageUrl(), $question->toArray()['question_image_url']);
+
+        // Şəkli olmayan sualda URL null-dur (şablon boş <img> render etməsin)
+        $this->assertNull(Question::demo()->whereNull('question_image')->firstOrFail()->imageUrl());
     }
 
     /** İmtahan növünə görə icazəli tiplər nümunə məzmunda da tətbiq olunur. */

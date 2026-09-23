@@ -35,6 +35,8 @@ const form = useForm({
 
 const imagePreview = ref(null);
 const existingImage = ref(props.question.question_image);
+// URL backend-dən gəlir (Storage::disk('public')->url())
+const existingImageUrl = ref(props.question.question_image_url ?? null);
 const showMathHelp = ref(false);
 const previewMode = ref(false);
 
@@ -210,7 +212,7 @@ const submit = () => {
                             <InputLabel value="Şəkil (istəyə bağlı)" />
                             <div class="mt-2">
                                 <div v-if="imagePreview || existingImage" class="mb-3">
-                                    <img :src="imagePreview || `/storage/${existingImage}`" alt="Preview" class="max-w-xs rounded-lg border border-gray-200" />
+                                    <img :src="imagePreview || existingImageUrl" alt="Preview" class="max-w-xs rounded-lg border border-gray-200" />
                                     <button type="button" @click="removeImage" class="mt-2 text-sm text-red-600 hover:text-red-800">Şəkili Sil</button>
                                 </div>
                                 <input v-else type="file" @change="handleImageChange" accept="image/*"

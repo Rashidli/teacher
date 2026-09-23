@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 487 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 489 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
@@ -179,9 +179,10 @@ bölmələrə) və **`/imtahanlar`** — ağacdan asılı olmayan ümumi siyahı
 | K49 | Pullu imtahanda "Al" bas | Bank səhifəsi açılmır: ödəniş dərhal təsdiqlənir, "Test rejimi" bildirişi görünür, imtahan açılır və "Başla" işləyir |
 | K50 | `/imtahanlar`-da masaüstündə siyahını aşağı sürüşdür | Filtr paneli **ekranda qalır**; panel uzundursa öz daxilində sürüşür, səhifə ilə birlikdə yuxarı getmir |
 | K51 | Sürücülük imtahanını başlat | Suallarda **yol nişanı şəkilləri** görünür; mobildə şəkil ekrana sığır, üfüqi sürüşmə yaratmır |
+| K51a | Şəkli bloklayıb (və ya ekran oxuyucusu ilə) suala bax | Alt mətni yalnız **"Yol nişanı" / "Yolayrıcı sxemi"** yazır — cavabı açmır |
 | K52 | Şəkilli sualı cavablandırıb nəticəyə bax | Nəticə səhifəsində də şəkil görünür |
 | K53 | Admin → sürücülük və ya MİQ imtahanında "Sual əlavə et" | Yalnız **Test** növü seçilə bilir, izahı yazılıb. Abituriyent imtahanında hər üç növ var |
-| K54 | Admin → şəkil yüklə | Şəklin altında **"Şəklin təsviri (alt mətni)"** sahəsi çıxır |
+| K54 | Admin → şəkil yüklə | Şəklin altında **"Şəklin təsviri (alt mətni)"** sahəsi çıxır; izah yalnız şəklin NÖVÜNÜ yazmağı tələb edir |
 | K55 | İstənilən ictimai səhifəni aşağı sürüşdür | Başlıq **yuxarıda yapışıb qalır** (mobildə də); məzmun onun altından sürüşür, arxada qalmır |
 | K56 | Ana səhifədə "Repetitorlar" linkini bas | Bölmə başlığın **altında** açılır, başlığın arxasında gizlənmir |
 

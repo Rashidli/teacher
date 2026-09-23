@@ -191,7 +191,7 @@ class AdminExamController extends Controller
                 'questions' => $section->questions->map(fn ($question) => [
                     'id' => $question->id,
                     'question_text' => $question->question_text,
-                    'question_image' => $question->question_image,
+                    'question_image_url' => $question->imageUrl(),
                     'question_image_alt' => $question->question_image_alt,
                     'type' => $question->type,
                     'topic' => $question->topic?->name,
@@ -201,6 +201,7 @@ class AdminExamController extends Controller
                         'id' => $option->id,
                         'option_letter' => $option->option_letter,
                         'option_text' => $option->option_text,
+                        'option_image_url' => $option->imageUrl(),
                         'is_correct' => $option->is_correct,
                     ]),
                 ]),

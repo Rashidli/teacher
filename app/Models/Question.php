@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class Question extends Model
 {
@@ -49,6 +50,31 @@ class Question extends Model
         'is_demo' => 'boolean',
         'accepted_answers' => 'array',
     ];
+
+    /**
+     * Model şablona bütöv göndəriləndə (admin redaktə formaları) şəkil URL-i də getsin —
+     * əks halda hər səhifə yolu əl ilə birləşdirməli olardı.
+     */
+    protected $appends = ['question_image_url'];
+
+    public function getQuestionImageUrlAttribute(): ?string
+    {
+        return $this->imageUrl();
+    }
+
+    /**
+     * Sual şəklinin ictimai URL-i.
+     *
+     * URL ƏL İLƏ BİRLƏŞDİRİLMİR (`/storage/`.$path): disk konfiqurasiyası dəyişsə
+     * (məsələn `APP_URL`, `filesystems.disks.public.url` və ya CDN) əl ilə qurulmuş yol
+     * səhv olardı. `Storage::disk('public')->url()` həmişə konfiqurasiyadan gəlir.
+     */
+    public function imageUrl(): ?string
+    {
+        return filled($this->question_image)
+            ? Storage::disk('public')->url($this->question_image)
+            : null;
+    }
 
     public function subject(): BelongsTo
     {
