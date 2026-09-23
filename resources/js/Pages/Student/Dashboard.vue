@@ -1,10 +1,19 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PanelCard from '@/Components/Ui/PanelCard.vue';
+import PanelButton from '@/Components/Ui/PanelButton.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { useLocale } from '@/Composables/useLocale';
 
-// Yeni imtahan axtarışı kataloqdadır (kateqoriya ağacı) — burada tövsiyə bloku yoxdur.
-// Onun yerini P3-dəki "Məqsədim" funksiyası tutacaq.
+/**
+ * Şagird paneli.
+ *
+ * Yeni imtahan axtarışı kataloqdadır (kateqoriya ağacı) — burada tövsiyə bloku yoxdur.
+ * Onun yerini P3-dəki "Məqsədim" funksiyası tutacaq.
+ *
+ * DİZAYN: ictimai tərəflə eyni dil — `:root` tokenləri, `PanelCard`/`PanelButton` ortaq
+ * komponentləri, sətirlərdə isə imtahanın BÖLMƏ RƏNGİ (kataloq kartındakı ilə eyni).
+ */
 defineProps({
     stats: Object,
     inProgress: { type: Array, default: () => [] },
@@ -12,6 +21,10 @@ defineProps({
 });
 
 const { lroute } = useLocale();
+
+const accent = (item) => item.trail?.color || 'var(--muted)';
+
+const trailText = (item) => [item.trail?.root, item.trail?.leaf].filter(Boolean).join(' › ');
 </script>
 
 <template>
@@ -19,110 +32,263 @@ const { lroute } = useLocale();
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Şagird Paneli</h2>
-                <Link
-                    :href="lroute('exams.catalog')"
-                    class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-                >
-                    Kataloqa keç
-                </Link>
+            <div class="head">
+                <div>
+                    <h1 class="head-title">Şagird paneli</h1>
+                    <p class="head-lead">Davam edən imtahanların və son nəticələrin burada.</p>
+                </div>
+                <PanelButton :href="lroute('exams.catalog')">İmtahan seç</PanelButton>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-                    <div class="bg-white overflow-hidden shadow-sm rounded-lg p-6">
-                        <div class="text-sm font-medium text-gray-500">Verilən imtahanlar</div>
-                        <div class="mt-2 text-3xl font-semibold text-gray-900">{{ stats?.totalAttempts || 0 }}</div>
-                    </div>
-                    <div class="bg-white overflow-hidden shadow-sm rounded-lg p-6">
-                        <div class="text-sm font-medium text-gray-500">Orta nəticə (100-lük)</div>
-                        <div class="mt-2 text-3xl font-semibold text-indigo-600">{{ stats?.averageScore || 0 }}</div>
-                    </div>
-                    <div class="bg-white overflow-hidden shadow-sm rounded-lg p-6">
-                        <div class="text-sm font-medium text-gray-500">Ən yüksək (100-lük)</div>
-                        <div class="mt-2 text-3xl font-semibold text-green-600">{{ stats?.highestScore || 0 }}</div>
-                    </div>
-                    <div class="bg-white overflow-hidden shadow-sm rounded-lg p-6">
-                        <div class="text-sm font-medium text-gray-500">Düzgün cavab %</div>
-                        <div class="mt-2 text-3xl font-semibold text-gray-900">{{ stats?.correctPercentage || 0 }}%</div>
-                    </div>
-                </div>
+        <div class="wrap page">
+            <!--
+                Göstəricilər sadələşdirildi: əvvəl dörd iri kart vardı və onların biri
+                ("Düzgün cavab %") nisbi balla qarışırdı. İndi üç rəqəm bir sətirdədir,
+                əsas yeri davam edən imtahanlar və nəticələr tutur.
+            -->
+            <ul class="stats">
+                <li>
+                    <span class="stat-value">{{ stats?.totalAttempts || 0 }}</span>
+                    <span class="stat-label">verilən imtahan</span>
+                </li>
+                <li>
+                    <span class="stat-value stat-value--pen">{{ stats?.averageScore || 0 }}</span>
+                    <span class="stat-label">orta nəticə (100-lük)</span>
+                </li>
+                <li>
+                    <span class="stat-value stat-value--best">{{ stats?.highestScore || 0 }}</span>
+                    <span class="stat-label">ən yüksək nəticə</span>
+                </li>
+            </ul>
 
-                <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
-                    <!-- Davam edən cəhdlər -->
-                    <div class="overflow-hidden rounded-lg bg-white shadow-sm">
-                        <div class="border-b border-gray-200 p-6">
-                            <h3 class="text-lg font-semibold text-gray-900">Davam edən imtahanlar</h3>
-                        </div>
-                        <div class="p-6">
-                            <div v-if="inProgress.length" class="space-y-4">
-                                <div
-                                    v-for="item in inProgress"
-                                    :key="item.id"
-                                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 p-3"
-                                >
-                                    <div>
-                                        <p class="font-medium text-gray-900">{{ item.title }}</p>
-                                        <p class="text-sm text-amber-700">{{ item.remaining_minutes }} dəqiqə qalıb</p>
-                                    </div>
-                                    <Link
-                                        :href="item.url"
-                                        class="rounded bg-amber-500 px-3 py-1 text-sm font-semibold text-white hover:bg-amber-600"
-                                    >
-                                        Davam et
-                                    </Link>
+            <div class="columns">
+                <!-- Davam edən imtahanlar: taymer işlədiyi üçün birinci yerdədir -->
+                <PanelCard title="Davam edən imtahanlar" accent="var(--sign-yellow)" flush>
+                    <ul v-if="inProgress.length" class="rows">
+                        <li v-for="item in inProgress" :key="item.id" :style="{ '--accent': accent(item) }">
+                            <div class="row">
+                                <div class="row-text">
+                                    <p v-if="trailText(item)" class="row-trail">
+                                        <span class="row-dot" aria-hidden="true"></span>{{ trailText(item) }}
+                                    </p>
+                                    <p class="row-title">{{ item.title }}</p>
+                                    <p class="row-meta row-meta--urgent">{{ item.remaining_minutes }} dəqiqə qalıb</p>
                                 </div>
+                                <PanelButton :href="item.url" small>Davam et</PanelButton>
                             </div>
-                            <p v-else class="py-4 text-center text-gray-500">
-                                Davam edən imtahanın yoxdur
-                            </p>
-                        </div>
-                    </div>
+                        </li>
+                    </ul>
+                    <p v-else class="empty">Davam edən imtahanın yoxdur.</p>
+                </PanelCard>
 
-                    <!-- Son nəticələr -->
-                    <div class="overflow-hidden rounded-lg bg-white shadow-sm">
-                        <div class="border-b border-gray-200 p-6">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold text-gray-900">Son nəticələr</h3>
-                                <Link
-                                    :href="route('student.results.index')"
-                                    class="text-sm text-indigo-600 hover:text-indigo-800"
-                                >
-                                    Hamısına bax
-                                </Link>
-                            </div>
-                        </div>
-                        <div class="p-6">
-                            <div v-if="recentResults.length" class="space-y-4">
-                                <Link
-                                    v-for="item in recentResults"
-                                    :key="item.id"
-                                    :href="item.url"
-                                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 p-3 hover:bg-gray-100"
-                                >
-                                    <div>
-                                        <p class="font-medium text-gray-900">{{ item.title }}</p>
-                                        <p class="text-sm text-gray-500">{{ item.finished_at }}</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="font-semibold text-indigo-600">{{ item.relative_score ?? 0 }} / 100</p>
-                                        <p class="text-xs text-gray-500">
-                                            {{ item.correct_answers }}/{{ item.question_count }} düz
-                                        </p>
-                                    </div>
-                                </Link>
-                            </div>
-                            <p v-else class="py-4 text-center text-gray-500">
-                                Hələ imtahan verməmisiniz
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <!-- Son nəticələr -->
+                <PanelCard title="Son nəticələr" accent="var(--correct)" flush>
+                    <template #actions>
+                        <PanelButton :href="route('student.results.index')" variant="quiet" small>
+                            Hamısına bax
+                        </PanelButton>
+                    </template>
+
+                    <ul v-if="recentResults.length" class="rows">
+                        <li v-for="item in recentResults" :key="item.id" :style="{ '--accent': accent(item) }">
+                            <Link :href="item.url" class="row row--link">
+                                <div class="row-text">
+                                    <p v-if="trailText(item)" class="row-trail">
+                                        <span class="row-dot" aria-hidden="true"></span>{{ trailText(item) }}
+                                    </p>
+                                    <p class="row-title">{{ item.title }}</p>
+                                    <p class="row-meta">{{ item.finished_at }}</p>
+                                </div>
+                                <div class="row-score">
+                                    <span class="score">{{ item.relative_score ?? 0 }}</span>
+                                    <span class="score-max">/ 100</span>
+                                    <span class="score-note">{{ item.correct_answers }}/{{ item.question_count }} düz</span>
+                                </div>
+                            </Link>
+                        </li>
+                    </ul>
+                    <p v-else class="empty">Hələ imtahan verməmisən.</p>
+                </PanelCard>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+}
+
+.head-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--graphite);
+}
+
+.head-lead {
+    margin: 4px 0 0;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.page {
+    padding-block: 28px 64px;
+}
+
+/* ---------------------------------------------------------- göstəricilər */
+
+.stats {
+    list-style: none;
+    margin: 0 0 24px;
+    padding: 14px 18px;
+    display: grid;
+    gap: 14px 28px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--paper);
+}
+
+.stats li {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.stat-value {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--graphite);
+}
+
+.stat-value--pen { color: var(--pen); }
+.stat-value--best { color: var(--correct); }
+
+.stat-label {
+    margin-top: 2px;
+    font-size: 0.8125rem;
+    color: var(--muted);
+}
+
+/* ---------------------------------------------------------------- sütunlar */
+
+.columns {
+    display: grid;
+    gap: 20px;
+}
+
+/* ---------------------------------------------------------------- sətirlər */
+
+.rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rows > li + li {
+    border-top: 1px dashed var(--ink-red-line);
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    /* Bölmə rəngi sol kənarda: kataloq kartındakı zolağın sətir variantı */
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    text-decoration: none;
+}
+
+.row--link {
+    color: inherit;
+}
+
+.row--link:hover {
+    background: var(--paper-sunk);
+}
+
+.row-text {
+    min-width: 0;
+}
+
+.row-trail {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 2px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.row-dot {
+    width: 7px;
+    height: 7px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.row-title {
+    margin: 0;
+    font-weight: 600;
+    color: var(--graphite);
+}
+
+.row-meta {
+    margin: 2px 0 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.row-meta--urgent {
+    color: #8A5A05;
+    font-weight: 600;
+}
+
+.row-score {
+    flex: none;
+    text-align: right;
+}
+
+.score {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--graphite);
+}
+
+.score-max {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.score-note {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.empty {
+    margin: 0;
+    padding: 18px;
+    color: var(--muted);
+}
+
+@media (min-width: 1024px) {
+    .columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .head-title { font-size: 1.75rem; }
+}
+</style>

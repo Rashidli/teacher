@@ -32,7 +32,8 @@ class StudentDashboardController extends Controller
         ];
 
         $attempts = $user->examAttempts()
-            ->with('exam:id,slug,title,duration_minutes')
+            // Kateqoriya zənciri: panel kartlarında bölmə rəngi göstərilir
+            ->with(['exam:id,slug,title,duration_minutes,category_id', 'exam.category.parent.parent'])
             ->latest()
             ->get()
             ->filter(fn (ExamAttempt $attempt) => $attempt->exam !== null);
@@ -47,6 +48,7 @@ class StudentDashboardController extends Controller
                     'title' => $attempt->exam->title,
                     'url' => route('student.exams.attempt', $attempt),
                     'remaining_minutes' => (int) ceil($attempt->remaining_time / 60),
+                    'trail' => $attempt->exam->category?->trail(),
                 ])
                 ->values(),
             // Son beş nəticə: bal nisbi ölçüdədir (100-lük), statistika səhifəsi ilə eyni
@@ -58,6 +60,7 @@ class StudentDashboardController extends Controller
                     'title' => $attempt->exam->title,
                     'url' => route('student.exams.result', $attempt),
                     'finished_at' => $attempt->finished_at?->format('d.m.Y'),
+                    'trail' => $attempt->exam->category?->trail(),
                     'relative_score' => $attempt->relative_score,
                     'correct_answers' => $attempt->correct_answers,
                     'question_count' => $attempt->correct_answers + $attempt->wrong_answers + $attempt->unanswered,

@@ -3,30 +3,16 @@
 @tailwind utilities;
 
 /*
- * Yapışqan başlığın hündürlüyü. `:root`-dadır ki, həm `.site` içindəki komponentlər,
- * həm də `html` (scroll-padding üçün) ondan oxuya bilsin.
+ * ORTAQ TOKENLƏR.
+ *
+ * Əvvəl bu dəyərlər yalnız `.site` (ictimai səhifələr) daxilində yaşayırdı, ona görə panel
+ * səhifələri Tailwind-in boz-mavi defoltları ilə qalmışdı və şagird alışdan sonra sanki
+ * başqa sayta düşürdü. İndi tokenlər `:root`-dadır — DƏYƏRLƏR DƏYİŞMƏYİB, yalnız əhatə
+ * genişlənib: həm `.site`, həm `.panel` eyni palitradan oxuyur.
  */
 :root {
     --header-height: 56px;
-}
 
-@media (min-width: 720px) {
-    :root { --header-height: 64px; }
-}
-
-/*
- * Ankerlə (məs. `#repetitorlar`) və ya `scrollIntoView` ilə keçid ediləndə hədəf
- * yapışqan başlığın altında gizlənməsin.
- *
- * Yalnız ictimai səhifələrdə (`.site` sarğısı olan) tətbiq olunur — panellərdə yapışqan
- * başlıq yoxdur. `:has()` dəstəklənmirsə sadəcə tətbiq olunmur, səhifə sınmır.
- */
-html:has(.site) {
-    scroll-padding-top: calc(var(--header-height) + 12px);
-}
-
-/* Ana səhifə və kateqoriya səhifələrinin ortaq tokenləri ("cavab kartı" üslubu) */
-.site {
     --paper: #FCFCFA;
     --paper-sunk: #F3F4F1;
     --graphite: #1E2227;
@@ -44,6 +30,42 @@ html:has(.site) {
     --gutter: 16px;
     --max: 1160px;
 
+    /* Kart sistemi: ictimai kartlarla eyni radius, kənar və kölgə */
+    --card-radius: 12px;
+    --card-border: 1px solid rgba(22, 19, 14, 0.15);
+    --card-shadow: 0 6px 18px rgba(22, 19, 14, 0.07);
+}
+
+@media (min-width: 720px) {
+    :root { --header-height: 64px; }
+}
+
+@media (min-width: 640px) {
+    :root { --gutter: 24px; }
+}
+
+@media (min-width: 1024px) {
+    :root { --gutter: 32px; }
+}
+
+/*
+ * Ankerlə (məs. `#repetitorlar`) və ya `scrollIntoView` ilə keçid ediləndə hədəf
+ * yapışqan başlığın altında gizlənməsin.
+ *
+ * Yalnız ictimai səhifələrdə (`.site` sarğısı olan) tətbiq olunur — panellərdə yapışqan
+ * başlıq yoxdur. `:has()` dəstəklənmirsə sadəcə tətbiq olunmur, səhifə sınmır.
+ */
+html:has(.site),
+html:has(.panel) {
+    scroll-padding-top: calc(var(--header-height) + 12px);
+}
+
+/*
+ * İctimai səhifələrin bazası ("cavab kartı" üslubu). Tokenlər `:root`-dan miras gəlir.
+ * Panel səhifələri eyni bazanı `.panel` ilə alır.
+ */
+.site,
+.panel {
     min-height: 100vh;
     background: var(--paper);
     color: var(--graphite);
@@ -56,32 +78,29 @@ html:has(.site) {
 
 /* Şəkil və SVG-lər heç vaxt konteynerdən enli olmasın */
 .site img,
-.site svg {
+.site svg,
+.panel img,
+.panel svg {
     max-width: 100%;
 }
 
-@media (min-width: 640px) {
-    .site { --gutter: 24px; }
-}
-
-@media (min-width: 1024px) {
-    .site { --gutter: 32px; }
-}
-
-.site :focus-visible {
+.site :focus-visible,
+.panel :focus-visible {
     outline: 2px solid var(--pen);
     outline-offset: 3px;
     border-radius: 4px;
 }
 
-.site .wrap {
+.site .wrap,
+.panel .wrap {
     width: 100%;
     max-width: var(--max);
     margin-inline: auto;
     padding-inline: var(--gutter);
 }
 
-.site .visually-hidden {
+.site .visually-hidden,
+.panel .visually-hidden {
     position: absolute;
     width: 1px;
     height: 1px;

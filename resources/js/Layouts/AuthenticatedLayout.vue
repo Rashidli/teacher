@@ -27,6 +27,17 @@ const isStudent = computed(() => roles.value.includes('student'));
 
 const flash = computed(() => page.props.flash);
 
+// İctimai başlıqdakı ilə eyni: uzun ad sığmayanda inisiallar qalır
+const initials = computed(() => {
+    const parts = [user.value?.first_name, user.value?.last_name].filter(Boolean);
+
+    if (parts.length === 0) {
+        return (user.value?.email ?? '?').slice(0, 2).toUpperCase();
+    }
+
+    return parts.map((part) => part.trim().charAt(0).toUpperCase()).join('');
+});
+
 // Çıxış hər rol üçün eyni sessiyanı bağlayır; admin paneli öz səhifəsinə qaytarır
 const logoutRoute = computed(() => (isAdmin.value ? 'admin.logout' : 'logout'));
 
@@ -39,18 +50,19 @@ const dashboardRoute = computed(() => {
 </script>
 
 <template>
-    <div>
-        <div class="min-h-screen bg-gray-100">
-            <nav class="border-b border-gray-100 bg-white">
+    <div class="panel">
+        <div class="panel-shell">
+            <nav class="panel-nav">
                 <!-- Primary Navigation Menu -->
-                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div class="flex h-16 justify-between">
+                <div class="wrap">
+                    <div class="flex justify-between panel-nav-inner">
                         <div class="flex">
                             <!-- Logo -->
                             <div class="flex shrink-0 items-center">
                                 <!-- Loqo ANA SƏHİFƏYƏ aparır: paneldən sayta qayıdış yolu budur -->
-                                <Link :href="lroute('home')">
-                                    <span class="text-xl font-bold text-indigo-600">İmtahan</span>
+                                <Link :href="lroute('home')" class="brand">
+                                    <span class="brand-mark" aria-hidden="true"></span>
+                                    <span class="brand-name">{{ $t('site.brand') }}</span>
                                 </Link>
                             </div>
 
@@ -150,27 +162,10 @@ const dashboardRoute = computed(() => {
                             <div class="relative ms-3">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
-                                        <span class="inline-flex rounded-md">
-                                            <button
-                                                type="button"
-                                                class="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
-                                            >
-                                                {{ user.full_name || user.name }}
-
-                                                <svg
-                                                    class="-me-0.5 ms-2 h-4 w-4"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fill-rule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clip-rule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
+                                        <button type="button" class="account-toggle">
+                                            <span class="account-initials" aria-hidden="true">{{ initials }}</span>
+                                            <span class="account-name">{{ user.full_name || user.name }}</span>
+                                        </button>
                                     </template>
 
                                     <template #content>
@@ -334,21 +329,21 @@ const dashboardRoute = computed(() => {
             <div v-if="flash?.success || flash?.error" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-4">
                 <div
                     v-if="flash.success"
-                    class="rounded-md bg-green-50 p-4 border border-green-200"
+                    class="flash flash--ok"
                 >
-                    <p class="text-sm text-green-700">{{ flash.success }}</p>
+                    <p>{{ flash.success }}</p>
                 </div>
                 <div
                     v-if="flash.error"
-                    class="rounded-md bg-red-50 p-4 border border-red-200"
+                    class="flash flash--error"
                 >
-                    <p class="text-sm text-red-700">{{ flash.error }}</p>
+                    <p>{{ flash.error }}</p>
                 </div>
             </div>
 
             <!-- Page Heading -->
-            <header class="bg-white shadow" v-if="$slots.header">
-                <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <header class="page-head" v-if="$slots.header">
+                <div class="wrap page-head-inner">
                     <slot name="header" />
                 </div>
             </header>
@@ -360,3 +355,142 @@ const dashboardRoute = computed(() => {
         </div>
     </div>
 </template>
+
+<style scoped>
+/*
+ * Panel ictimai tərəflə EYNİ vizual dildədir: eyni tokenlər (`:root`), eyni başlıq
+ * hündürlüyü (`--header-height`), eyni kağız fon və şriftlər. Tailwind-in boz-mavi
+ * defoltları yalnız daxili şəbəkə/boşluq siniflərində qalır.
+ */
+.panel-shell {
+    min-height: 100vh;
+    background: var(--paper-sunk);
+}
+
+.panel-nav {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--paper);
+    border-bottom: 1px solid var(--ink-red-line);
+}
+
+/* İctimai başlıqla eyni hündürlük */
+.panel-nav-inner {
+    min-height: var(--header-height);
+    align-items: center;
+}
+
+/* --------------------------------------------------------------- brend */
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    color: var(--graphite);
+    text-decoration: none;
+}
+
+/* Karandaşla doldurulmuş dairə — ictimai başlıqdakı nişanın eynisi */
+.brand-mark {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink-red);
+    background: radial-gradient(circle at 40% 38%, #3a3f46 0 45%, var(--graphite) 70%);
+    box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+.brand-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.0625rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+/* -------------------------------------------------------- hesab menyusu */
+
+.account-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+.account-toggle:hover {
+    background: var(--paper-sunk);
+}
+
+.account-initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--graphite);
+    color: var(--paper);
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.account-name {
+    display: none;
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--graphite);
+}
+
+/* ----------------------------------------------------------- səhifə başı */
+
+.page-head {
+    background: var(--paper);
+    border-bottom: 1px solid var(--ink-red-line);
+}
+
+.page-head-inner {
+    padding-block: 20px;
+}
+
+/* --------------------------------------------------------------- flash */
+
+.flash {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+}
+
+.flash p {
+    margin: 0;
+}
+
+.flash--ok {
+    border: 1px solid rgba(31, 122, 77, 0.35);
+    background: #E6EFEA;
+    color: var(--correct);
+}
+
+.flash--error {
+    border: 1px solid var(--ink-red-line);
+    background: #F7E8E9;
+    color: var(--ink-red);
+}
+
+@media (min-width: 720px) {
+    .account-name { display: inline; }
+}
+</style>
