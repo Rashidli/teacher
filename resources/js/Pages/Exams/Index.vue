@@ -240,7 +240,8 @@ const total = computed(() => (props.mode === 'grouped'
 
 <style scoped>
 .page {
-    --filters-top: 24px;
+    /* Yapışqan başlığın altından başlasın: hündürlük `:root`-dakı tokendən gəlir */
+    --filters-top: calc(var(--header-height) + 16px);
 
     padding-block: 32px 72px;
 }
@@ -488,7 +489,8 @@ const total = computed(() => (props.mode === 'grouped'
     .layout-filters {
         position: sticky;
         top: var(--filters-top);
-        max-height: calc(100vh - var(--filters-top) * 2);
+        /* Aşağıda da eyni boşluq qalsın: başlıq + yuxarı boşluq + aşağı boşluq */
+        max-height: calc(100vh - var(--filters-top) - 16px);
         overflow-y: auto;
         /* Sürüşmə paneldə qalsın, arxadakı səhifəyə keçməsin */
         overscroll-behavior: contain;

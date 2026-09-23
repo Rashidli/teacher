@@ -151,6 +151,8 @@ bölmələrə) və **`/imtahanlar`** — ağacdan asılı olmayan ümumi siyahı
 | K52 | Şəkilli sualı cavablandırıb nəticəyə bax | Nəticə səhifəsində də şəkil görünür |
 | K53 | Admin → sürücülük və ya MİQ imtahanında "Sual əlavə et" | Yalnız **Test** növü seçilə bilir, izahı yazılıb. Abituriyent imtahanında hər üç növ var |
 | K54 | Admin → şəkil yüklə | Şəklin altında **"Şəklin təsviri (alt mətni)"** sahəsi çıxır |
+| K55 | İstənilən ictimai səhifəni aşağı sürüşdür | Başlıq **yuxarıda yapışıb qalır** (mobildə də); məzmun onun altından sürüşür, arxada qalmır |
+| K56 | Ana səhifədə "Repetitorlar" linkini bas | Bölmə başlığın **altında** açılır, başlığın arxasında gizlənmir |
 
 ---
 

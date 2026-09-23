@@ -208,7 +208,18 @@ const languageUrl = (lang) => alternates.value?.[lang] ?? (lang === 'az' ? '/' :
 </template>
 
 <style scoped>
+/*
+ * Başlıq bütün ictimai səhifələrdə yapışqandır: uzun kataloqda da dil seçimi, naviqasiya
+ * və hesab menyusu əlçatan qalır. Fon şəffaf OLMAMALIDIR — məzmun altından sürüşür.
+ *
+ * `z-index` hesab menyusundan (30) yüksəkdir; menyu başlığın öz yığın kontekstindədir,
+ * ona görə səhifə məzmununun üstündə qalır.
+ */
 .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--paper);
     border-bottom: 1px solid var(--ink-red-line);
 }
 
@@ -217,7 +228,8 @@ const languageUrl = (lang) => alternates.value?.[lang] ?? (lang === 'az' ? '/' :
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    min-height: 56px;
+    /* Hündürlük `:root`-dakı `--header-height` ilə eynidir: yapışqan ofsetlər ondan hesablanır */
+    min-height: var(--header-height);
 }
 
 .brand {
@@ -546,7 +558,6 @@ const languageUrl = (lang) => alternates.value?.[lang] ?? (lang === 'az' ? '/' :
 }
 
 @media (min-width: 720px) {
-    .header-inner { min-height: 64px; }
     .account-name { display: inline; }
 }
 

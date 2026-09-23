@@ -314,6 +314,13 @@ Sayt müvəqqəti subdomendə olduğu üçün `PAYMENT_DRIVER=fake` **produksiya
       qalanlarda qarışıq. Qayda admin formasında, generasiyada və seeder-də tətbiq olunur.
 - [ ] `open_written` cavabında şagirdin həll şəklini yükləməsi.
 - [ ] Məhsul növləri: fənn paketi, qrup paketi, abunə (hazırda yalnız tək imtahan satılır).
+- [ ] **Müəllim modulu açılanda** (`FEATURE_TEACHERS=true`) `Teacher/Questions/Create.vue` və
+      `Teacher/Questions/Edit.vue` ortaq `Components/Questions/QuestionForm.vue` komponentinə
+      keçirilməlidir. Hazırda onların öz markup-u var və **sual tipi radioları icazəli
+      tiplərə görə filtrlənmir** (`config/questions.php`): müəllim sürücülük imtahanında da
+      açıq sual seçimi görür. Server tərəfi bloklayır (`StoreQuestionRequest` → `type.in`),
+      yəni təhlükəsizlik problemi yoxdur — interfeys yanlış seçim təklif edir.
+      Kontroller `allowedTypes` prop-unu artıq göndərir.
 - [ ] Rollar: rəyçi (sualı təsdiqləyən) və qiymətləndirici; sual təsdiq axını
       (müəllif → rəyçi → təsdiqlənmiş suallar imtahana düşür); sualda müəllif (gəlir bölgüsü üçün).
 - [ ] **Hər kateqoriya üçün ayrıca `ScoringStrategy`**: `DimGraduation9/11`, `DimMaster`,

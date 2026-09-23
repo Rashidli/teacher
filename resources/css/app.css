@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Yapışqan başlığın hündürlüyü. `:root`-dadır ki, həm `.site` içindəki komponentlər,
+ * həm də `html` (scroll-padding üçün) ondan oxuya bilsin.
+ */
+:root {
+    --header-height: 56px;
+}
+
+@media (min-width: 720px) {
+    :root { --header-height: 64px; }
+}
+
+/*
+ * Ankerlə (məs. `#repetitorlar`) və ya `scrollIntoView` ilə keçid ediləndə hədəf
+ * yapışqan başlığın altında gizlənməsin.
+ *
+ * Yalnız ictimai səhifələrdə (`.site` sarğısı olan) tətbiq olunur — panellərdə yapışqan
+ * başlıq yoxdur. `:has()` dəstəklənmirsə sadəcə tətbiq olunmur, səhifə sınmır.
+ */
+html:has(.site) {
+    scroll-padding-top: calc(var(--header-height) + 12px);
+}
+
 /* Ana səhifə və kateqoriya səhifələrinin ortaq tokenləri ("cavab kartı" üslubu) */
 .site {
     --paper: #FCFCFA;
