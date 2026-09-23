@@ -10,6 +10,60 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Filtr panelinin sürüşməsi, şəkilli suallar və sual tipi qaydaları
+
+**Filtr paneli (səhv düzəlişi).** `/imtahanlar`-da yan panel səhifə ilə birlikdə yuxarı
+gedirdi: istifadəçi filtrə çatmaq üçün bütün nəticə siyahısını aşağı sürüşdürməli olurdu.
+Səbəb panelin ekrandan hündür olması idi — `position: sticky` yalnız elementin altı görünəndə
+işləyir. İndi panel `max-height: calc(100vh − boşluq)` ilə məhdudlanır və **öz daxilində**
+sürüşür (`overflow-y: auto`, `overscroll-behavior: contain`). Mobildə açılan panel davranışı
+dəyişmədi.
+
+**Şəkilli suallar tamamlandı.** Sual şəkli əvvəlcə yalnız imtahan verilişi səhifəsində
+görünürdü; variant şəkilləri heç yerdə, nəticə və qiymətləndirmə səhifələrində isə şəkil
+ümumiyyətlə yox idi.
+
+- Ortaq `QuestionImage.vue` komponenti: imtahan, nəticə və admin qiymətləndirmə səhifələrində
+  işlənir; mobildə responsivdir (`max-width: 100%`, `height: auto`).
+- **Variant şəkilləri** (`question_options.option_image`) artıq imtahanda və nəticədə görünür.
+- Yeni `questions.question_image_alt` sütunu: şəkilli sualda şəkil məzmunun özüdür, ona görə
+  ekran oxuyucusu üçün təsvir lazımdır. Admin formasında şəkil yüklənən kimi sahə açılır,
+  izahı ilə birlikdə: təsvir cavabı verməməlidir ("üçbucaq nişan, içində əyri ox" olar,
+  "təhlükəli döngə nişanı" olmaz).
+
+**Nümunə yol nişanları.** `DemoRoadSigns` 12 standart nişan və 4 yolayrıcı sxemini **SVG
+olaraq generasiya edir** — xarici şəkil yüklənmir, fayllar deterministikdir və `demo:clear`
+qovluğu bütöv silir. Sürücülük suallarının **24-ü (32-dən) şəkillidir**: nişanın mənası,
+nişanın qrupu və "kim birinci keçir" sxemləri. Nişanın üzərində adı yazılmır — sual öz
+cavabını vermir.
+
+**İmtahan növünə görə icazəli sual tipləri.** Yeni `config/questions.php` və
+`App\Support\QuestionTypes` (ən uzun prefiksə görə uyğunluq):
+
+| Kateqoriya | İcazəli tiplər |
+|---|---|
+| Sürücülük | yalnız qapalı |
+| MİQ, sertifikasiya, diaqnostik, məktəbəqədər | yalnız qapalı |
+| Dövlət qulluğu — BB və AC | yalnız qapalı |
+| Dövlət qulluğu — BA, AB, AA | qapalı + yazılı |
+| Magistratura, buraxılış, I və II mərhələ | hər üç tip |
+
+Tətbiq nöqtələri: **admin sual forması** (yalnız icazəli növ göstərilir və serverdə
+`StoreQuestionRequest` yoxlayır), **bankdan generasiya** (`ExamGenerator` icazəsiz tipi
+hovuza salmır) və **nümunə məzmun seeder-i**. Sürücülük və müəllim imtahanlarındakı açıq
+suallar qapalı ilə əvəzləndi — seeder qaydaya uyğun qapalı çərçivələr qurur (`pairing`,
+`quarterClosed`, `passageAlt` əlavə olundu ki, açıq tip söndürüləndə də səkkiz FƏRQLİ sual
+çıxsın; əvvəl mətn təkrarlanırdı).
+
+**ROADMAP P3:** MİQ-in öz bal sistemi (ixtisas 2 bal, metodika 1 bal; səhvdə −0,5 / −0,25)
+və magistratura essesi (95 + 5) üçün ayrıca `ScoringStrategy`.
+
+**Testlər:** `QuestionTypeRulesTest` (5) — config, admin forması, generasiya;
+`DemoContentTest`-ə iki yeni test — şəkilli sürücülük sualları və nümunə imtahanların
+tip qaydasına uyğunluğu (465 → 472 test).
+
+---
+
 ### 2026-09-23 — Test ödənişi, başlıqda hesab, kataloq sadələşməsi və rəng dili
 
 **Ödəniş test rejimi.** Sayt müvəqqəti subdomendə olduğu üçün `PAYMENT_DRIVER=fake` artıq

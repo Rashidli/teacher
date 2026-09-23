@@ -34,8 +34,9 @@ class DemoBankBuilder
     /**
      * @param  array<string, Subject>  $subjects  slug → fənn
      * @param  array<int, string>  $ruSubjects  rus sektoru sualı lazım olan fənlərin slug-ları
+     * @param  array<string, array<int, string>>  $allowedTypes  fənn slug → icazəli sual tipləri
      */
-    public function build(array $subjects, array $ruSubjects): void
+    public function build(array $subjects, array $ruSubjects, array $allowedTypes = []): void
     {
         foreach (DemoTaxonomy::all() as $slug => $blocks) {
             $subject = $subjects[$slug] ?? null;
@@ -50,7 +51,13 @@ class DemoBankBuilder
             $languages = in_array($slug, $ruSubjects, true) ? ['az', 'ru'] : ['az'];
 
             foreach ($languages as $language) {
-                $rows = $this->factory->build($slug, $blocks, $language, self::QUESTIONS_PER_TOPIC);
+                $rows = $this->factory->build(
+                    $slug,
+                    $blocks,
+                    $language,
+                    self::QUESTIONS_PER_TOPIC,
+                    $allowedTypes[$slug] ?? \App\Models\Question::TYPES,
+                );
                 $this->questions[$slug.'|'.$language] = $this->syncQuestions($subject, $topics, $rows, $language);
             }
         }
@@ -135,6 +142,8 @@ class DemoBankBuilder
                 'subject_id' => $subject->id,
                 'topic_id' => $topics[$row['topic_index']]->id,
                 'question_text' => $row['question_text'],
+                'question_image' => $row['question_image'] ?? null,
+                'question_image_alt' => $row['question_image_alt'] ?? null,
                 'type' => $row['type'],
                 'language' => $language,
                 'difficulty' => $row['difficulty'],

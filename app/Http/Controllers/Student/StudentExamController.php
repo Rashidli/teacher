@@ -209,6 +209,7 @@ class StudentExamController extends Controller
                     'section_title' => $sectionTitles->get($question->pivot->section_id),
                     'question_text' => $question->question_text,
                     'question_image' => $question->question_image,
+                    'question_image_alt' => $question->question_image_alt,
                     'type' => $question->type,
                     'options' => $question->options->map(fn($opt) => [
                         'id' => $opt->id,
@@ -332,11 +333,13 @@ class StudentExamController extends Controller
                     'question_id' => $question->id,
                     'question_text' => $question->question_text,
                     'question_image' => $question->question_image,
+                    'question_image_alt' => $question->question_image_alt,
                     'type' => $question->type,
                     'explanation' => $question->explanation,
-                    'options' => $question->options->map(fn($opt) => [
+                    'options' => $question->options->map(fn ($opt) => [
                         'id' => $opt->id,
                         'option_text' => $opt->option_text,
+                        'option_image' => $opt->option_image,
                         'is_correct' => $correctOption && $opt->id === $correctOption->id,
                     ]),
                     'correct_option_id' => $correctOption?->id,

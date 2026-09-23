@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreQuestionRequest;
 use App\Models\Exam;
 use App\Models\Question;
+use App\Support\QuestionTypes;
 use App\Services\QuestionService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,8 @@ class TeacherQuestionController extends Controller
 
         return Inertia::render('Teacher/Questions/Create', [
             'exam' => $exam->load('subject'),
+            // İmtahan növünə görə icazəli sual tipləri (config/questions.php)
+            'allowedTypes' => QuestionTypes::forExam($exam),
         ]);
     }
 
@@ -44,6 +47,7 @@ class TeacherQuestionController extends Controller
         return Inertia::render('Teacher/Questions/Edit', [
             'exam' => $exam->load('subject'),
             'question' => $question,
+            'allowedTypes' => QuestionTypes::forExam($exam),
         ]);
     }
 

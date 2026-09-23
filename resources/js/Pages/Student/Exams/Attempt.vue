@@ -1,6 +1,7 @@
 <script setup>
 import { Head, router } from '@inertiajs/vue3';
 import MathText from '@/Components/MathText.vue';
+import QuestionImage from '@/Components/QuestionImage.vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
@@ -381,12 +382,7 @@ const getQuestionStatus = (question) => {
                             <!-- Question Text -->
                             <div class="mb-4 sm:mb-6">
                                 <p class="text-base sm:text-lg text-gray-900"><MathText :text="question.question_text" /></p>
-                                <img
-                                    v-if="question.question_image"
-                                    :src="`/storage/${question.question_image}`"
-                                    alt="Sual şəkli"
-                                    class="mt-4 max-w-full sm:max-w-lg rounded-lg border border-gray-200"
-                                />
+                                <QuestionImage :path="question.question_image" :alt="question.question_image_alt" />
                             </div>
 
                             <!-- Options -->
@@ -412,7 +408,16 @@ const getQuestionStatus = (question) => {
                                     >
                                         {{ option.option_letter }}
                                     </span>
-                                    <span class="flex-1 text-sm sm:text-base"><MathText :text="option.option_text" /></span>
+                                    <span class="flex-1 text-sm sm:text-base">
+                                        <MathText :text="option.option_text" />
+                                        <QuestionImage
+                                            v-if="option.option_image"
+                                            :path="option.option_image"
+                                            :alt="option.option_text || `Variant ${option.option_letter}`"
+                                            size="option"
+                                            class="mt-2"
+                                        />
+                                    </span>
                                 </button>
                             </div>
 

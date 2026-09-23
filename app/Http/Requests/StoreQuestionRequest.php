@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Exam;
 use App\Models\Question;
+use App\Support\QuestionTypes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -53,8 +54,15 @@ class StoreQuestionRequest extends FormRequest
         return [
             'question_text' => ['required', 'string'],
             'question_image' => ['nullable', 'image', 'max:2048'],
+            // Şəkilli sualda şəkil məzmunun özüdür: ekran oxuyucusu üçün təsvir
+            'question_image_alt' => ['nullable', 'string', 'max:255'],
             'remove_image' => ['boolean'],
-            'type' => ['required', Rule::in(Question::TYPES)],
+            /*
+             * Tip imtahanın KATEQORİYASINA görə məhdudlanır: sürücülükdə və MİQ-də açıq
+             * sual yoxdur, dövlət qulluğunun BB/AC qrupunda da yalnız qapalı test var.
+             * Qayda `config/questions.php`-dədir.
+             */
+            'type' => ['required', Rule::in(QuestionTypes::forExam($this->exam()))],
             'difficulty' => ['nullable', Rule::in(Question::DIFFICULTIES)],
             // Mövzu imtahanın fənninə aid olmalıdır
             'topic_id' => [
@@ -118,7 +126,8 @@ class StoreQuestionRequest extends FormRequest
         return [
             'question_text.required' => 'Sual mətni mütləqdir.',
             'type.required' => 'Sual tipi seçilməlidir.',
-            'type.in' => 'Belə sual tipi yoxdur.',
+            'type.in' => 'Bu imtahan növündə belə sual tipi işlənmir '
+                .'(icazəli: '.implode(', ', QuestionTypes::forExam($this->exam())).').',
             'options.required' => 'Test sualı üçün variantlar mütləqdir.',
             'options.size' => "Bu imtahanda hər sualda {$optionCount} variant olmalıdır.",
             'topic_id.exists' => 'Seçilmiş mövzu bu imtahanın fənninə aid deyil.',

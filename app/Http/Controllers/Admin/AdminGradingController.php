@@ -46,12 +46,15 @@ class AdminGradingController extends Controller
         $attempt->load(['user:id,first_name,last_name,email', 'exam:id,title,subject_id', 'exam.subject:id,name']);
 
         $answers = $attempt->answers()
-            ->with('question:id,question_text,explanation,type')
+            ->with('question:id,question_text,question_image,question_image_alt,explanation,type')
             ->whereHas('question', fn ($query) => $query->where('type', Question::TYPE_OPEN_WRITTEN))
             ->get()
             ->map(fn (AttemptAnswer $answer) => [
                 'id' => $answer->id,
                 'question_text' => $answer->question->question_text,
+                // Şəkilli sualda cavabı qiymətləndirmək üçün şəkil də lazımdır
+                'question_image' => $answer->question->question_image,
+                'question_image_alt' => $answer->question->question_image_alt,
                 'explanation' => $answer->question->explanation,
                 'open_answer' => $answer->open_answer,
                 'grade_ratio' => $answer->grade_ratio,

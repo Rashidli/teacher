@@ -341,7 +341,25 @@ class DemoFormulas
     private static function logicItem(int $topicIndex, int $n, bool $ru): array
     {
         return match ($topicIndex) {
-            0, 1 => (function () use ($n, $ru) {
+            // Rüb 2: həndəsi ardıcıllıq — rüb 1-dəki arifmetik ardıcıllıqla eyni sual çıxmasın
+            1 => (function () use ($n, $ru) {
+                $start = 2 + $n % 4;
+                $series = [$start, $start * 2, $start * 4, $start * 8];
+                $next = $start * 16;
+                $list = implode(',\; ', $series);
+
+                return self::make(
+                    $ru
+                        ? "Какое число продолжает ряд $\;{$list},\; \ldots$?"
+                        : "$\;{$list},\; \ldots$ ardıcıllığını hansı ədəd davam etdirir?",
+                    $next,
+                    '',
+                    $ru
+                        ? 'Каждый следующий член вдвое больше предыдущего.'
+                        : 'Hər sonrakı üzv əvvəlkindən iki dəfə böyükdür.',
+                );
+            })(),
+            0 => (function () use ($n, $ru) {
                 $start = 2 + $n % 5;
                 $step = 3 + $n % 4;
                 $series = [$start, $start + $step, $start + 2 * $step, $start + 3 * $step];

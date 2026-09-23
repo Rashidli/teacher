@@ -8,6 +8,7 @@ const props = defineProps({
     topics: { type: Array, default: () => [] },
     sections: { type: Array, default: () => [] },
     sectionId: { type: Number, default: null },
+    allowedTypes: { type: Array, default: () => ['multiple_choice', 'open_coded', 'open_written'] },
 });
 
 const form = useForm({
@@ -15,6 +16,7 @@ const form = useForm({
     question_text: '',
     type: 'multiple_choice',
     question_image: null,
+    question_image_alt: '',
     remove_image: false,
     options: [],
     accepted_answers: [''],
@@ -59,6 +61,7 @@ const submit = () => {
 
                 <QuestionForm
                     :form="form"
+                    :allowed-types="allowedTypes"
                     :exam="exam"
                     :topics="topics"
                     submit-label="Sual əlavə et"

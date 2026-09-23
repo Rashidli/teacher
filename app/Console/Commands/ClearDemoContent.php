@@ -9,7 +9,9 @@ use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Console\ConfirmableTrait;
+use Database\Seeders\Demo\DemoRoadSigns;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Demo məzmunu silir: `php artisan demo:clear`.
@@ -67,6 +69,9 @@ class ClearDemoContent extends Command
         }
 
         DB::transaction(fn () => $this->delete($plan));
+
+        // Nümunə yol nişanı SVG-ləri: qovluq bütöv silinir (seeder onu yenidən yazır)
+        Storage::disk('public')->deleteDirectory(DemoRoadSigns::DIRECTORY);
 
         SitemapController::forget();
 

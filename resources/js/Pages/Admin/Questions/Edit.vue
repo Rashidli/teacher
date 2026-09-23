@@ -8,6 +8,7 @@ const props = defineProps({
     question: { type: Object, required: true },
     topics: { type: Array, default: () => [] },
     attemptUsage: { type: Number, default: 0 },
+    allowedTypes: { type: Array, default: () => ['multiple_choice', 'open_coded', 'open_written'] },
 });
 
 const form = useForm({
@@ -16,6 +17,7 @@ const form = useForm({
     question_text: props.question.question_text ?? '',
     type: props.question.type,
     question_image: null,
+    question_image_alt: '',
     remove_image: false,
     options: (props.question.options ?? []).map((option) => ({
         option_letter: option.option_letter,
@@ -74,6 +76,7 @@ const submit = () => {
 
                 <QuestionForm
                     :form="form"
+                    :allowed-types="allowedTypes"
                     :exam="exam"
                     :topics="topics"
                     :attempt-usage="attemptUsage"

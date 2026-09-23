@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamSection;
 use App\Models\Question;
 use App\Models\Subject;
+use App\Support\QuestionTypes;
 use Illuminate\Support\Collection;
 
 /**
@@ -131,7 +132,10 @@ class DemoExamBuilder
         array $sectionSubjects,
     ): ?Exam {
         $perSection = $this->questionsPerSection(count($sectionSubjects), $kind);
-        $picks = $this->pickQuestions($sectionSubjects, $sector, $quarter, $perSection, $nodeIndex, $i);
+        $picks = $this->pickQuestions(
+            $sectionSubjects, $sector, $quarter, $perSection, $nodeIndex, $i,
+            QuestionTypes::forCategory($category),
+        );
 
         // Bank çatmırsa imtahan qurulmur — yarımçıq imtahan kataloqa düşməsin
         if ($picks === null) {
@@ -249,12 +253,15 @@ class DemoExamBuilder
      * @param  array<int, Subject>  $subjects
      * @return array<int, Collection<int, Question>>|null bank çatmırsa null
      */
-    private function pickQuestions(array $subjects, string $sector, ?int $quarter, int $perSection, int $nodeIndex, int $i): ?array
+    private function pickQuestions(array $subjects, string $sector, ?int $quarter, int $perSection, int $nodeIndex, int $i, array $allowedTypes): ?array
     {
         $picks = [];
 
         foreach ($subjects as $index => $subject) {
-            $pool = $this->bank->pool($subject->slug, $sector, $quarter);
+            // İmtahan növündə icazəsiz tiplər hovuzdan çıxır (sürücülükdə açıq sual olmur)
+            $pool = $this->bank->pool($subject->slug, $sector, $quarter)
+                ->filter(fn (Question $question) => in_array($question->type, $allowedTypes, true))
+                ->values();
 
             if ($pool->count() < $perSection) {
                 return null;

@@ -7,16 +7,20 @@ use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Subject;
 use App\Models\User;
+use App\Models\Question;
 use App\Services\Scoring\AttemptScorer;
+use App\Support\QuestionTypes;
 use App\Support\Sector;
 use Database\Seeders\Demo\DemoBankBuilder;
 use Database\Seeders\Demo\DemoCatalog;
 use Database\Seeders\Demo\DemoExamBuilder;
 use Database\Seeders\Demo\DemoQuestionFactory;
+use Database\Seeders\Demo\DemoRoadSigns;
 use Database\Seeders\Demo\DemoStudentBuilder;
 use Database\Seeders\Demo\DemoTaxonomy;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Nümunə (demo) məzmun: kataloqun heç bir düyünü və heç bir filtri boş qalmasın.
@@ -71,13 +75,16 @@ class DemoContentSeeder extends Seeder
 
         $adminId = User::whereHas('roles', fn ($query) => $query->where('name', 'admin'))->value('id');
 
-        $bank = new DemoBankBuilder(new DemoQuestionFactory);
-        $bank->build($subjects, self::RU_SUBJECTS);
-
         $categories = Category::whereIn('path', array_column(DemoCatalog::nodes(), 'path'))
             ->get()
             ->keyBy('path')
             ->all();
+
+        // Sürücülük suallarının şəkilləri: SVG-lər burada yazılır (xarici fayl yüklənmir)
+        $this->writeRoadSigns();
+
+        $bank = new DemoBankBuilder(new DemoQuestionFactory);
+        $bank->build($subjects, self::RU_SUBJECTS, $this->allowedTypesBySubject($categories));
 
         $exams = new DemoExamBuilder($bank, $subjects, $adminId);
         $exams->build($categories);
@@ -90,6 +97,59 @@ class DemoContentSeeder extends Seeder
         $this->summary($bank->stats + $exams->stats + $students->stats);
         $this->credentials($students->credentials);
         $this->coverage();
+    }
+
+    /**
+     * Fənn üzrə icazəli sual tipləri.
+     *
+     * Sual bankı fənnə aiddir, qayda isə imtahanın KATEQORİYASINA. Bir fənn bir neçə
+     * kateqoriyada işlənə bilər (məs. Riyaziyyat həm abituriyentdə, həm MİQ-də), ona görə
+     * fənnin bankı onu işlədən kateqoriyaların BİRLƏŞMƏSİ qədər geniş olur; konkret imtahan
+     * isə öz kateqoriyasının qaydasına görə süzülür (`DemoExamBuilder::pickQuestions()`).
+     *
+     * Yalnız qapalı sual qəbul edən kateqoriyalarda işlənən fənn (Yol hərəkəti qaydaları,
+     * Kurikulum və metodika) bankda da yalnız qapalı sual alır — əks halda rüb sınağı üçün
+     * icazəli sual çatmazdı.
+     *
+     * @param  array<string, Category>  $categories
+     * @return array<string, array<int, string>>
+     */
+    private function allowedTypesBySubject(array $categories): array
+    {
+        $allowed = [];
+
+        foreach (DemoCatalog::nodes() as $node) {
+            $types = QuestionTypes::forCategory($categories[$node['path']] ?? null);
+            $sets = array_merge($node['sets'] ?? [], $node['ru_sets'] ?? []);
+
+            foreach ($sets as $set) {
+                foreach ($set as $slug) {
+                    $allowed[$slug] = array_values(array_unique(array_merge($allowed[$slug] ?? [], $types)));
+                }
+            }
+        }
+
+        // Kataloqda işlənməyən fənlər (bank üçün) hər üç tipi alır
+        foreach (array_keys(DemoTaxonomy::all()) as $slug) {
+            $allowed[$slug] ??= Question::TYPES;
+        }
+
+        return $allowed;
+    }
+
+    /**
+     * Yol nişanı SVG-lərini `storage/app/public` altına yazır.
+     *
+     * Məzmun deterministikdir, ona görə təkrar işə salmada eyni fayl yazılır. `demo:clear`
+     * qovluğu bütöv silir.
+     */
+    private function writeRoadSigns(): void
+    {
+        $disk = Storage::disk('public');
+
+        foreach (array_merge(DemoRoadSigns::all(), DemoRoadSigns::junctions()) as $sign) {
+            $disk->put(DemoRoadSigns::DIRECTORY.'/'.$sign['key'].'.svg', $sign['svg']);
+        }
     }
 
     /**

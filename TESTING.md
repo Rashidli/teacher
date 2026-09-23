@@ -3,12 +3,29 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 465 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 472 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
 
 ---
+
+## Sual tipləri: imtahan növünə görə
+
+`config/questions.php` hər kateqoriya üçün icazəli sual tiplərini saxlayır:
+
+| Kateqoriya | İcazəli tiplər |
+|---|---|
+| Sürücülük | yalnız qapalı (şəkilli) |
+| MİQ, sertifikasiya, diaqnostik, məktəbəqədər | yalnız qapalı |
+| Dövlət qulluğu — BB və AC | yalnız qapalı |
+| Dövlət qulluğu — BA, AB, AA | qapalı + yazılı açıq |
+| Magistratura | qapalı + kodlaşdırılan + esse |
+| Buraxılış, I və II mərhələ | qapalı + kodlaşdırılan + yazılı |
+
+Qayda üç yerdə tətbiq olunur: **admin sual forması** (yalnız icazəli növ seçilir),
+**bankdan generasiya** (icazəsiz tip hovuza düşmür) və **nümunə məzmun seeder-i**.
+Uyğunluq ən uzun prefiksə görədir, yəni alt düyün valideyndən dəqiq qayda təyin edə bilər.
 
 ## Demo məzmun
 
@@ -129,6 +146,11 @@ bölmələrə) və **`/imtahanlar`** — ağacdan asılı olmayan ümumi siyahı
 | K47 | Daxil olmamış halda başlıq | "Daxil ol" və "Qeydiyyat" görünür |
 | K48 | Daxil olduqdan sonra başlıq | İnisiallı düymə + ad; menyuda Mənim imtahanlarım, Nəticələr, Statistika, Profil, Çıxış (admin hesabında əlavə "Admin panel"). Escape və kənara klik menyunu bağlayır |
 | K49 | Pullu imtahanda "Al" bas | Bank səhifəsi açılmır: ödəniş dərhal təsdiqlənir, "Test rejimi" bildirişi görünür, imtahan açılır və "Başla" işləyir |
+| K50 | `/imtahanlar`-da masaüstündə siyahını aşağı sürüşdür | Filtr paneli **ekranda qalır**; panel uzundursa öz daxilində sürüşür, səhifə ilə birlikdə yuxarı getmir |
+| K51 | Sürücülük imtahanını başlat | Suallarda **yol nişanı şəkilləri** görünür; mobildə şəkil ekrana sığır, üfüqi sürüşmə yaratmır |
+| K52 | Şəkilli sualı cavablandırıb nəticəyə bax | Nəticə səhifəsində də şəkil görünür |
+| K53 | Admin → sürücülük və ya MİQ imtahanında "Sual əlavə et" | Yalnız **Test** növü seçilə bilir, izahı yazılıb. Abituriyent imtahanında hər üç növ var |
+| K54 | Admin → şəkil yüklə | Şəklin altında **"Şəklin təsviri (alt mətni)"** sahəsi çıxır |
 
 ---
 

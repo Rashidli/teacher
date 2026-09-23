@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import MathText from '@/Components/MathText.vue';
+import QuestionImage from '@/Components/QuestionImage.vue';
 import LineChart from '@/Components/Charts/LineChart.vue';
 import ScoreBar from '@/Components/Charts/ScoreBar.vue';
 import { computed } from 'vue';
@@ -215,6 +216,7 @@ const getAnswerStatus = (answer) => {
                                 </span>
                                 <div class="flex-1">
                                     <p class="text-gray-900 font-medium"><MathText :text="answer.question_text" /></p>
+                                    <QuestionImage :path="answer.question_image" :alt="answer.question_image_alt" />
 
                                     <div v-if="answer.options?.length" class="mt-4 space-y-2">
                                         <div
@@ -230,7 +232,16 @@ const getAnswerStatus = (answer) => {
                                             ]"
                                         >
                                             <div class="flex items-center justify-between">
-                                                <span><MathText :text="option.option_text" /></span>
+                                                <span>
+                                                    <MathText :text="option.option_text" />
+                                                    <QuestionImage
+                                                        v-if="option.option_image"
+                                                        :path="option.option_image"
+                                                        :alt="option.option_text || 'Variant'"
+                                                        size="option"
+                                                        class="mt-2"
+                                                    />
+                                                </span>
                                                 <div class="flex items-center gap-2">
                                                     <span
                                                         v-if="option.id === answer.selected_option_id"

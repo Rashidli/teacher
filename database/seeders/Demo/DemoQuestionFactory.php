@@ -22,6 +22,26 @@ class DemoQuestionFactory
     /** Hesablanmış düsturlu sual qurula bilən fənlər */
     private const MATH_SUBJECTS = ['riyaziyyat', 'fizika', 'kimya', 'informatika', 'mentiq'];
 
+    /** Şəkilli sual qurulan fənn (sürücülük nəzəri imtahanı) */
+    private const ROAD_SUBJECT = 'yol-hereketi-qaydalari';
+
+    /** Hər çərçivənin qurduğu sual tipi — icazəli tiplərə görə süzmək üçün */
+    private const FRAME_TYPES = [
+        'choice5' => Question::TYPE_MULTIPLE_CHOICE,
+        'choice4' => Question::TYPE_MULTIPLE_CHOICE,
+        'negative' => Question::TYPE_MULTIPLE_CHOICE,
+        'passage' => Question::TYPE_MULTIPLE_CHOICE,
+        'passageLong' => Question::TYPE_MULTIPLE_CHOICE,
+        'formula' => Question::TYPE_MULTIPLE_CHOICE,
+        'coded' => Question::TYPE_OPEN_CODED,
+        'formulaCoded' => Question::TYPE_OPEN_CODED,
+        'written' => Question::TYPE_OPEN_WRITTEN,
+        'writtenLong' => Question::TYPE_OPEN_WRITTEN,
+        'pairing' => Question::TYPE_MULTIPLE_CHOICE,
+        'quarterClosed' => Question::TYPE_MULTIPLE_CHOICE,
+        'passageAlt' => Question::TYPE_MULTIPLE_CHOICE,
+    ];
+
     private const DIFFICULTIES = [
         Question::DIFFICULTY_EASY,
         Question::DIFFICULTY_MEDIUM,
@@ -35,13 +55,18 @@ class DemoQuestionFactory
      * @param  int  $perTopic  hər mövzu (rüb) üçün sual sayı
      * @return array<int, array<string, mixed>>
      */
-    public function build(string $subjectSlug, array $topics, string $language, int $perTopic): array
-    {
+    public function build(
+        string $subjectSlug,
+        array $topics,
+        string $language,
+        int $perTopic,
+        array $allowedTypes = Question::TYPES,
+    ): array {
         $rows = [];
 
         foreach ($topics as $topicIndex => $topic) {
             for ($n = 0; $n < $perTopic; $n++) {
-                $rows[] = $this->question($subjectSlug, $topics, $topicIndex, $language, $n) + [
+                $rows[] = $this->question($subjectSlug, $topics, $topicIndex, $language, $n, $allowedTypes) + [
                     'source' => sprintf('DEMO:%s:%s:q%d:%02d', $subjectSlug, $language, $topicIndex + 1, $n + 1),
                     'topic_index' => $topicIndex,
                     'difficulty' => self::DIFFICULTIES[($topicIndex + $n) % 3],
@@ -60,16 +85,118 @@ class DemoQuestionFactory
      * @param  array<int, array<string, mixed>>  $topics
      * @return array<string, mixed>
      */
-    private function question(string $subjectSlug, array $topics, int $topicIndex, string $language, int $n): array
+    private function question(string $subjectSlug, array $topics, int $topicIndex, string $language, int $n, array $allowedTypes): array
     {
+        // Sürücülük nəzəri imtahanı şəkilli testdir: nişan və yolayrıcı sxemləri
+        if ($subjectSlug === self::ROAD_SUBJECT && $topicIndex < 3) {
+            return $this->roadSign($topicIndex, $n);
+        }
+
         $isMath = in_array($subjectSlug, self::MATH_SUBJECTS, true);
+        /*
+         * İlk səkkiz çərçivə hər üç tipi qarışdırır. Sondakı üç QAPALI çərçivə yalnız
+         * açıq sualın icazəli olmadığı imtahanlarda (sürücülük, MİQ …) işə düşür: orada
+         * süzgəcdən sonra yenə səkkiz FƏRQLİ çərçivə qalır, sual mətni təkrarlanmır.
+         */
         $frames = $isMath
-            ? ['choice5', 'choice4', 'coded', 'written', 'passage', 'negative', 'formula', 'formulaCoded']
-            : ['choice5', 'choice4', 'coded', 'written', 'passage', 'negative', 'passageLong', 'writtenLong'];
+            ? ['choice5', 'choice4', 'coded', 'written', 'passage', 'negative', 'formula', 'formulaCoded',
+                'pairing', 'quarterClosed', 'passageAlt']
+            : ['choice5', 'choice4', 'coded', 'written', 'passage', 'negative', 'passageLong', 'writtenLong',
+                'pairing', 'quarterClosed', 'passageAlt'];
+
+        // İmtahan növündə icazəsiz tipə aid çərçivələr siyahıdan çıxır
+        $frames = array_values(array_filter(
+            $frames,
+            fn (string $frame) => in_array(self::FRAME_TYPES[$frame], $allowedTypes, true),
+        ));
 
         $frame = $frames[$n % count($frames)];
 
         return $this->{$frame}($subjectSlug, $topics, $topicIndex, $language, $n);
+    }
+
+    /**
+     * Şəkilli sürücülük sualı.
+     *
+     * Rüb 1 — nişanın mənası, rüb 2 — yolayrıcı sxemi (kim birinci keçir), rüb 3 — nişanın
+     * hansı qrupa aid olması. Şəklin üzərində nişanın adı YAZILMIR, ona görə sual öz
+     * cavabını vermir.
+     *
+     * @return array<string, mixed>
+     */
+    private function roadSign(int $topicIndex, int $n): array
+    {
+        $signs = DemoRoadSigns::all();
+        $junctions = DemoRoadSigns::junctions();
+
+        // Rüb 2-nin ilk dörd sualı yolayrıcı sxemidir, qalanı nişan tələbidir
+        if ($topicIndex === 1 && $n < count($junctions)) {
+            return $this->imageQuestion(
+                $junctions[$n],
+                $junctions,
+                'meaning',
+                'Sxemdə bərabərhüquqlu yolayrıcı göstərilib. Hansı nəqliyyat vasitəsi birinci keçməlidir?',
+                $n,
+            );
+        }
+
+        /*
+         * Nişanlar təkrarlanmasın deyə hər rüb kataloqun başqa hissəsindən başlayır.
+         * Kataloqda 12 nişan var, hər rübdə isə 8-dən çoxu lazım olmur.
+         */
+        $offset = match ($topicIndex) {
+            1 => 8 + ($n - count($junctions)),
+            2 => 4 + $n,
+            default => $n,
+        };
+
+        $sign = $signs[$offset % count($signs)];
+
+        [$field, $question] = match ($topicIndex) {
+            1 => ['meaning', 'Aşağıdakı nişan sürücüyə hansı tələbi qoyur?'],
+            2 => ['group', 'Şəkildəki nişan hansı qrupa aiddir?'],
+            default => ['meaning', 'Şəkildəki yol nişanı nəyi bildirir?'],
+        };
+
+        return $this->imageQuestion($sign, $signs, $field, $question, $n);
+    }
+
+    /**
+     * Şəkilli qapalı sual: doğru cavab nişanın öz mənası (və ya qrupu), yanlış variantlar
+     * isə kataloqun digər sətirlərindən.
+     *
+     * @param  array<string, string>  $item
+     * @param  array<int, array<string, string>>  $pool
+     * @return array<string, mixed>
+     */
+    private function imageQuestion(array $item, array $pool, string $field, string $question, int $n): array
+    {
+        $correct = $item[$field];
+        $wrong = [];
+
+        foreach ($pool as $index => $other) {
+            $value = $other[$field];
+
+            if ($value !== $correct && ! in_array($value, $wrong, true)) {
+                $wrong[] = $value;
+            }
+        }
+
+        // Yanlış variantlar da sualdan-suala dəyişsin
+        $picked = [];
+
+        for ($k = 0; count($picked) < 3 && $k < count($wrong); $k++) {
+            $picked[] = $wrong[($n + $k) % count($wrong)];
+        }
+
+        return [
+            'question_text' => $question,
+            'question_image' => DemoRoadSigns::DIRECTORY.'/'.$item['key'].'.svg',
+            'question_image_alt' => $item['alt'],
+            'type' => Question::TYPE_MULTIPLE_CHOICE,
+            'options' => $this->options($correct, array_unique($picked), $n),
+            'explanation' => 'Düzgün cavab: '.$correct.'.',
+        ];
     }
 
     /* ---------------------------------------------------------------- çərçivələr */
@@ -266,6 +393,81 @@ class DemoQuestionFactory
             'explanation' => $this->t($lang,
                 "Mətn «{$topic}» mövzusundan bəhs edir, «{$correct}» isə həmin mövzunun anlayışıdır.",
                 "Текст посвящён теме «{$topic}», а «{$correct}» — понятие этой темы."),
+        ];
+    }
+
+    /** İki anlayış — hansı mövzuda birlikdə öyrənilir (4 variant: mövzu adları) */
+    private function pairing(string $subject, array $topics, int $i, string $lang, int $n): array
+    {
+        $topic = $this->topicName($topics, $i);
+        $a = $this->term($topics, $i, $n, $lang);
+        $b = $this->term($topics, $i, $n + 3, $lang);
+        $wrong = [];
+
+        foreach ($topics as $index => $other) {
+            if ($index !== $i) {
+                $wrong[] = $this->topicName($topics, $index);
+            }
+        }
+
+        return [
+            'question_text' => $this->t($lang,
+                "«{$a}» və «{$b}» anlayışları hansı mövzuda birlikdə öyrənilir?",
+                "В рамках какой темы понятия «{$a}» и «{$b}» изучаются вместе?"),
+            'type' => Question::TYPE_MULTIPLE_CHOICE,
+            'options' => $this->options($topic, array_slice($wrong, 0, 3), $n + 2),
+            'explanation' => $this->t($lang,
+                "Hər iki anlayış «{$topic}» mövzusunun tərkibindədir.",
+                "Оба понятия входят в тему «{$topic}»."),
+        ];
+    }
+
+    /** Rüb sualının qapalı variantı (açıq sual icazəli olmayan imtahanlar üçün) */
+    private function quarterClosed(string $subject, array $topics, int $i, string $lang, int $n): array
+    {
+        $topic = $this->topicName($topics, $i);
+        $quarter = $i + 1;
+
+        $label = fn (int $number) => $this->t($lang, $number.'-ci rüb', $number.'-я четверть');
+
+        $wrong = [];
+
+        foreach ([1, 2, 3, 4] as $number) {
+            if ($number !== $quarter) {
+                $wrong[] = $label($number);
+            }
+        }
+
+        return [
+            'question_text' => $this->t($lang,
+                "«{$topic}» mövzusu tədris ilinin hansı rübündə keçilir?",
+                "В какой четверти учебного года изучается тема «{$topic}»?"),
+            'type' => Question::TYPE_MULTIPLE_CHOICE,
+            'options' => $this->options($label($quarter), $wrong, $n),
+            'explanation' => $this->t($lang,
+                "Bu mövzu {$quarter}-ci rübün proqramındadır.",
+                "Эта тема входит в программу {$quarter}-й четверти."),
+        ];
+    }
+
+    /** İkinci situasiya sualı: `passage`-dən fərqli quruluş (qapalı) */
+    private function passageAlt(string $subject, array $topics, int $i, string $lang, int $n): array
+    {
+        $topic = $this->topicName($topics, $i);
+        $correct = $this->term($topics, $i, $n + 4, $lang);
+        $wrong = $this->otherTerms($topics, $i, $lang, 4, $n + 1);
+
+        return [
+            'question_text' => $this->t($lang,
+                "Şagird «{$topic}» mövzusu üzrə təkrar dərsə hazırlaşır və qeyd dəftərinə "
+                    .'mövzunun əsas anlayışlarını yazır. Aşağıdakılardan hansı bu siyahıya düşməlidir?',
+                "Ученик готовится к повторительному уроку по теме «{$topic}» и выписывает в "
+                    .'тетрадь основные понятия темы. Какое из перечисленных должно попасть в этот список?'),
+            'type' => Question::TYPE_MULTIPLE_CHOICE,
+            'options' => $this->options($correct, $wrong, $n + 3),
+            'explanation' => $this->t($lang,
+                "«{$correct}» «{$topic}» mövzusunun anlayışıdır.",
+                "«{$correct}» — понятие темы «{$topic}»."),
         ];
     }
 

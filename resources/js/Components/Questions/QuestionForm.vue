@@ -24,6 +24,8 @@ const props = defineProps({
     cancelHref: { type: String, required: true },
     // Redaktə zamanı mövcud şəklin ünvanı
     existingImageUrl: { type: String, default: null },
+    // İmtahanın kateqoriyasında icazəli sual tipləri (config/questions.php)
+    allowedTypes: { type: Array, default: () => ['multiple_choice', 'open_coded', 'open_written'] },
 });
 
 const emit = defineEmits(['submit']);
@@ -31,6 +33,21 @@ const emit = defineEmits(['submit']);
 const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
 const optionCount = computed(() => props.exam.options_per_question ?? 5);
+/** Sual tipləri: imtahanın kateqoriyasında icazəli olanlar (config/questions.php) */
+const TYPE_LABELS = {
+    multiple_choice: { label: 'Test', hint: () => `${optionCount.value} variant, biri düzgün` },
+    open_coded: { label: 'Qısa cavab', hint: () => 'Rəqəm/qısa mətn, avtomatik yoxlanır' },
+    open_written: { label: 'Açıq (həll yazılır)', hint: () => 'Admin əl ilə qiymətləndirir' },
+};
+
+const typeChoices = computed(() => props.allowedTypes
+    .filter((type) => TYPE_LABELS[type])
+    .map((type) => ({
+        value: type,
+        label: TYPE_LABELS[type].label,
+        hint: TYPE_LABELS[type].hint(),
+    })));
+
 const isMultipleChoice = computed(() => props.form.type === 'multiple_choice');
 const isOpenCoded = computed(() => props.form.type === 'open_coded');
 
@@ -180,32 +197,30 @@ const visibleExistingImage = computed(
                     əvəzlə" seçimindən istifadə edin.
                 </div>
 
-                <!-- Sual növü -->
+                <!-- Sual növü: yalnız bu imtahan növündə icazəli olanlar -->
                 <div>
                     <InputLabel value="Sual Növü" />
-                    <div class="mt-2 grid gap-2 sm:grid-cols-3">
-                        <label class="flex items-start gap-2 cursor-pointer rounded-md border border-gray-200 p-3 hover:border-indigo-300">
-                            <input type="radio" v-model="form.type" value="multiple_choice" class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" />
+                    <div class="mt-2 grid gap-2" :class="typeChoices.length > 1 ? 'sm:grid-cols-3' : ''">
+                        <label
+                            v-for="choice in typeChoices"
+                            :key="choice.value"
+                            class="flex items-start gap-2 cursor-pointer rounded-md border border-gray-200 p-3 hover:border-indigo-300"
+                        >
+                            <input
+                                type="radio"
+                                v-model="form.type"
+                                :value="choice.value"
+                                class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                            />
                             <span>
-                                <span class="block text-sm font-medium text-gray-800">Test</span>
-                                <span class="block text-xs text-gray-500">{{ optionCount }} variant, biri düzgün</span>
-                            </span>
-                        </label>
-                        <label class="flex items-start gap-2 cursor-pointer rounded-md border border-gray-200 p-3 hover:border-indigo-300">
-                            <input type="radio" v-model="form.type" value="open_coded" class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" />
-                            <span>
-                                <span class="block text-sm font-medium text-gray-800">Qısa cavab</span>
-                                <span class="block text-xs text-gray-500">Rəqəm/qısa mətn, avtomatik yoxlanır</span>
-                            </span>
-                        </label>
-                        <label class="flex items-start gap-2 cursor-pointer rounded-md border border-gray-200 p-3 hover:border-indigo-300">
-                            <input type="radio" v-model="form.type" value="open_written" class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" />
-                            <span>
-                                <span class="block text-sm font-medium text-gray-800">Açıq (həll yazılır)</span>
-                                <span class="block text-xs text-gray-500">Admin əl ilə qiymətləndirir</span>
+                                <span class="block text-sm font-medium text-gray-800">{{ choice.label }}</span>
+                                <span class="block text-xs text-gray-500">{{ choice.hint }}</span>
                             </span>
                         </label>
                     </div>
+                    <p v-if="typeChoices.length === 1" class="mt-2 text-xs text-gray-500">
+                        Bu imtahan növündə yalnız “{{ typeChoices[0].label }}” sualı işlənir.
+                    </p>
                     <InputError :message="form.errors.type" class="mt-2" />
                 </div>
 
@@ -263,6 +278,24 @@ const visibleExistingImage = computed(
                             class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                         />
                         <InputError :message="form.errors.question_image" class="mt-2" />
+                    </div>
+
+                    <!-- Şəkil məzmunun özüdürsə (yol nişanı, sxem) ekran oxuyucusu üçün təsvir lazımdır -->
+                    <div v-if="imagePreview || visibleExistingImage" class="mt-3">
+                        <InputLabel for="question_image_alt" value="Şəklin təsviri (alt mətni)" />
+                        <TextInput
+                            id="question_image_alt"
+                            v-model="form.question_image_alt"
+                            type="text"
+                            class="mt-1 block w-full"
+                            maxlength="255"
+                            placeholder="Məs: üçbucaq nişan, içində əyri ox"
+                        />
+                        <p class="mt-1 text-xs text-gray-500">
+                            Şəkli görməyən istifadəçi üçün. Cavabı verməsin: “üçbucaq nişan, içində
+                            əyri ox” olar, “təhlükəli döngə nişanı” olmaz.
+                        </p>
+                        <InputError :message="form.errors.question_image_alt" class="mt-2" />
                     </div>
                 </div>
 

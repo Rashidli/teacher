@@ -192,6 +192,7 @@ class AdminExamController extends Controller
                     'id' => $question->id,
                     'question_text' => $question->question_text,
                     'question_image' => $question->question_image,
+                    'question_image_alt' => $question->question_image_alt,
                     'type' => $question->type,
                     'topic' => $question->topic?->name,
                     'explanation' => $question->explanation,

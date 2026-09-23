@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Models\Subject;
+use App\Support\QuestionTypes;
 use App\Support\Sector;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -52,9 +53,12 @@ class ExamGenerator
         $pools = [];
         $shortfalls = [];
 
+        // İmtahan növünə görə icazəli sual tipləri: sürücülükdə və MİQ-də açıq sual yoxdur
+        $allowedTypes = QuestionTypes::forCategory($category);
+
         foreach ($counts as $subjectId => $count) {
             $required = (int) $count * $variants;
-            $pool = $this->pool((int) $subjectId, $quarter, $cumulative, $sector);
+            $pool = $this->pool((int) $subjectId, $quarter, $cumulative, $sector, $allowedTypes);
 
             if ($pool->count() < $required) {
                 $shortfalls[] = [
@@ -82,13 +86,18 @@ class ExamGenerator
         );
     }
 
-    /** Seçilmiş fənn və rübə uyğun aktiv sualların ID-ləri */
-    private function pool(int $subjectId, ?int $quarter, bool $cumulative, string $sector): Collection
+    /**
+     * Seçilmiş fənn, rüb və İCAZƏLİ TİPLƏRƏ uyğun aktiv sualların ID-ləri.
+     *
+     * @param  array<int, string>  $allowedTypes
+     */
+    private function pool(int $subjectId, ?int $quarter, bool $cumulative, string $sector, array $allowedTypes): Collection
     {
         return Question::query()
             ->where('subject_id', $subjectId)
             // Yalnız imtahanın sektorunun dilindəki suallar
             ->where('language', $sector)
+            ->whereIn('type', $allowedTypes)
             ->where('is_active', true)
             ->when($quarter !== null, fn ($query) => $query->whereHas(
                 'topic',

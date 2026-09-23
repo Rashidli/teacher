@@ -11,12 +11,14 @@ import { ref, computed } from 'vue';
 const props = defineProps({
     exam: Object,
     question: Object,
+    allowedTypes: { type: Array, default: () => ['multiple_choice', 'open_coded', 'open_written'] },
 });
 
 const form = useForm({
     question_text: props.question.question_text,
     type: props.question.type,
     question_image: null,
+    question_image_alt: '',
     remove_image: false,
     options: props.question.options?.length
         ? props.question.options.map((opt, index) => ({

@@ -90,6 +90,7 @@ class QuestionService
             } elseif (filter_var($data['remove_image'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 $this->deleteFile($question->question_image);
                 $attributes['question_image'] = null;
+                $attributes['question_image_alt'] = null;
             }
 
             $question->update($attributes);
@@ -186,7 +187,7 @@ class QuestionService
     {
         return DB::transaction(function () use ($exam, $question) {
             $copy = Question::create($question->only([
-                'subject_id', 'topic_id', 'question_text', 'question_image', 'type', 'language',
+                'subject_id', 'topic_id', 'question_text', 'question_image', 'question_image_alt', 'type', 'language',
                 'translation_group_id', 'difficulty', 'accepted_answers', 'explanation', 'source', 'is_active',
             ]));
 
@@ -395,6 +396,8 @@ class QuestionService
             'language' => $data['language'] ?? $question?->language ?? Sector::AZ,
             'topic_id' => array_key_exists('topic_id', $data) ? $data['topic_id'] : $question?->topic_id,
             'question_text' => $data['question_text'],
+            // Şəkilli sualın ekran oxuyucusu üçün təsviri (şəkil silinəndə də boşalır)
+            'question_image_alt' => $data['question_image_alt'] ?? $question?->question_image_alt,
             'type' => $type,
             'difficulty' => $data['difficulty'] ?? $question?->difficulty ?? Question::DIFFICULTY_MEDIUM,
             'source' => $data['source'] ?? $question?->source,

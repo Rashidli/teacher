@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import MathText from '@/Components/MathText.vue';
+import QuestionImage from '@/Components/QuestionImage.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -63,7 +64,10 @@ const isSelected = (answer, value) =>
                 <div v-for="(answer, index) in answers" :key="answer.id" class="bg-white shadow-sm rounded-lg p-6">
                     <div class="flex items-start gap-3">
                         <span class="px-2 py-1 bg-indigo-100 text-indigo-800 text-sm rounded">{{ index + 1 }}</span>
-                        <MathText :text="answer.question_text" class="flex-1 font-medium text-gray-900" />
+                        <div class="flex-1">
+                            <MathText :text="answer.question_text" class="font-medium text-gray-900" />
+                            <QuestionImage :path="answer.question_image" :alt="answer.question_image_alt" />
+                        </div>
                         <span v-if="answer.grade_ratio !== null" class="text-xs text-green-700">Yoxlanıb</span>
                     </div>
 

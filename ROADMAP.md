@@ -309,6 +309,9 @@ Sayt müvəqqəti subdomendə olduğu üçün `PAYMENT_DRIVER=fake` **produksiya
       (`CatalogFilters.vue` + `App\Support\CatalogFilters`), üstəlik kateqoriya seçimi və
       ada görə axtarış var. Başlıq menyusunda link, mobildə açılan panel.
 - [ ] Yeni sual növləri: uyğunluq (matching), mətn/situasiya əsaslı sual qrupu, esse.
+      **Hazırdır:** kateqoriya üzrə icazəli sual tipləri (`config/questions.php`) —
+      sürücülük və MİQ yalnız qapalı, dövlət qulluğunun BB/AC qrupu yalnız qapalı,
+      qalanlarda qarışıq. Qayda admin formasında, generasiyada və seeder-də tətbiq olunur.
 - [ ] `open_written` cavabında şagirdin həll şəklini yükləməsi.
 - [ ] Məhsul növləri: fənn paketi, qrup paketi, abunə (hazırda yalnız tək imtahan satılır).
 - [ ] Rollar: rəyçi (sualı təsdiqləyən) və qiymətləndirici; sual təsdiq axını
@@ -323,6 +326,14 @@ Sayt müvəqqəti subdomendə olduğu üçün `PAYMENT_DRIVER=fake` **produksiya
       DİM qrupu olmayan imtahanda (`exams.group_id = NULL` — sürücülük, MİQ, sertifikasiya,
       magistratura, dövlət qulluğu) `scoring.penalty_without_group` = 0 işləyir. Strategiya
       seçimi kateqoriyaya görə edilməlidir (`DimBachelorStrategy::penaltyFor()`-dakı qeydə bax).
+- [ ] **MİQ-in öz bal sistemi** üçün ayrıca `ScoringStrategy`: ixtisas (fənn) sualı **2 bal**,
+      metodika sualı **1 bal**; səhv cavabda ixtisasdan **−0,5**, metodikadan **−0,25**.
+      Hazırda hər iki bölmə eyni çəki ilə DİM düsturundan keçir. Bölmə quruluşu hazırdır
+      (müəllimin öz fənni + "Kurikulum və metodika"), çatışmayan — bölməyə görə fərqli
+      bal/cərimə dəstəyidir (`ScoringInput` hazırda bölmə tipini bilmir).
+- [ ] **Magistratura essesi**: test hissəsi **95 bal**, esse **5 bal** — cəmi 100.
+      Esse ayrıca `open_written` bölməsi kimi qurulmalı və ümumi bala 5 bal çəki ilə
+      girməlidir (`config/scoring.php`-dəki `open_written_weight` bunu ifadə etmir).
 - [ ] İmtahan interfeysində sual naviqasiya paneli (cavablanmış / boş / işarələnmiş), oflayn dayanıqlıq.
 - [ ] Bank inteqrasiyası (hazırda FakePaymentGateway; produksiyada onlayn alış bağlıdır).
 - [ ] Faza 4: repetitor modulu — şagird qrupları, imtahan təyini, kağız cavab kartlarının

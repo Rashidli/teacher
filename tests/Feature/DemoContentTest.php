@@ -15,7 +15,9 @@ use Database\Seeders\GroupSeeder;
 use Database\Seeders\SubjectGroupScoreSeeder;
 use Database\Seeders\SubjectSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Support\QuestionTypes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -120,6 +122,59 @@ class DemoContentTest extends TestCase
         // Hər sual mövzuya bağlıdır və mövzular rüblərə bölünüb
         $this->assertSame(0, Question::demo()->whereNull('topic_id')->count());
         $this->assertEqualsCanonicalizing([1, 2, 3, 4], Topic::where('is_demo', true)->pluck('quarter')->unique()->sort()->values()->all());
+    }
+
+    /** Şəkilli suallar: sürücülük imtahanlarında yol nişanı SVG-ləri. */
+    public function test_driving_questions_carry_generated_road_sign_images(): void
+    {
+        $this->seed(DemoContentSeeder::class);
+
+        $driving = Subject::where('slug', 'yol-hereketi-qaydalari')->firstOrFail();
+        $questions = Question::demo()->where('subject_id', $driving->id)->get();
+
+        $withImage = $questions->whereNotNull('question_image');
+
+        // Sürücülük suallarının çoxu şəkillidir
+        $this->assertGreaterThan($questions->count() / 2, $withImage->count());
+
+        foreach ($withImage as $question) {
+            // Şəkil məzmunun özüdür: alt mətni mütləqdir və cavabı verməməlidir
+            $this->assertNotEmpty($question->question_image_alt);
+            $this->assertTrue(Storage::disk('public')->exists($question->question_image));
+            $this->assertStringEndsWith('.svg', $question->question_image);
+        }
+    }
+
+    /** İmtahan növünə görə icazəli tiplər nümunə məzmunda da tətbiq olunur. */
+    public function test_demo_exams_respect_the_allowed_question_types(): void
+    {
+        $this->seed(DemoContentSeeder::class);
+
+        foreach (Exam::demo()->with('category')->get() as $exam) {
+            $allowed = QuestionTypes::forExam($exam);
+            $types = $exam->questions()->pluck('questions.type')->unique();
+
+            foreach ($types as $type) {
+                $this->assertContains(
+                    $type,
+                    $allowed,
+                    "İcazəsiz sual tipi: {$exam->slug} ({$exam->category?->path}) → {$type}",
+                );
+            }
+        }
+
+        // Sürücülük və MİQ imtahanlarında açıq sual qalmamalıdır
+        foreach (['suruculuk-imtahani', 'miq', 'muellimler'] as $path) {
+            $open = Exam::demo()
+                ->whereHas('category', fn ($query) => $query->where('path', 'like', $path.'%'))
+                ->whereHas('questions', fn ($query) => $query->whereIn('questions.type', [
+                    Question::TYPE_OPEN_CODED,
+                    Question::TYPE_OPEN_WRITTEN,
+                ]))
+                ->count();
+
+            $this->assertSame(0, $open, "«{$path}» ağacında açıq sual qaldı.");
+        }
     }
 
     public function test_demo_students_have_scored_attempts(): void

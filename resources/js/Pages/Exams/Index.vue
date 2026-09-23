@@ -240,6 +240,8 @@ const total = computed(() => (props.mode === 'grouped'
 
 <style scoped>
 .page {
+    --filters-top: 24px;
+
     padding-block: 32px 72px;
 }
 
@@ -475,9 +477,23 @@ const total = computed(() => (props.mode === 'grouped'
         align-items: start;
     }
 
+    /*
+     * Panel səhifə ilə birlikdə sürüşməsin: yerində qalır və UZUNDURSA ÖZ DAXİLİNDƏ sürüşür.
+     * Əks halda uzun filtr siyahısı ekrandan çıxır və istifadəçi filtrə çatmaq üçün bütün
+     * nəticə siyahısını aşağı sürüşdürməli olurdu.
+     *
+     * Başlıq `position: fixed` deyil (səhifə ilə birlikdə yuxarı gedir), ona görə yuxarı
+     * boşluq sabit deyil, sadəcə nəfəs payıdır.
+     */
     .layout-filters {
         position: sticky;
-        top: 24px;
+        top: var(--filters-top);
+        max-height: calc(100vh - var(--filters-top) * 2);
+        overflow-y: auto;
+        /* Sürüşmə paneldə qalsın, arxadakı səhifəyə keçməsin */
+        overscroll-behavior: contain;
+        /* Daxili sürüşmə zolağı çipləri kəsməsin */
+        padding-right: 4px;
         margin-bottom: 0;
     }
 

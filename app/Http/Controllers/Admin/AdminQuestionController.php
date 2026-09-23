@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreQuestionRequest;
 use App\Models\Exam;
 use App\Models\Question;
+use App\Support\QuestionTypes;
 use App\Models\Topic;
 use App\Services\QuestionService;
 use Illuminate\Http\RedirectResponse;
@@ -37,6 +38,8 @@ class AdminQuestionController extends Controller
             ]),
             'sectionId' => $sectionId,
             'topics' => $this->topicOptions($exam),
+            // İmtahan növünə görə icazəli sual tipləri (config/questions.php)
+            'allowedTypes' => QuestionTypes::forExam($exam),
         ]);
     }
 
@@ -56,6 +59,7 @@ class AdminQuestionController extends Controller
             'exam' => $exam->load('subject'),
             'question' => $question->load('options'),
             'topics' => $this->topicOptions($exam),
+            'allowedTypes' => QuestionTypes::forExam($exam),
             // Redaktə köhnə nəticələrə təsir edə bilər: formada xəbərdarlıq göstərilir
             'attemptUsage' => $question->attemptUsageCount(),
         ]);
