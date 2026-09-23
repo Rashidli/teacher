@@ -6,7 +6,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { watch } from 'vue';
+import { computed, watch } from 'vue';
 
 const props = defineProps({
     tags: { type: Array, default: () => [] },
@@ -37,6 +37,14 @@ watch(() => form.is_free, (isFree) => {
         form.price = 0;
     }
 });
+
+/*
+ * Seçilmiş kateqoriya: adında sinif varsa ("9-cu sinif buraxılış") `TagPicker`
+ * sinif etiketi seçiləndə xəbərdarlıq göstərir.
+ */
+const selectedCategory = computed(
+    () => props.categories.find((item) => item.id === Number(form.category_id)) ?? null,
+);
 
 const submit = () => {
     form.put(route('admin.exams.update', props.exam.id));
@@ -122,7 +130,12 @@ const submit = () => {
                         </div>
 
                         <!-- Etiketlər: sinif səviyyəsi və sərbəst etiketlər -->
-                        <TagPicker v-model="form.tags" :tags="tags" :error="form.errors.tags" />
+                        <TagPicker
+                            v-model="form.tags"
+                            :tags="tags"
+                            :error="form.errors.tags"
+                            :category-mentions-grade="selectedCategory?.mentions_grade ?? false"
+                        />
 
 
                         <div>

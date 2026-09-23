@@ -51,7 +51,12 @@ const subjects = computed(() => (allSubjects.value
 
 const hiddenSubjects = computed(() => Math.max(0, list('subjects').length - SUBJECT_LIMIT));
 
-// Sinif etiketləri ayrıca göstərilir: kataloqda ən çox işlənən filtr onlardır
+/*
+ * Sinif etiketləri ayrıca göstərilir: kataloqda ən çox işlənən filtr onlardır.
+ *
+ * Siyahını SERVER süzür: adı sinif bildirən kateqoriyanın səhifəsində ("9-cu sinif
+ * buraxılış") sinif etiketləri ümumiyyətlə gəlmir, ona görə bölmə də çıxmır.
+ */
 const grades = computed(() => list('tags').filter((tag) => tag.kind === 'grade'));
 const otherTags = computed(() => list('tags').filter((tag) => tag.kind !== 'grade'));
 
@@ -310,6 +315,7 @@ const visible = computed(() => has('sektor') && props.canSwitchSector
                         @click="emit('update', 'etiket', option.value)"
                     >{{ option.name }} ({{ option.count }})</button>
                 </div>
+                <p class="filter-hint">{{ $t('exam_catalog.filter_grade_hint') }}</p>
             </div>
 
             <div v-if="has('etiket') && otherTags.length" class="filter">

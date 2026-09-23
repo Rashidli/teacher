@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\GradeMention;
 use App\Support\Localization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -184,6 +185,21 @@ class Category extends Model
             'leaf' => $root->is($this) ? null : $this->localized('name'),
             'color' => $this->displayColor(),
         ];
+    }
+
+    /**
+     * Kateqoriyanın adı sinif səviyyəsini özü bildirirmi? ("9-cu sinif buraxılış", "11 illik")
+     *
+     * Belə kateqoriyada sinif etiketi ARTIQDIR: kataloqda "9-cu sinif buraxılış" bölməsi ilə
+     * "9-cu sinif" etiketi yan-yana düşür və fərqi anlaşılmır. Ona görə həmin səhifədə
+     * "Sinif" filtri gizlədilir, admin formasında isə xəbərdarlıq göstərilir.
+     *
+     * Yol da yoxlanılır: valideyn zəncirini daşıdığı üçün adı neytral olan alt düyün də
+     * ("mekteb/9-cu-sinif-buraxilis/…") düzgün tutulur.
+     */
+    public function mentionsGrade(): bool
+    {
+        return GradeMention::inAny((string) $this->name, (string) $this->path);
     }
 
     public function scopeActive(Builder $query): Builder

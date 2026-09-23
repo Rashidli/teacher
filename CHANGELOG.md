@@ -10,6 +10,33 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Sinif etiketi ilə kateqoriya arasında iş bölgüsü
+
+Kataloqda "9-cu sinif buraxılış" kateqoriyası ilə "9-cu sinif" etiketi yan-yana düşürdü və
+fərqi anlaşılmırdı. **Qayda:** sinif etiketi YALNIZ kateqoriya adı sinfi göstərməyəndə
+işlədilir (olimpiada, liseylərə qəbul, mövzu testləri).
+
+- **`App\Support\GradeMention` + `Category::mentionsGrade()`** — adda və ya yolda
+  "9-cu sinif", "11 illik", "9 класс" varmı. Yol valideyn zəncirini daşıdığı üçün adı
+  neytral olan alt düyün də düzgün tutulur. "1-ci mərhələ", "2-ci qrup", "B kateqoriyası"
+  sinif sayılmır.
+- **Kataloq:** adı sinif bildirən bölmənin səhifəsində "Sinif" filtri ümumiyyətlə gəlmir
+  (`CatalogFilters::options()` kateqoriya kontekstini alır). `/imtahanlar`-da da eyni qayda
+  işləyir — həmin kateqoriya çip kimi seçiləndə bölmə yox olur. Filtrin altında izah:
+  "Kateqoriyası sinif göstərməyən imtahanlar üçün (olimpiada, liseylərə qəbul, mövzu testləri)".
+- **Admin:** imtahan formasında və bankdan generasiyada sinif qrupunun altında qayda yazılıb;
+  kateqoriyanın adında sinif varkən sinif etiketi seçilirsə xəbərdarlıq çıxır. **Bloklamır** —
+  istisna hallar ola bilər.
+- **Demo data:** buraxılış, abituriyent, magistratura, dövlət qulluğu, MİQ və sürücülük
+  imtahanlarından sinif etiketləri çıxarıldı (68 → 0). Nümunə üçün adı neytral olan yeganə
+  məktəb düyünü ("Orta məktəb") üç məşq testi alır — 4-cü (ibtidai), 6-cı və 8-ci (orta) sinif,
+  hər sektorda ayrıca. Beləcə "Sinif" filtri boş qalmır və sınaqdan keçirilə bilir.
+  `DemoContentSeeder` indi `TagSeeder`-i özü çağırır: etiketlər olmadan nümunə itirdi.
+- **ROADMAP P3:** "Liseylərə qəbul" və "Olimpiadalar" bölmələri qurulanda həmin bölmələrdə
+  **kateqoriya adına sinif yazılmamalıdır** — səviyyəni yalnız etiket bildirəcək.
+
+---
+
 ### 2026-09-23 — Nəticə səhifəsində təkrar blokların təmizlənməsi
 
 "Bölmələr və irəliləyiş" bloku imtahan vərəqindəki eyni rəqəmləri üçüncü dəfə göstərirdi

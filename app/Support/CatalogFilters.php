@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Tag;
 use Closure;
@@ -141,15 +142,17 @@ class CatalogFilters
      * ümumi kataloq özü qurur (`ExamCatalogController::categoryOptions()`).
      *
      * @param  Builder  $scope  əhatə sorğusu (çiplər tətbiq edilmədən)
+     * @param  ?Category  $context  səhifənin kateqoriyası (varsa) — sinif filtrinin
+     *                              göstərilib-göstərilməməsini o həll edir
      * @return array<string, array<int, array<string, mixed>>>
      */
-    public static function options(Builder $scope): array
+    public static function options(Builder $scope, ?Category $context = null): array
     {
         return [
             'kinds' => self::kinds($scope),
             'quarters' => self::quarters($scope),
             'subjects' => self::subjects($scope),
-            'tags' => self::tags($scope),
+            'tags' => self::tags($scope, $context),
             'prices' => self::prices($scope),
         ];
     }
@@ -158,14 +161,20 @@ class CatalogFilters
      * Etiketlər. Sinif etiketləri əvvəldə, öz sırası ilə (2-ci … 11-ci sinif) —
      * əlifba sırası burada mənasız olardı.
      *
+     * SİNİF ETİKETLƏRİ adı sinif bildirən kateqoriyanın səhifəsində gizlədilir: orada
+     * "9-cu sinif buraxılış" bölməsi ilə "9-cu sinif" etiketi eyni şeyi deyir və
+     * istifadəçi fərqi anlamır (bax `Category::mentionsGrade()`).
+     *
      * @return array<int, array{value: int, name: string, kind: string, count: int}>
      */
-    private static function tags(Builder $scope): array
+    private static function tags(Builder $scope, ?Category $context = null): array
     {
         return (clone $scope)
             ->join('exam_tag', 'exam_tag.exam_id', '=', 'exams.id')
             ->join('tags', 'tags.id', '=', 'exam_tag.tag_id')
             ->where('tags.is_active', true)
+            ->when($context?->mentionsGrade(), fn (Builder $query) => $query
+                ->where('tags.kind', '!=', Tag::KIND_GRADE))
             // `order` SQLite-da qorunmuş sözdür: `selectRaw`-da işlənmir, sıralama üçün
             // isə sorğu qurucusunun özü sütun adını düzgün sitatlayır
             ->selectRaw('tags.id as tag_id, tags.name as tag_name, tags.kind as tag_kind')

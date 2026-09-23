@@ -334,6 +334,13 @@ bütün şəkillər 404 verdi.
       **Hazırdır:** sinif səviyyəsi etiketləri (2-ci … 11-ci sinif) — həmin bölmələr
       əlavə olunanda imtahanlar elə bu etiketlərlə işarələnəcək və kataloqda "Sinif"
       filtri ilə tapılacaq. Ağac düyünləri, SEO mətnləri və sual bankı isə ayrıca işdir.
+      **QAYDA (bölmələr qurulanda):** həmin bölmələrdə sinif səviyyəsi ƏSAS filtr olacaq,
+      ona görə **kateqoriya adına sinif yazılmamalıdır** — "Olimpiadalar › Riyaziyyat"
+      olsun, "Olimpiadalar › 7-ci sinif riyaziyyat" yox. Səviyyəni yalnız etiket bildirir.
+      Səbəb: ad da sinif deyəndə kataloqda eyni məlumat iki dəfə görünür və istifadəçi
+      fərqi anlamır. İndi bu qayda kodla qorunur: `Category::mentionsGrade()` (üsul
+      `App\Support\GradeMention`-dadır) adında sinif olan bölmənin səhifəsində "Sinif"
+      filtrini gizlədir, admin formasında isə xəbərdarlıq göstərir.
 - [ ] **Müəllim modulu açılanda** (`FEATURE_TEACHERS=true`) `Teacher/Questions/Create.vue` və
       `Teacher/Questions/Edit.vue` ortaq `Components/Questions/QuestionForm.vue` komponentinə
       keçirilməlidir. Hazırda onların öz markup-u var və **sual tipi radioları icazəli

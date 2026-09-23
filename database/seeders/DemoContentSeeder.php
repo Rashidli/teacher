@@ -73,6 +73,12 @@ class DemoContentSeeder extends Seeder
             );
         }
 
+        /*
+         * Sinif etiketləri demo imtahanlara bağlanır ("Sinif" filtrinin nümunəsi), ona görə
+         * seeder onları özü təmin edir: `TagSeeder` idempotentdir, mövcud etiketlər qalır.
+         */
+        $this->call(TagSeeder::class);
+
         $adminId = User::whereHas('roles', fn ($query) => $query->where('name', 'admin'))->value('id');
 
         $categories = Category::whereIn('path', array_column(DemoCatalog::nodes(), 'path'))

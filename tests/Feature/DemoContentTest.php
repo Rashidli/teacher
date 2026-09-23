@@ -61,11 +61,22 @@ class DemoContentTest extends TestCase
             // Düyünün ÖZ imtahanları; kataloq səhifəsi bunlara alt düyünlərinkini də əlavə edir
             $exams = Exam::where('category_id', $category->id)->visible($sector)->get();
 
-            $this->assertCount(4, $exams, "4 imtahan gözlənilirdi: {$node['path']}");
-            $this->assertEqualsCanonicalizing(Exam::KINDS, $exams->pluck('kind')->unique()->all());
+            /*
+                Adi düyün dörd növün hamısını alır. Sinif etiketi nümunəsi olan düyün isə
+                (`practice_grades`) yalnız məşq testi qurur — hər sinif üçün ayrıca.
+            */
+            $kinds = $node['kinds'] ?? Exam::KINDS;
+            $expected = count($kinds) - (isset($node['practice_grades']) ? 1 : 0)
+                + count($node['practice_grades'] ?? []);
+
+            $this->assertCount($expected, $exams, "{$expected} imtahan gözlənilirdi: {$node['path']}");
+            $this->assertEqualsCanonicalizing($kinds, $exams->pluck('kind')->unique()->all());
             $this->assertTrue($exams->contains('is_free', true), "Pulsuz imtahan yoxdur: {$node['path']}");
             $this->assertTrue($exams->contains('is_free', false), "Pullu imtahan yoxdur: {$node['path']}");
-            $this->assertTrue($exams->where('kind', Exam::KIND_TOPIC_TRIAL)->whereNotNull('quarter')->isNotEmpty());
+
+            if (in_array(Exam::KIND_TOPIC_TRIAL, $kinds, true)) {
+                $this->assertTrue($exams->where('kind', Exam::KIND_TOPIC_TRIAL)->whereNotNull('quarter')->isNotEmpty());
+            }
 
             foreach ($exams as $exam) {
                 // Şagird tərəfdə "demo" sözü görünmür: başlıq və izah təmizdir
@@ -78,6 +89,47 @@ class DemoContentTest extends TestCase
                 $this->assertGreaterThanOrEqual(8, $count, "Az sual: {$exam->slug}");
                 $this->assertLessThanOrEqual(12, $count, "Çox sual: {$exam->slug}");
                 $this->assertSame($count, (int) $exam->sections()->sum('question_count'));
+            }
+        }
+    }
+
+    /**
+     * Sinif etiketi yalnız kateqoriya adı sinfi göstərməyəndə işlədilir.
+     *
+     * Buraxılış, abituriyent, magistratura, dövlət qulluğu, MİQ və sürücülük imtahanlarında
+     * etiket kateqoriyanın adını təkrarlayardı — orada olmamalıdır. Nümunə üçün yalnız
+     * neytral adlı düyünün məşq testləri etiketlənir ki, kataloqun "Sinif" filtri boş qalmasın.
+     */
+    public function test_grade_tags_are_only_used_where_the_category_does_not_state_a_grade(): void
+    {
+        $this->seed(DemoContentSeeder::class);
+
+        $tagged = Exam::demo()->whereHas('tags', fn ($query) => $query->where('kind', 'grade'))->with('category')->get();
+
+        $this->assertNotEmpty($tagged, 'Sinif etiketli demo imtahan yoxdur: filtr boş qalır.');
+
+        foreach ($tagged as $exam) {
+            $this->assertFalse(
+                $exam->category->mentionsGrade(),
+                "Kateqoriya onsuz da sinif bildirir: {$exam->category->path}",
+            );
+            $this->assertSame(Exam::KIND_PRACTICE, $exam->kind, "Etiket məşq testində olmalıdır: {$exam->slug}");
+        }
+
+        // Ən azı iki nümunə və həm ibtidai, həm orta sinif səviyyəsi
+        $grades = $tagged->flatMap(fn (Exam $exam) => $exam->tags->pluck('order'))->unique();
+        $this->assertGreaterThanOrEqual(2, $tagged->count());
+        $this->assertTrue($grades->contains(fn (int $order) => $order <= 4), 'İbtidai sinif nümunəsi yoxdur.');
+        $this->assertTrue($grades->contains(fn (int $order) => $order >= 5 && $order <= 8), 'Orta sinif nümunəsi yoxdur.');
+
+        // Buraxılış və abituriyent imtahanlarında sinif etiketi olmamalıdır
+        foreach (['mekteb/9-cu-sinif-buraxilis', 'mekteb/11-ci-sinif-buraxilis', 'abituriyent/2-ci-qrup', 'miq', 'suruculuk-imtahani/biletler'] as $path) {
+            $exams = Exam::demo()->whereHas('category', fn ($query) => $query->where('path', $path))->get();
+
+            $this->assertNotEmpty($exams, "Demo imtahan yoxdur: {$path}");
+
+            foreach ($exams as $exam) {
+                $this->assertSame([], $exam->tags()->pluck('tags.id')->all(), "Sinif etiketi qalıb: {$exam->slug}");
             }
         }
     }

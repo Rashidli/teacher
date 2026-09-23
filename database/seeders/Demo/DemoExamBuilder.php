@@ -47,13 +47,18 @@ class DemoExamBuilder
     /** @var array<int, int> sinif nömrəsi → tag id */
     private array $gradeTags = [];
 
+    /** @var array<int, string> sinif nömrəsi → etiketin adı ("4-cü sinif") */
+    private array $gradeNames = [];
+
     public function __construct(
         private readonly DemoBankBuilder $bank,
         private readonly array $subjects,
         private readonly ?int $createdBy,
     ) {
         // Sinif etiketləri `TagSeeder`-dən gəlir; yoxdursa etiket bağlanmır
-        $this->gradeTags = Tag::grades()->pluck('id', 'order')->all();
+        $grades = Tag::grades()->get(['id', 'name', 'order']);
+        $this->gradeTags = $grades->pluck('id', 'order')->all();
+        $this->gradeNames = $grades->pluck('name', 'order')->all();
     }
 
     /** @param  array<string, Category>  $categories  path → kateqoriya */
@@ -80,7 +85,8 @@ class DemoExamBuilder
     /** @param  array<int, array<int, string>>  $sets */
     private function buildSector(Category $category, array $node, int $nodeIndex, string $sector, array $sets): void
     {
-        foreach (DemoCatalog::KINDS as $i => $kind) {
+        foreach ($this->plan($node) as $i => $step) {
+            $kind = $step['kind'];
             $set = $sets[$i % count($sets)];
             $sectionSubjects = $this->sectionSubjects($set, $kind);
 
@@ -91,12 +97,47 @@ class DemoExamBuilder
             $quarter = $kind === Exam::KIND_TOPIC_TRIAL ? (($nodeIndex + $i) % 4) + 1 : null;
             $isFree = $i % 2 === 0;
 
-            $exam = $this->upsertExam($category, $node, $nodeIndex, $sector, $kind, $i, $quarter, $isFree, $sectionSubjects);
+            $exam = $this->upsertExam(
+                $category, $node, $nodeIndex, $sector, $kind, $i, $quarter, $isFree,
+                $sectionSubjects, $step['grade'],
+            );
 
             if ($exam !== null) {
                 $this->exams[] = $exam;
             }
         }
+    }
+
+    /**
+     * Düyündə hansı imtahanlar qurulur: növ + (varsa) sinif səviyyəsi.
+     *
+     * Adi düyün dörd növdən birer imtahan alır. `practice_grades` verilmiş düyündə isə
+     * MƏŞQ TESTİ hər sinif üçün ayrıca qurulur — kataloqun "Sinif" filtrində nümunə olsun.
+     * Sıra sabitdir: indeks həm slug-a, həm də sual hovuzunun başlanğıcına girir, ona görə
+     * seeder ikinci dəfə işləyəndə eyni imtahanlar yenilənir.
+     *
+     * @param  array<string, mixed>  $node
+     * @return array<int, array{kind: string, grade: ?int}>
+     */
+    private function plan(array $node): array
+    {
+        $plan = [];
+
+        foreach ($node['kinds'] ?? DemoCatalog::KINDS as $kind) {
+            $grades = $kind === Exam::KIND_PRACTICE ? ($node['practice_grades'] ?? []) : [];
+
+            if ($grades === []) {
+                $plan[] = ['kind' => $kind, 'grade' => null];
+
+                continue;
+            }
+
+            foreach ($grades as $grade) {
+                $plan[] = ['kind' => $kind, 'grade' => (int) $grade];
+            }
+        }
+
+        return $plan;
     }
 
     /**
@@ -137,6 +178,7 @@ class DemoExamBuilder
         ?int $quarter,
         bool $isFree,
         array $sectionSubjects,
+        ?int $grade = null,
     ): ?Exam {
         $perSection = $this->questionsPerSection(count($sectionSubjects), $kind);
         $picks = $this->pickQuestions(
@@ -164,7 +206,7 @@ class DemoExamBuilder
             'sector' => $sector,
             'quarter' => $quarter,
             'is_cumulative' => false,
-            'title' => $this->title($category, $node, $sector, $kind, $quarter, $sectionSubjects),
+            'title' => $this->title($category, $node, $sector, $kind, $quarter, $sectionSubjects, $grade),
             // İzah boş qalır: şagird tərəfdə "demo" izahı görünməməlidir
             'description' => null,
             'duration_minutes' => $this->duration($node['duration'], $kind),
@@ -189,11 +231,14 @@ class DemoExamBuilder
 
         $this->syncSections($exam, $sectionSubjects, $category, $picks, $perSection);
 
-        // Sinif etiketləri: buraxılış 9/11, abituriyent 11 və s.
-        $exam->tags()->sync(array_values(array_filter(array_map(
-            fn (int $grade) => $this->gradeTags[$grade] ?? null,
-            $node['grades'] ?? [],
-        ))));
+        /*
+         * Sinif etiketi YALNIZ kateqoriya adı sinif göstərməyəndə bağlanır (`practice_grades`).
+         * "9-cu sinif buraxılış" və ya abituriyent düyünündə etiket kateqoriyanın adını
+         * təkrarlayardı və kataloqda iki eyni məlumat görünərdi.
+         */
+        $exam->tags()->sync(array_values(array_filter(
+            [$grade === null ? null : ($this->gradeTags[$grade] ?? null)]
+        )));
 
         return $exam;
     }
@@ -290,7 +335,7 @@ class DemoExamBuilder
     }
 
     /** @param  array<int, Subject>  $subjects */
-    private function title(Category $category, array $node, string $sector, string $kind, ?int $quarter, array $subjects): string
+    private function title(Category $category, array $node, string $sector, string $kind, ?int $quarter, array $subjects, ?int $grade = null): string
     {
         $name = $sector === 'ru' ? $category->localized('name', 'ru') : $node['label'];
         $label = self::KIND_LABELS[$sector][$kind];
@@ -301,6 +346,13 @@ class DemoExamBuilder
             $suffix = $sector === 'ru' ? " ({$quarter}-я четверть)" : " ({$quarter}-ci rüb)";
         } elseif (in_array($kind, [Exam::KIND_SUBJECT, Exam::KIND_PRACTICE], true)) {
             $suffix = ': '.$subjects[0]->name;
+        }
+
+        // Sinif etiketli məşq testi: səviyyə başlıqda da görünsün
+        if ($grade !== null) {
+            $suffix .= $sector === 'ru'
+                ? " ({$grade} класс)"
+                : ' ('.($this->gradeNames[$grade] ?? $grade.'-ci sinif').')';
         }
 
         /*

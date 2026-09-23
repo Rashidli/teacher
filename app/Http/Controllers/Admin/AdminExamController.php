@@ -123,6 +123,11 @@ class AdminExamController extends Controller
             ->map(fn (Category $category) => [
                 'id' => $category->id,
                 'label' => $category->path.' — '.$category->name,
+                /*
+                 * Adı sinif bildirirsə ("9-cu sinif buraxılış") forma sinif etiketi
+                 * seçiləndə xəbərdarlıq göstərir — etiket orada təkrar olur.
+                 */
+                'mentions_grade' => $category->mentionsGrade(),
             ]);
     }
 

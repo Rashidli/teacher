@@ -42,6 +42,8 @@ class AdminExamGenerationController extends Controller
                 ->map(fn (Category $category) => [
                     'id' => $category->id,
                     'label' => $category->path.' — '.$category->name,
+                    // Sinif etiketi yalnız adı sinif göstərməyən kateqoriyada işlədilir
+                    'mentions_grade' => $category->mentionsGrade(),
                     // Pivotda sector = null olan fənn hər iki sektora aiddir
                     'subjects' => collect(Sector::ALL)
                         ->mapWithKeys(fn (string $sector) => [

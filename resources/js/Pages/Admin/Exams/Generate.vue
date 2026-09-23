@@ -91,7 +91,12 @@ const totalQuestions = computed(() => Object.entries(form.counts)
                     </div>
 
                     <!-- Etiketlər: sinif səviyyəsi və sərbəst etiketlər -->
-                    <TagPicker v-model="form.tags" :tags="tags" :error="form.errors.tags" />
+                    <TagPicker
+                        v-model="form.tags"
+                        :tags="tags"
+                        :error="form.errors.tags"
+                        :category-mentions-grade="category?.mentions_grade ?? false"
+                    />
 
                     <div>
                         <InputLabel for="sector" value="Tədris sektoru" />

@@ -34,6 +34,8 @@ return [
         'baha' => 'Bahadan ucuza',
     ],
     'filter_grade' => 'Sinif',
+    // Etiket yalnız kateqoriya adı sinif göstərməyəndə işlədilir
+    'filter_grade_hint' => 'Kateqoriyası sinif göstərməyən imtahanlar üçün (olimpiada, liseylərə qəbul, mövzu testləri).',
     'filter_tag' => 'Etiket',
     'details' => 'Ətraflı',
     'details_hide' => 'Bağla',

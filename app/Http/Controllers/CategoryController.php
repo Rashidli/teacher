@@ -290,8 +290,12 @@ class CategoryController extends Controller
 
         return [
             'exams' => $exams->map(fn (Exam $exam) => $this->examCard($exam))->all(),
-            // Sayğaclar ƏHATƏ üzrə: seçilmiş çip digər ölçüləri daraltmır
-            'filterOptions' => CatalogFilters::options($scope()),
+            /*
+             * Sayğaclar ƏHATƏ üzrə: seçilmiş çip digər ölçüləri daraltmır.
+             * Kateqoriya ötürülür ki, adı sinif bildirən bölmədə ("9-cu sinif buraxılış")
+             * "Sinif" filtri təkrar kimi görünməsin.
+             */
+            'filterOptions' => CatalogFilters::options($scope(), $category),
         ];
     }
 

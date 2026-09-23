@@ -19,8 +19,14 @@ use App\Models\Exam;
  * Mövzu sınağının rübü düyündən-düyünə dəyişir (`quarter_seed`): valideyn səhifədə
  * övladların rübləri toplanır və rüb seçimi dörd variantı da göstərir.
  *
- * `grades` — sinif səviyyəsi etiketləri (məs. buraxılış imtahanı 9 və ya 11-ci sinif).
- * Kateqoriya ağacı imtahanın NÖVÜNÜ bildirir, etiket isə sinfi — ikisi ortoqonaldır.
+ * `kinds` — düyündə hansı növlər qurulur (defolt: dördü də).
+ *
+ * `practice_grades` — MƏŞQ TESTİNƏ bağlanan sinif səviyyəsi etiketləri.
+ * Sinif etiketi yalnız kateqoriya adı sinfi GÖSTƏRMƏYƏNDƏ işlədilir: "9-cu sinif buraxılış"
+ * bölməsində etiket təkrar olardı, ona görə buraxılış, abituriyent, magistratura, dövlət
+ * qulluğu, MİQ və sürücülük düyünlərində sinif etiketi YOXDUR. Nümunə üçün yeganə neytral
+ * adlı məktəb düyünü ("Orta məktəb") ibtidai və orta sinif məşq testləri alır —
+ * kataloqun "Sinif" filtri boş qalmasın. Bax `App\Support\GradeMention`.
  *
  * `sets` — imtahanın bölmələri (fənn slug-ları). Bir neçə dəst verilərsə, imtahanlar onları
  * növbə ilə işlədir: MİQ və sertifikasiyada bu, "müəllimin öz fənni + Kurikulum və metodika"
@@ -54,45 +60,60 @@ class DemoCatalog
         return [
             /* ---------------------------------------------------------- Orta məktəb */
             [
-                'path' => 'mekteb/9-cu-sinif-buraxilis', 'label' => '9-cu sinif buraxılış', 'grades' => [9],
+                /*
+                 * SİNİF ETİKETİNİN NÜMUNƏSİ. Adında sinif yoxdur ("Orta məktəb"), ona görə
+                 * səviyyəni yalnız etiket bildirir — kataloqda "Sinif" filtri məhz belə
+                 * imtahanlar üçündür. Valideyn düyündür: alt düyünlərin imtahanları onsuz
+                 * da burada görünür, əlavə olunan yalnız üç məşq testidir.
+                 */
+                'path' => 'mekteb', 'label' => 'Orta məktəb',
+                'duration' => 60, 'options' => 4,
+                'kinds' => [Exam::KIND_PRACTICE],
+                // ibtidai (4-cü) və orta (6-cı, 8-ci) siniflər
+                'practice_grades' => [4, 6, 8],
+                'sets' => [['riyaziyyat']],
+                'ru_sets' => [['riyaziyyat']],
+            ],
+            [
+                'path' => 'mekteb/9-cu-sinif-buraxilis', 'label' => '9-cu sinif buraxılış',
                 'duration' => 120, 'options' => 5,
                 'sets' => [['azerbaycan-dili', 'riyaziyyat', 'ingilis-dili']],
                 'ru_sets' => [['rus-dili', 'riyaziyyat', 'azerbaycan-dili']],
             ],
             [
-                'path' => 'mekteb/11-ci-sinif-buraxilis', 'label' => '11-ci sinif buraxılış', 'grades' => [11],
+                'path' => 'mekteb/11-ci-sinif-buraxilis', 'label' => '11-ci sinif buraxılış',
                 'duration' => 150, 'options' => 5,
                 'sets' => [['azerbaycan-dili', 'riyaziyyat', 'tarix']],
                 'ru_sets' => [['rus-dili', 'riyaziyyat', 'tarix']],
             ],
             [
-                'path' => 'mekteb/elave-tedris-dili/9-illik', 'label' => 'Əlavə tədris dili (9 illik)', 'grades' => [9],
+                'path' => 'mekteb/elave-tedris-dili/9-illik', 'label' => 'Əlavə tədris dili (9 illik)',
                 'duration' => 90, 'options' => 4,
                 'sets' => [['ingilis-dili', 'rus-dili']],
                 'ru_sets' => [['ingilis-dili', 'azerbaycan-dili']],
             ],
             [
-                'path' => 'mekteb/elave-tedris-dili/11-illik', 'label' => 'Əlavə tədris dili (11 illik)', 'grades' => [11],
+                'path' => 'mekteb/elave-tedris-dili/11-illik', 'label' => 'Əlavə tədris dili (11 illik)',
                 'duration' => 90, 'options' => 4,
                 'sets' => [['ingilis-dili', 'rus-dili']],
                 'ru_sets' => [['ingilis-dili', 'azerbaycan-dili']],
             ],
             [
                 // Rus sektorunun fənni: az sektorunda imtahanı olmur
-                'path' => 'mekteb/azerbaycan-dili-dovlet-dili', 'label' => 'Azərbaycan dili (dövlət dili)', 'grades' => [9, 11],
+                'path' => 'mekteb/azerbaycan-dili-dovlet-dili', 'label' => 'Azərbaycan dili (dövlət dili)',
                 'duration' => 90, 'options' => 5, 'az' => false,
                 'sets' => [], 'ru_sets' => [['azerbaycan-dili']],
             ],
 
             /* ----------------------------------------------------------- Abituriyent */
             [
-                'path' => 'abituriyent/1-ci-merhele', 'label' => 'Abituriyent I mərhələ', 'grades' => [11],
+                'path' => 'abituriyent/1-ci-merhele', 'label' => 'Abituriyent I mərhələ',
                 'duration' => 150, 'options' => 5,
                 'sets' => [['azerbaycan-dili', 'riyaziyyat', 'ingilis-dili']],
                 'ru_sets' => [['rus-dili', 'riyaziyyat', 'ingilis-dili']],
             ],
             [
-                'path' => 'abituriyent/1-ci-qrup', 'label' => 'Abituriyent I qrup', 'grades' => [11],
+                'path' => 'abituriyent/1-ci-qrup', 'label' => 'Abituriyent I qrup',
                 'duration' => 180, 'options' => 5,
                 'sets' => [['riyaziyyat', 'fizika', 'kimya']],
                 'ru_sets' => [['riyaziyyat', 'fizika', 'kimya']],
@@ -110,13 +131,13 @@ class DemoCatalog
                 'ru_sets' => [['riyaziyyat', 'fizika', 'informatika']],
             ],
             [
-                'path' => 'abituriyent/2-ci-qrup', 'label' => 'Abituriyent II qrup', 'grades' => [11],
+                'path' => 'abituriyent/2-ci-qrup', 'label' => 'Abituriyent II qrup',
                 'duration' => 180, 'options' => 5,
                 'sets' => [['riyaziyyat', 'tarix', 'cografiya']],
                 'ru_sets' => [['riyaziyyat', 'tarix', 'cografiya']],
             ],
             [
-                'path' => 'abituriyent/3-cu-qrup', 'label' => 'Abituriyent III qrup', 'grades' => [11],
+                'path' => 'abituriyent/3-cu-qrup', 'label' => 'Abituriyent III qrup',
                 'duration' => 180, 'options' => 5,
                 'sets' => [['azerbaycan-dili', 'edebiyyat', 'tarix']],
                 'ru_sets' => [['rus-dili', 'edebiyyat', 'tarix']],
@@ -134,13 +155,13 @@ class DemoCatalog
                 'ru_sets' => [['rus-dili', 'cografiya', 'tarix']],
             ],
             [
-                'path' => 'abituriyent/4-cu-qrup', 'label' => 'Abituriyent IV qrup', 'grades' => [11],
+                'path' => 'abituriyent/4-cu-qrup', 'label' => 'Abituriyent IV qrup',
                 'duration' => 180, 'options' => 5,
                 'sets' => [['fizika', 'kimya', 'biologiya']],
                 'ru_sets' => [['fizika', 'kimya', 'biologiya']],
             ],
             [
-                'path' => 'abituriyent/kollec', 'label' => 'Kollec qəbulu', 'grades' => [9, 11],
+                'path' => 'abituriyent/kollec', 'label' => 'Kollec qəbulu',
                 'duration' => 120, 'options' => 4,
                 'sets' => [['azerbaycan-dili', 'riyaziyyat']],
                 'ru_sets' => [['rus-dili', 'riyaziyyat']],

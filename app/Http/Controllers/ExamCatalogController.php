@@ -46,6 +46,12 @@ class ExamCatalogController extends Controller
         $tree = $this->tree();
         $scope = fn () => Exam::query()->visible($sector);
 
+        /*
+         * Seçilmiş kateqoriya sinif bildirirsə ("9-cu sinif buraxılış"), "Sinif" filtri
+         * gizlədilir — kateqoriya ilə etiket eyni şeyi deyərdi.
+         */
+        $context = $filters['kateqoriya'] ? Category::find($filters['kateqoriya']) : null;
+
         // Filtr və ya axtarış seçiləndə düz siyahıya keçilir; təkcə sıralama görünüşü dəyişmir
         $grouped = collect($filters)->filter(fn ($value) => $value !== null && $value !== '')->isEmpty();
 
@@ -54,7 +60,7 @@ class ExamCatalogController extends Controller
             'groups' => $grouped ? $this->groups($tree, $sector, $sort) : [],
             ...$grouped ? ['exams' => [], 'pagination' => null] : $this->list($scope(), $filters, $sort, $tree),
             // Sayğaclar ƏHATƏ üzrə: seçilmiş çip digər ölçüləri daraltmır
-            'filterOptions' => CatalogFilters::options($scope()) + [
+            'filterOptions' => CatalogFilters::options($scope(), $context) + [
                 'categories' => $this->categoryOptions($tree, $sector),
             ],
             'filters' => $filters,
