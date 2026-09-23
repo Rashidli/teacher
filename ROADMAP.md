@@ -290,8 +290,10 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
       **Panelin yeri hazırdır**: köhnə "Mövcud İmtahanlar" bloku (heç vaxt doldurulmurdu)
       çıxarıldı, panelində indi davam edən cəhdlər, son nəticələr və "Kataloqa keç" var —
       tövsiyə bloku məhz oraya gələcək.
-- [ ] `/imtahanlar` kataloq kök səhifəsi: hazırda kataloq ağacın kök kateqoriyalarından
-      (ana səhifə) başlayır, ayrıca giriş nöqtəsi yoxdur.
+- [x] `/imtahanlar` kataloq kök səhifəsi ✅ (23.09.2026): bütün dərc olunmuş imtahanlar,
+      ən yenisi əvvəldə, səhifələmə ilə. Filtrlər kateqoriya səhifəsi ilə ORTAQ komponentdir
+      (`CatalogFilters.vue` + `App\Support\CatalogFilters`), üstəlik kateqoriya seçimi və
+      ada görə axtarış var. Başlıq menyusunda link, mobildə açılan panel.
 - [ ] Yeni sual növləri: uyğunluq (matching), mətn/situasiya əsaslı sual qrupu, esse.
 - [ ] `open_written` cavabında şagirdin həll şəklini yükləməsi.
 - [ ] Məhsul növləri: fənn paketi, qrup paketi, abunə (hazırda yalnız tək imtahan satılır).

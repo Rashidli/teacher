@@ -10,6 +10,52 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — `/imtahanlar` kataloqu və mobile-first
+
+**Ümumi kataloq.** `/imtahanlar` (rusca `/ru/imtahanlar`) — kateqoriya ağacından asılı olmayan
+giriş nöqtəsi: bütün dərc olunmuş imtahanlar, **ən yenisi əvvəldə**, səhifə başına 24 imtahan.
+
+- **Filtrlər kateqoriya səhifəsi ilə ORTAQDIR.** Frontend: `Components/Catalog/CatalogFilters.vue`.
+  Backend: `App\Support\CatalogFilters` — `CategoryController`-in private metodları oraya
+  köçdü, yəni iki səhifə heç vaxt fərqli nəticə vermir. Kataloqda əlavə olaraq **kateqoriya**
+  (kök + ikinci səviyyə, alt ağac sayğacı ilə) və **ada görə axtarış** var.
+- Seçim URL-də qalır (`?kateqoriya=8&nov=topic_trial&rub=2&fenn=3&qiymet=pulsuz&axtar=…&sehife=2`),
+  süzülmüş səhifə paylaşıla bilir. Filtr dəyişəndə birinci səhifəyə qayıdılır.
+- **Sayğaclar ƏHATƏ üzrədir**: seçilmiş çip digər ölçülərin sayğaclarını daraltmır — əks halda
+  hər kliklə çiplər yerini dəyişər və nəticəsi sıfır olan dalan yaranardı.
+- Sektor qaydası burada da işləyir; kartlar `/imtahan/{slug}`-a aparır.
+- **SEO:** `/imtahanlar` ↔ `/ru/imtahanlar` canonical + hreflang cütü, sitemap-da statik
+  səhifələrlə birlikdə. **Filtrli və səhifələnmiş ünvanların canonical-ı filtrsiz səhifəyə
+  göstərir** (`Localization::seo()` canonical-ı query string-siz yoldan qurur), yəni eyni
+  məzmun onlarla ünvanda indeksləşmir. `SEO_INDEXING`-ə tabedir.
+- Başlıq menyusuna **"İmtahanlar"** linki; ana səhifədəki kateqoriya kartları olduğu kimi qalır.
+
+**Mobile-first** — `/imtahanlar`, kateqoriya və imtahan səhifəsi:
+
+- **Filtrlər** <768px-də açılıb-bağlanan panel (açar düymədə aktiv filtr sayı), ≥768px həmişə
+  açıq, `/imtahanlar`-da ≥1024px **yan sütunda** (yapışqan).
+- **Kartlar** 1 sütun → ≥640px 2 → ≥1024px 3. Grid övladlarına `min-width: 0` — uzun başlıq
+  sütunu genişləndirib üfüqi sürüşmə yaratmır.
+- **Toxunma sahələri 44px**: çiplər, sektor düymələri, səhifələmə, hamburger. Mətn ölçüsü
+  dəyişmədi — sahə yalnız `padding` ilə böyüdü.
+- **Daxiletmə sahələri 1rem** (axtarış) — iOS Safari 16px-dən kiçik sahədə səhifəni avtomatik
+  yaxınlaşdırır. İkinci dərəcəli mətnlər mobildə 15px qaldı, vizual iyerarxiya pozulmadı.
+- **Başlıq <560px-də** naviqasiyanı hamburger panelinə yığır: 360px-də brend (~180px) +
+  AZ|RU (96px) + açar (44px) onsuz da konteynerin hamısını tutur. Escape panel bağlayır.
+- `MathText.vue` KaTeX konteyneri öz `overflow-x: auto` qabında — uzun `$$…$$` düsturu
+  səhifəni yana sürükləmir.
+- 360px statik CSS nəzərdən keçirməsi: sabit en, `min-width: auto` tələsi və `nowrap` halları
+  yoxlandı; `.chip`-ə `max-width: 100%` + `overflow-wrap: anywhere`, `.cta-hint`-ə
+  `min-width: 0` əlavə olundu.
+
+**Testlər:** `tests/Feature/Catalog/ExamCatalogTest.php` (13 test) — sıralama, səhifələmə,
+hər filtr ayrıca və birləşmiş, axtarış, sayğaclar, sektor, canonical/hreflang, sitemap;
+`RouteRegistrationTest`-ə `/imtahanlar` və `/ru/imtahanlar` (catch-all-a düşməsin).
+Mövcud `CatalogFilterTest` dəyişmədən keçir — ortaq sinfə keçidin reqressiya qoruyucusu
+(437 → 452 test).
+
+---
+
 ### 2026-09-23 — Demo məzmun, `is_demo` bayrağı və qrupsuz imtahanlar
 
 **Demo məzmun.** Kataloqun heç bir düyünü və heç bir filtri boş qalmasın deyə

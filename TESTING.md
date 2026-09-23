@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 437 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 452 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
@@ -81,8 +81,9 @@ bir hesab lazımdır. `rashidliseymur@gmail.com` — `teacher` + `student` rolla
 
 ## K. Kataloq və imtahan səhifəsi
 
-Kataloq **kateqoriya ağacıdır**: ana səhifədən kök bölməyə, oradan alt bölmələrə gedilir.
-Hər imtahanın ictimai səhifəsi var: `/imtahan/{slug}` — qonaq da görür.
+Kataloqun iki girişi var: **kateqoriya ağacı** (ana səhifədən kök bölməyə, oradan alt
+bölmələrə) və **`/imtahanlar`** — ağacdan asılı olmayan ümumi siyahı, ən yeni imtahan
+əvvəldə. Hər imtahanın ictimai səhifəsi var: `/imtahan/{slug}` — qonaq da görür.
 
 | # | Addım | Gözlənilən nəticə |
 |---|---|---|
@@ -102,6 +103,15 @@ Hər imtahanın ictimai səhifəsi var: `/imtahan/{slug}` — qonaq da görür.
 | K14 | `/sitemap.xml` | Hər dərc olunmuş imtahan **bir dəfə** — az sektoru `/imtahan/{slug}`, rus sektoru `/ru/imtahan/{slug}` (qaralamalar yoxdur) |
 | K15 | İmtahan səhifəsinin mənbəyi | `canonical` sektorun əsas ünvanına göstərir, **`hreflang` yoxdur** (imtahan mətni tərcümə olunmur); `SEO_INDEXING=false` olduğu üçün `noindex` var |
 | K16 | Az imtahanını `/ru/imtahan/{slug}` ilə aç | Səhifə açılır (interfeys rusca), amma `canonical` yenə `/imtahan/{slug}`-dır |
+| K30 | Başlıqda "İmtahanlar" linkini bas | `/imtahanlar` açılır, imtahanlar ən yenisindən sıralanır |
+| K31 | Ekranı 400px-dən dar et | Başlıqdakı linklər **hamburger menyusuna** yığılır; menyuda İmtahanlar, Giriş, Qeydiyyat var, Escape onu bağlayır |
+| K32 | `/imtahanlar`-da mobildə "Filtrləri göstər" | Panel açılır; seçim edəndən sonra düymədə **aktiv filtr sayı** görünür |
+| K33 | Kateqoriya, növ, fənn, qiymət seçimlərini birləşdir | Siyahı daralır, **seçim URL-də qalır** (səhifəni yeniləyəndə itmir), hər variantın yanında sayğac var |
+| K34 | Axtarış sahəsinə imtahan adından bir hissə yaz | Siyahı süzülür; 1 hərf yazanda filtr tətbiq olunmur |
+| K35 | Səhifə 2-yə keç, sonra filtr dəyiş | Filtr dəyişəndə **birinci səhifəyə** qayıdılır |
+| K36 | Filtrli ünvanın səhifə mənbəyində `<link rel="canonical">` | Həmişə **filtrsiz** `/imtahanlar`-a (ru-da `/ru/imtahanlar`) göstərir |
+| K37 | Sektoru "Rus"a keçir | Yalnız ru sektorunun imtahanları qalır; sayğaclar da dəyişir |
+| K38 | Telefonda (360px) `/imtahanlar`, kateqoriya və imtahan səhifəsi | **Üfüqi sürüşmə olmamalıdır**; kartlar tək sütun, çiplər və düymələr barmaqla rahat basılır (44px) |
 
 ---
 

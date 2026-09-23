@@ -11,6 +11,10 @@ return [
     'header' => [
         'home_aria' => 'İmtahan Platforması, главная страница',
         'nav_aria' => 'Аккаунт',
+        'exams' => 'Экзамены',
+        'menu_aria' => 'Главное меню',
+        'menu_open' => 'Открыть меню',
+        'menu_close' => 'Закрыть меню',
         'tutors' => 'Репетиторам',
         'login' => 'Войти',
         'register' => 'Регистрация',

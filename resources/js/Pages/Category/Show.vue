@@ -4,6 +4,8 @@ import { Link, router } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 import SiteFooter from '@/Components/Site/SiteFooter.vue';
 import SeoHead from '@/Components/Site/SeoHead.vue';
+import CatalogFilters from '@/Components/Catalog/CatalogFilters.vue';
+import ExamCard from '@/Components/Catalog/ExamCard.vue';
 import { useLocale } from '@/Composables/useLocale';
 
 const props = defineProps({
@@ -48,11 +50,13 @@ const applyFilter = (key, value) => {
     );
 };
 
-const hasFilters = computed(() => props.filterOptions.kinds.length > 1
-    || props.filterOptions.subjects.length > 1
-    || props.filterOptions.prices.length > 1);
-
 const activeFilters = computed(() => Object.values(props.filters).filter((item) => item !== null && item !== '').length);
+
+const resetFilters = () => router.get(
+    window.location.pathname,
+    {},
+    { preserveState: true, preserveScroll: true, replace: true },
+);
 
 // Seçim sessiyada saxlanılır və qeydiyyat formasında defolt olur (SectorController).
 const switchSector = (value) => {
@@ -159,107 +163,18 @@ const switchSector = (value) => {
             <section v-if="exams.length || activeFilters" class="block" aria-labelledby="exams-title">
                 <h2 id="exams-title" class="block-title">{{ $t('category_page.exams') }}</h2>
 
-                <!-- Filtrlər: seçim URL-də qalır, paylaşıla bilir -->
-                <div v-if="hasFilters" class="filters">
-                    <div v-if="filterOptions.kinds.length > 1" class="filter" role="group" :aria-label="$t('category_page.filter_kind')">
-                        <span class="filter-label">{{ $t('category_page.filter_kind') }}</span>
-                        <button
-                            type="button"
-                            class="chip"
-                            :class="{ 'chip--on': !filters.nov }"
-                            :aria-pressed="!filters.nov"
-                            @click="applyFilter('nov', null)"
-                        >{{ $t('category_page.filter_all') }}</button>
-                        <button
-                            v-for="option in filterOptions.kinds"
-                            :key="option.value"
-                            type="button"
-                            class="chip"
-                            :class="{ 'chip--on': filters.nov === option.value }"
-                            :aria-pressed="filters.nov === option.value"
-                            @click="applyFilter('nov', option.value)"
-                        >{{ $t(`category_page.kinds.${option.value}`) }} ({{ option.count }})</button>
-                    </div>
-
-                    <div
-                        v-if="filters.nov === 'topic_trial' && filterOptions.quarters.length"
-                        class="filter"
-                        role="group"
-                        :aria-label="$t('category_page.filter_quarter')"
-                    >
-                        <span class="filter-label">{{ $t('category_page.filter_quarter') }}</span>
-                        <button
-                            type="button"
-                            class="chip"
-                            :class="{ 'chip--on': !filters.rub }"
-                            :aria-pressed="!filters.rub"
-                            @click="applyFilter('rub', null)"
-                        >{{ $t('category_page.filter_all') }}</button>
-                        <button
-                            v-for="option in filterOptions.quarters"
-                            :key="option.value"
-                            type="button"
-                            class="chip"
-                            :class="{ 'chip--on': filters.rub === option.value }"
-                            :aria-pressed="filters.rub === option.value"
-                            @click="applyFilter('rub', option.value)"
-                        >{{ option.value }}-ci rüb ({{ option.count }})</button>
-                    </div>
-
-                    <div v-if="filterOptions.subjects.length > 1" class="filter" role="group" :aria-label="$t('category_page.filter_subject')">
-                        <span class="filter-label">{{ $t('category_page.filter_subject') }}</span>
-                        <button
-                            type="button"
-                            class="chip"
-                            :class="{ 'chip--on': !filters.fenn }"
-                            :aria-pressed="!filters.fenn"
-                            @click="applyFilter('fenn', null)"
-                        >{{ $t('category_page.filter_all') }}</button>
-                        <button
-                            v-for="option in filterOptions.subjects"
-                            :key="option.value"
-                            type="button"
-                            class="chip"
-                            :class="{ 'chip--on': filters.fenn === option.value }"
-                            :aria-pressed="filters.fenn === option.value"
-                            @click="applyFilter('fenn', option.value)"
-                        >{{ option.name }} ({{ option.count }})</button>
-                    </div>
-
-                    <div v-if="filterOptions.prices.length > 1" class="filter" role="group" :aria-label="$t('category_page.filter_price')">
-                        <span class="filter-label">{{ $t('category_page.filter_price') }}</span>
-                        <button
-                            type="button"
-                            class="chip"
-                            :class="{ 'chip--on': !filters.qiymet }"
-                            :aria-pressed="!filters.qiymet"
-                            @click="applyFilter('qiymet', null)"
-                        >{{ $t('category_page.filter_all') }}</button>
-                        <button
-                            v-for="option in filterOptions.prices"
-                            :key="option.value"
-                            type="button"
-                            class="chip"
-                            :class="{ 'chip--on': filters.qiymet === option.value }"
-                            :aria-pressed="filters.qiymet === option.value"
-                            @click="applyFilter('qiymet', option.value)"
-                        >{{ $t(`category_page.prices.${option.value}`) }} ({{ option.count }})</button>
-                    </div>
-                </div>
+                <!-- Filtrlər: ümumi kataloqla eyni komponent, seçim URL-də qalır -->
+                <CatalogFilters
+                    :options="filterOptions"
+                    :filters="filters"
+                    layout="top"
+                    @update="applyFilter"
+                    @reset="resetFilters"
+                />
 
                 <ul v-if="exams.length" class="cards">
                     <li v-for="exam in exams" :key="exam.id">
-                        <Link :href="exam.url" class="card">
-                            <span class="card-name">{{ exam.title }}</span>
-                            <span class="card-short">
-                                <template v-if="exam.subjects.length">{{ exam.subjects.join(', ') }} · </template>
-                                {{ exam.questions_count }} {{ $t('category_page.questions') }}
-                                · {{ exam.duration_minutes }} {{ $t('category_page.minutes') }}
-                            </span>
-                            <span class="card-price">
-                                {{ exam.is_free ? $t('category_page.free') : `${exam.price} AZN` }}
-                            </span>
-                        </Link>
+                        <ExamCard :exam="exam" />
                     </li>
                 </ul>
                 <p v-else class="empty">{{ $t('category_page.no_match') }}</p>
@@ -285,7 +200,7 @@ const switchSector = (value) => {
 }
 
 .crumb {
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -306,16 +221,17 @@ const switchSector = (value) => {
     align-items: center;
     gap: 8px;
     margin-top: 14px;
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
 }
 
 .sector-label {
     opacity: 0.75;
 }
 
+/* Toxunma sahəsi 44px (padding ilə), mətn ölçüsü dəyişmir */
 .sector-option {
-    min-height: 36px;
-    padding: 6px 14px;
+    min-height: 44px;
+    padding: 10px 16px;
     border: 1px solid rgba(22, 19, 14, 0.25);
     border-radius: 999px;
     background: none;
@@ -352,54 +268,25 @@ const switchSector = (value) => {
     margin: 0 0 14px;
 }
 
-.filters {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.filter {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-}
-
-.filter-label {
-    font-size: 0.9rem;
-    opacity: 0.7;
-    min-width: 80px;
-}
-
-.chip {
-    min-height: 36px;
-    padding: 6px 14px;
-    border: 1px solid rgba(22, 19, 14, 0.25);
-    border-radius: 999px;
-    background: none;
-    font: inherit;
-    font-size: 0.95rem;
-    cursor: pointer;
-}
-
-.chip--on {
-    border-color: rgba(22, 19, 14, 0.7);
-    font-weight: 600;
-}
-
+/* Mobildə tək sütun; sonra iki, sonra üç (ExamCard və alt bölmə kartları üçün) */
 .cards {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
     gap: 12px;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: 1fr;
+}
+
+.cards > li {
+    min-width: 0;
 }
 
 .card {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-width: 0;
     padding: 16px;
     border: 1px solid rgba(22, 19, 14, 0.15);
     border-radius: 12px;
@@ -416,13 +303,8 @@ const switchSector = (value) => {
 }
 
 .card-short {
-    font-size: 0.9rem;
+    font-size: 0.9375rem;
     opacity: 0.75;
-}
-
-.card-price {
-    margin-top: 6px;
-    font-weight: 600;
 }
 
 .subjects {
@@ -438,14 +320,19 @@ const switchSector = (value) => {
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 8px;
+    min-width: 0;
     padding: 10px 14px;
     border: 1px solid rgba(22, 19, 14, 0.12);
     border-radius: 10px;
 }
 
+.subject-name {
+    min-width: 0;
+}
+
 .subject-meta {
     opacity: 0.7;
-    font-size: 0.9rem;
+    font-size: 0.9375rem;
 }
 
 .empty {
@@ -459,5 +346,16 @@ const switchSector = (value) => {
     flex-wrap: wrap;
     gap: 16px;
     align-items: center;
+}
+
+@media (min-width: 640px) {
+    .crumb { font-size: 0.9rem; }
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card-short { font-size: 0.9rem; }
+    .subject-meta { font-size: 0.9rem; }
+}
+
+@media (min-width: 1024px) {
+    .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 </style>

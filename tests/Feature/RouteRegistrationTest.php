@@ -47,6 +47,8 @@ class RouteRegistrationTest extends TestCase
             'admin imtahanlar' => ['/admin/exams', 'admin.exams.index'],
             'admin imtahan yaratma' => ['/admin/exams/create', 'admin.exams.create'],
             'admin qiymətləndirmə' => ['/admin/grading', 'admin.grading.index'],
+            'kataloq' => ['/imtahanlar', 'exams.catalog'],
+            'ru kataloq' => ['/ru/imtahanlar', 'ru.exams.catalog'],
             'imtahan səhifəsi' => ['/imtahan/buraxilis-sinagi', 'exam.show'],
             'imtahana giriş' => ['/imtahan/buraxilis-sinagi/giris', 'exam.enter'],
             'ru imtahan səhifəsi' => ['/ru/imtahan/buraxilis-sinagi', 'ru.exam.show'],

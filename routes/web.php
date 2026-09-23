@@ -28,6 +28,7 @@ use App\Http\Controllers\Payments\FakeGatewayController;
 use App\Http\Controllers\Payments\PaymentCallbackController;
 use App\Http\Controllers\Student\StudentPaymentController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ExamCatalogController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\NoPanelController;
 use App\Http\Controllers\ProfileController;
@@ -53,6 +54,14 @@ $publicRoutes = function () use ($auth) {
     Route::get('/qaydalar', fn () => Inertia::render('Terms', [
         'content' => __('terms'),
     ]))->name('terms');
+
+    /*
+     * Ümumi kataloq: bütün dərc olunmuş imtahanlar, ən yenisi əvvəldə.
+     * Kateqoriya ağacı ana səhifədədir; bu səhifə ağacdan asılı olmayan giriş nöqtəsidir.
+     * `/imtahan/{slug}`-dan ƏVVƏL yazılmasının əhəmiyyəti yoxdur (prefikslər fərqlidir),
+     * amma faylın sonundakı `/{path}` catch-all-dan əvvəl olmalıdır.
+     */
+    Route::get('/imtahanlar', ExamCatalogController::class)->name('exams.catalog');
 
     // İctimai imtahan səhifəsi: qonaq da görür, kataloq kartları bura aparır
     Route::get('/imtahan/{exam:slug}', [ExamController::class, 'show'])->name('exam.show');

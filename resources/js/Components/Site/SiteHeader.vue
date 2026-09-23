@@ -1,5 +1,6 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { onMounted, onUnmounted, ref } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
 import { useFeatures } from '@/Composables/useFeatures';
 import { useLocale } from '@/Composables/useLocale';
 
@@ -7,6 +8,28 @@ const { teachersEnabled } = useFeatures();
 const { locale, lroute, alternates } = useLocale();
 
 const languages = ['az', 'ru'];
+
+/*
+ * Dar ekranda başlıqda yer yoxdur (brend + AZ|RU + Giriş onsuz da 44px-lik sahələrdir),
+ * ona görə naviqasiya açılan panelə yığılır. ≥560px-dən panel yoxdur, linklər birbaşa görünür.
+ */
+const menuOpen = ref(false);
+
+const closeOnEscape = (event) => {
+    if (event.key === 'Escape') {
+        menuOpen.value = false;
+    }
+};
+
+onMounted(() => document.addEventListener('keydown', closeOnEscape));
+onUnmounted(() => document.removeEventListener('keydown', closeOnEscape));
+
+// Səhifə dəyişəndə panel bağlanır (Inertia naviqasiyası komponenti yenidən qurmur)
+const stopNavigate = router.on('navigate', () => {
+    menuOpen.value = false;
+});
+
+onUnmounted(() => stopNavigate());
 
 // Dil dəyişdiricisi cari səhifənin digər dildəki versiyasına aparır.
 // Panellərdə (alternates yoxdur) ana səhifəyə aparır.
@@ -39,12 +62,34 @@ const languageUrl = (lang) => alternates.value?.[lang] ?? (lang === 'az' ? '/' :
                 </nav>
 
                 <nav class="header-nav" :aria-label="$t('site.header.nav_aria')">
+                    <Link :href="lroute('exams.catalog')" class="nav-link nav-link--wide">{{ $t('site.header.exams') }}</Link>
                     <a v-if="teachersEnabled" :href="`${lroute('home')}#repetitorlar`" class="nav-link nav-link--wide">{{ $t('site.header.tutors') }}</a>
                     <Link :href="lroute('login')" class="nav-link">{{ $t('site.header.login') }}</Link>
                     <Link :href="lroute('register')" class="nav-button">{{ $t('site.header.register') }}</Link>
                 </nav>
+
+                <button
+                    type="button"
+                    class="menu-toggle"
+                    :aria-expanded="menuOpen"
+                    aria-controls="site-menu"
+                    :aria-label="menuOpen ? $t('site.header.menu_close') : $t('site.header.menu_open')"
+                    @click="menuOpen = !menuOpen"
+                >
+                    <span class="menu-bars" aria-hidden="true"></span>
+                </button>
             </div>
         </div>
+
+        <!-- Dar ekran menyusu: yalnız <560px-də mövcuddur -->
+        <nav v-if="menuOpen" id="site-menu" class="menu" :aria-label="$t('site.header.menu_aria')">
+            <div class="wrap menu-inner">
+                <Link :href="lroute('exams.catalog')" class="menu-link">{{ $t('site.header.exams') }}</Link>
+                <a v-if="teachersEnabled" :href="`${lroute('home')}#repetitorlar`" class="menu-link">{{ $t('site.header.tutors') }}</a>
+                <Link :href="lroute('login')" class="menu-link">{{ $t('site.header.login') }}</Link>
+                <Link :href="lroute('register')" class="menu-link menu-link--strong">{{ $t('site.header.register') }}</Link>
+            </div>
+        </nav>
     </header>
 </template>
 
@@ -141,8 +186,13 @@ const languageUrl = (lang) => alternates.value?.[lang] ?? (lang === 'az' ? '/' :
     color: var(--ink-red-line);
 }
 
+/*
+ * 360px-də başlıqda yer yoxdur: brend (~180px) + AZ|RU (96px) + açar (44px) onsuz da
+ * konteynerin (328px) hamısını tutur. Ona görə dar ekranda naviqasiya tamamilə panelə
+ * yığılır, ≥560px-dən isə birbaşa başlıqda görünür.
+ */
 .header-nav {
-    display: flex;
+    display: none;
     flex: none;
     align-items: center;
     gap: 4px;
@@ -173,6 +223,68 @@ const languageUrl = (lang) => alternates.value?.[lang] ?? (lang === 'az' ? '/' :
     display: none;
 }
 
+/* Hamburger: toxunma sahəsi 44×44 */
+.menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+}
+
+.menu-bars,
+.menu-bars::before,
+.menu-bars::after {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--graphite);
+    border-radius: 2px;
+}
+
+.menu-bars {
+    position: relative;
+}
+
+.menu-bars::before,
+.menu-bars::after {
+    content: '';
+    position: absolute;
+    left: 0;
+}
+
+.menu-bars::before { top: -6px; }
+.menu-bars::after { top: 6px; }
+
+.menu {
+    border-top: 1px solid var(--ink-red-line);
+}
+
+.menu-inner {
+    display: grid;
+    padding-block: 8px 12px;
+}
+
+.menu-link {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 4px;
+    font-size: 1rem;
+    color: var(--graphite);
+    text-decoration: none;
+}
+
+.menu-link--strong {
+    font-weight: 600;
+    color: var(--pen);
+}
+
 .nav-button {
     color: var(--pen);
     border: 1.5px solid currentColor;
@@ -193,7 +305,12 @@ const languageUrl = (lang) => alternates.value?.[lang] ?? (lang === 'az' ? '/' :
 }
 
 @media (min-width: 560px) {
+    /* Linklər başlığa sığır: panel və açarı lazım deyil */
+    .header-nav { display: flex; }
+    .nav-link--wide,
     .nav-button { display: inline-flex; }
+    .menu-toggle,
+    .menu { display: none; }
 }
 
 @media (min-width: 720px) {
@@ -201,7 +318,6 @@ const languageUrl = (lang) => alternates.value?.[lang] ?? (lang === 'az' ? '/' :
 }
 
 @media (min-width: 800px) {
-    .nav-link--wide { display: inline-flex; }
     .brand-name { font-size: 1.1875rem; }
 }
 </style>

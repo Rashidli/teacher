@@ -159,12 +159,18 @@ class Exam extends Model
         return $this->sections->contains(fn (ExamSection $section) => (int) $section->subject_id === $subjectId);
     }
 
-    /** Kataloqda və ictimai səhifədə görünən imtahanlar */
+    /**
+     * Kataloqda və ictimai səhifədə görünən imtahanlar.
+     *
+     * Sütunlar cədvəl adı ilə yazılır: kataloq sayğacları bu sorğuya `exam_sections` və
+     * `subjects` join edir, `subjects.is_active` isə eyni adlıdır — prefikssiz şərt
+     * "ambiguous column" xətası verərdi.
+     */
     public function scopeVisible($query, string $sector)
     {
-        return $query->where('sector', $sector)
-            ->where('is_published', true)
-            ->where('is_active', true);
+        return $query->where('exams.sector', $sector)
+            ->where('exams.is_published', true)
+            ->where('exams.is_active', true);
     }
 
     /** İctimai səhifənin tam ünvanı (verilən dil prefiksi ilə) */

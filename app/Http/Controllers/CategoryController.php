@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Subject;
+use App\Support\CatalogFilters;
 use App\Support\Localization;
 use App\Support\Sector;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,9 +27,8 @@ class CategoryController extends Controller
 
     private const TOPIC_TRIAL_SEGMENT = 'movzu-sinagi';
 
-    private const PRICE_FREE = 'pulsuz';
-
-    private const PRICE_PAID = 'pullu';
+    /** Bu səhifədə kateqoriya və axtarış filtri yoxdur: əhatə onsuz da bu düyündür */
+    private const FACETS = ['nov', 'rub', 'fenn', 'qiymet'];
 
     public function show(Request $request, string $path): Response|RedirectResponse
     {
@@ -43,7 +43,7 @@ class CategoryController extends Controller
         }
 
         $sector = Sector::current();
-        $filters = $this->filters($request, $view);
+        $filters = CatalogFilters::parse($request, self::FACETS);
         $catalog = $this->catalog($category, $view, $quarter, $sector, $filters);
 
         $this->shareSeo($request, $category, $view, $quarter);
@@ -258,148 +258,65 @@ class CategoryController extends Controller
     }
 
     /**
-     * Kataloq filtrləri. URL-də query kimi qalır ki, süzülmüş səhifə paylaşıla bilsin:
-     * `?nov=topic_trial&rub=2&fenn=3&qiymet=pulsuz`.
-     *
-     * @return array{nov: ?string, rub: ?int, fenn: ?int, qiymet: ?string}
-     */
-    private function filters(Request $request, ?string $view): array
-    {
-        $kind = (string) $request->query('nov');
-        $quarter = (int) $request->query('rub');
-        $subject = (int) $request->query('fenn');
-        $price = (string) $request->query('qiymet');
-
-        $kind = in_array($kind, Exam::KINDS, true) ? $kind : null;
-
-        return [
-            'nov' => $kind,
-            // Rüb yalnız mövzu sınağı seçiləndə mənalıdır
-            'rub' => $kind === Exam::KIND_TOPIC_TRIAL && $quarter >= 1 && $quarter <= 4 ? $quarter : null,
-            'fenn' => $subject > 0 ? $subject : null,
-            'qiymet' => in_array($price, [self::PRICE_FREE, self::PRICE_PAID], true) ? $price : null,
-        ];
-    }
-
-    /**
      * Düyünün (və bütün alt düyünlərinin) imtahanları + filtr variantları.
      *
-     * İmtahanlar bir dəfə yüklənir: həm süzgəc, həm də sayğaclar eyni kolleksiyadan
-     * hesablanır — filtr seçimləri ilə siyahı arasında uyğunsuzluq olmur.
+     * Süzgəc və sayğaclar `CatalogFilters` ilə qurulur — ümumi kataloq (`/imtahanlar`)
+     * eyni məntiqi işlədir, ona görə iki səhifə heç vaxt fərqli nəticə vermir.
      *
-     * @param  array{nov: ?string, rub: ?int, fenn: ?int, qiymet: ?string}  $filters
+     * @param  array<string, mixed>  $filters
      * @return array{exams: array<int, array<string, mixed>>, filterOptions: array<string, mixed>}
      */
     private function catalog(Category $category, ?string $view, ?int $quarter, string $sector, array $filters): array
     {
         // Rüb seçimi səhifəsində imtahan siyahısı göstərilmir
         if ($view === 'topic_trial' && $quarter === null) {
-            return ['exams' => [], 'filterOptions' => $this->filterOptions(collect())];
+            return ['exams' => [], 'filterOptions' => ['kinds' => [], 'quarters' => [], 'subjects' => [], 'prices' => []]];
         }
 
-        $exams = Exam::query()
-            ->with(['sections.subject:id,name', 'category:id,name,path'])
-            ->withCount('questions')
-            ->whereIn('category_id', $category->subtreeIds())
+        $scope = fn () => Exam::query()
+            ->whereIn('exams.category_id', $category->subtreeIds())
             // Şagird yalnız öz sektorunun dərc olunmuş imtahanlarını görür
             ->visible($sector)
-            ->when($view === 'topic_trial', fn ($query) => $query
-                ->where('kind', Exam::KIND_TOPIC_TRIAL)
-                ->where('quarter', $quarter))
-            ->latest()
+            ->when($view === 'topic_trial', fn (Builder $query) => $query
+                ->where('exams.kind', Exam::KIND_TOPIC_TRIAL)
+                ->where('exams.quarter', $quarter));
+
+        $exams = CatalogFilters::apply($scope(), $filters)
+            ->with(['sections.subject:id,name', 'category:id,name,path'])
+            ->withCount('questions')
+            ->latest('exams.id')
             ->get();
 
         return [
-            'exams' => $this->applyFilters($exams, $filters)
-                ->map(fn (Exam $exam) => [
-                    'id' => $exam->id,
-                    'slug' => $exam->slug,
-                    'url' => $exam->publicUrl(),
-                    'title' => $exam->title,
-                    'kind' => $exam->kind,
-                    'quarter' => $exam->quarter,
-                    'subjects' => $exam->sections->map(fn ($section) => $section->subject?->name)
-                        ->filter()->unique()->values()->all(),
-                    'category' => $exam->category?->name,
-                    'duration_minutes' => $exam->duration_minutes,
-                    'questions_count' => $exam->questions_count,
-                    'is_free' => $exam->is_free,
-                    'price' => $exam->price,
-                ])
-                ->values()
-                ->all(),
-            'filterOptions' => $this->filterOptions($exams),
+            'exams' => $exams->map(fn (Exam $exam) => $this->examCard($exam))->all(),
+            // Sayğaclar ƏHATƏ üzrə: seçilmiş çip digər ölçüləri daraltmır
+            'filterOptions' => CatalogFilters::options($scope()),
         ];
     }
 
     /**
-     * @param  Collection<int, Exam>  $exams
-     * @param  array{nov: ?string, rub: ?int, fenn: ?int, qiymet: ?string}  $filters
-     * @return Collection<int, Exam>
-     */
-    private function applyFilters(Collection $exams, array $filters): Collection
-    {
-        return $exams
-            ->when($filters['nov'], fn (Collection $items, string $kind) => $items->where('kind', $kind))
-            ->when($filters['rub'], fn (Collection $items, int $quarter) => $items->where('quarter', $quarter))
-            // Fənn imtahanın BÖLMƏLƏRİNDƏN gəlir: çoxfənli imtahan hər fənninə görə tapılmalıdır
-            ->when($filters['fenn'], fn (Collection $items, int $subjectId) => $items
-                ->filter(fn (Exam $exam) => $exam->hasSubject($subjectId)))
-            ->when($filters['qiymet'], fn (Collection $items, string $price) => $items
-                ->where('is_free', $price === self::PRICE_FREE));
-    }
-
-    /**
-     * Filtr variantları sayğaclarla. Yalnız bu düyündə mövcud olanlar göstərilir —
-     * nəticəsi sıfır olan seçim təklif edilmir.
+     * Kataloq kartının məlumatları. `ExamCatalogController` eyni formanı qaytarır —
+     * `ExamCard.vue` hər iki səhifədə işlənir.
      *
-     * @param  Collection<int, Exam>  $exams
      * @return array<string, mixed>
      */
-    private function filterOptions(Collection $exams): array
+    public static function examCard(Exam $exam): array
     {
-        $subjects = $exams
-            ->flatMap(fn (Exam $exam) => $exam->sections->map(fn ($section) => [
-                'id' => (int) $section->subject_id,
-                'name' => $section->subject?->name,
-            ]))
-            ->filter(fn (array $row) => $row['id'] > 0 && filled($row['name']));
-
-        $trials = $exams->where('kind', Exam::KIND_TOPIC_TRIAL);
-
         return [
-            'kinds' => collect(Exam::KINDS)
-                ->map(fn (string $kind) => ['value' => $kind, 'count' => $exams->where('kind', $kind)->count()])
-                ->filter(fn (array $row) => $row['count'] > 0)
-                ->values()
-                ->all(),
-            'quarters' => $trials->pluck('quarter')
-                ->filter()
-                ->unique()
-                ->sort()
-                ->map(fn (int $quarter) => [
-                    'value' => $quarter,
-                    'count' => $trials->where('quarter', $quarter)->count(),
-                ])
-                ->values()
-                ->all(),
-            'subjects' => $subjects->groupBy('id')
-                ->map(fn (Collection $rows, int|string $id) => [
-                    'value' => (int) $id,
-                    'name' => $rows->first()['name'],
-                    'count' => $exams->filter(fn (Exam $exam) => $exam->hasSubject((int) $id))->count(),
-                ])
-                ->sortBy('name')
-                ->values()
-                ->all(),
-            'prices' => collect([
-                self::PRICE_FREE => $exams->where('is_free', true)->count(),
-                self::PRICE_PAID => $exams->where('is_free', false)->count(),
-            ])
-                ->filter()
-                ->map(fn (int $count, string $value) => ['value' => $value, 'count' => $count])
-                ->values()
-                ->all(),
+            'id' => $exam->id,
+            'slug' => $exam->slug,
+            'url' => $exam->publicUrl(),
+            'title' => $exam->title,
+            'kind' => $exam->kind,
+            'quarter' => $exam->quarter,
+            'subjects' => $exam->sections->map(fn ($section) => $section->subject?->name)
+                ->filter()->unique()->values()->all(),
+            // Kartdakı bölmə adı cari dildə: rus səhifəsində rusca qarşılığı varsa o göstərilir
+            'category' => $exam->category?->localized('name'),
+            'duration_minutes' => $exam->duration_minutes,
+            'questions_count' => $exam->questions_count,
+            'is_free' => $exam->is_free,
+            'price' => $exam->price,
         ];
     }
 }

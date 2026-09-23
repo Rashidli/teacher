@@ -140,7 +140,7 @@ const purchase = useForm({});
 }
 
 .crumb {
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -165,26 +165,28 @@ const purchase = useForm({});
     opacity: 0.85;
 }
 
+/* Mobildə tək sütun; sonra iki, sonra üç */
 .facts {
     list-style: none;
     margin: 28px 0 0;
     padding: 0;
     display: grid;
     gap: 12px;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: 1fr;
 }
 
 .facts li {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
     padding: 14px 16px;
     border: 1px solid rgba(22, 19, 14, 0.15);
     border-radius: 12px;
 }
 
 .fact-label {
-    font-size: 0.9rem;
+    font-size: 0.9375rem;
     opacity: 0.7;
 }
 
@@ -233,7 +235,9 @@ const purchase = useForm({});
 .cta-hint {
     margin: 0;
     flex: 1 1 260px;
-    font-size: 0.95rem;
+    /* Flex elementinin defolt min-width: auto dar ekranda daralmağa mane olur */
+    min-width: 0;
+    font-size: 0.9375rem;
     opacity: 0.75;
 }
 
@@ -259,13 +263,30 @@ const purchase = useForm({});
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 8px;
+    min-width: 0;
     padding: 10px 14px;
     border: 1px solid rgba(22, 19, 14, 0.12);
     border-radius: 10px;
 }
 
+.subject-name {
+    min-width: 0;
+}
+
 .subject-meta {
     opacity: 0.7;
-    font-size: 0.9rem;
+    font-size: 0.9375rem;
+}
+
+@media (min-width: 640px) {
+    .cta-hint { font-size: 0.95rem; }
+    .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fact-label { font-size: 0.9rem; }
+    .subject-meta { font-size: 0.9rem; }
+    .crumb { font-size: 0.9rem; }
+}
+
+@media (min-width: 1024px) {
+    .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 </style>

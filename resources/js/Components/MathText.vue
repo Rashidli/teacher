@@ -32,3 +32,19 @@ const rendered = computed(() => {
 <template>
     <span v-html="rendered" class="math-text" />
 </template>
+
+<style scoped>
+/*
+ * Uzun düstur ($$…$$) səhifəni yana sürükləməsin: sürüşmə öz konteynerində qalır.
+ * `display: block` lazımdır — inline element `overflow` qəbul etmir.
+ */
+.math-text {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.math-text :deep(.katex-display) {
+    margin-block: 0.5em;
+}
+</style>

@@ -11,6 +11,10 @@ return [
     'header' => [
         'home_aria' => 'İmtahan Platforması, ana səhifə',
         'nav_aria' => 'Hesab',
+        'exams' => 'İmtahanlar',
+        'menu_aria' => 'Əsas menyu',
+        'menu_open' => 'Menyunu aç',
+        'menu_close' => 'Menyunu bağla',
         'tutors' => 'Repetitorlar',
         'login' => 'Daxil ol',
         'register' => 'Qeydiyyat',

@@ -68,8 +68,8 @@ class SitemapController extends Controller
     {
         $entries = collect();
 
-        // Statik səhifələr
-        foreach (['home', 'terms'] as $name) {
+        // Statik səhifələr (ümumi kataloq da buradadır: filtrsiz ünvanı ilə)
+        foreach (['home', 'exams.catalog', 'terms'] as $name) {
             $entries->push(['urls' => $this->localized(fn (string $locale) => Localization::route($name, [], true, $locale))]);
         }
 
