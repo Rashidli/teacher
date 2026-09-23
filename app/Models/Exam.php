@@ -116,6 +116,17 @@ class Exam extends Model
         return $this->hasMany(ExamAttempt::class);
     }
 
+    /**
+     * Etiketlər (sinif səviyyəsi və sərbəst etiketlər).
+     *
+     * Kateqoriya ağacına ORTOQONALDIR: "9-cu sinif" etiketi həm buraxılış, həm olimpiada
+     * imtahanında ola bilər.
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class)->withTimestamps();
+    }
+
 
     public function scopeActive($query)
     {

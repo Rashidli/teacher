@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
+import TagPicker from '@/Components/Admin/TagPicker.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -8,6 +9,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
 const props = defineProps({
+    tags: { type: Array, default: () => [] },
     exam: { type: Object, required: true },
     categories: { type: Array, default: () => [] },
     // Sual bağlanıbsa sektor dəyişmir: suallar başqa dildə qalardı
@@ -20,6 +22,7 @@ const props = defineProps({
  */
 const form = useForm({
     category_id: props.exam.category_id ?? '',
+    tags: (props.exam.tags ?? []).map((tag) => tag.id),
     title: props.exam.title,
     description: props.exam.description ?? '',
     duration_minutes: props.exam.duration_minutes,
@@ -117,6 +120,9 @@ const submit = () => {
                             </select>
                             <InputError :message="form.errors.category_id" class="mt-2" />
                         </div>
+
+                        <!-- Etiketlər: sinif səviyyəsi və sərbəst etiketlər -->
+                        <TagPicker v-model="form.tags" :tags="tags" :error="form.errors.tags" />
 
 
                         <div>

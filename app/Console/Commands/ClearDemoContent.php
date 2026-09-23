@@ -258,6 +258,7 @@ class ClearDemoContent extends Command
             ->delete();
 
         if ($examIds !== []) {
+            DB::table('exam_tag')->whereIn('exam_id', $examIds)->delete();
             DB::table('exam_question')->whereIn('exam_id', $examIds)->delete();
             DB::table('exam_sections')->whereIn('exam_id', $examIds)->delete();
             Exam::withTrashed()->whereIn('id', $examIds)->forceDelete();

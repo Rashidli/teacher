@@ -329,6 +329,11 @@ bütün şəkillər 404 verdi.
       **Hazırdır:** cavabların AI ilə avtomatik qiymətləndirilməsi (`AiAnswerGrader`,
       `GradeOpenAnswer` job-u, DİM şkalası, admin üstünlüyü, şagird etirazı, token logu).
 - [ ] Məhsul növləri: fənn paketi, qrup paketi, abunə (hazırda yalnız tək imtahan satılır).
+- [ ] **Kateqoriya ağacına "Liseylərə qəbul" və "Olimpiadalar" bölmələri** — ibtidai və orta
+      siniflər üçün (hazırda ağac 9-cu sinifdən aşağını demək olar ki, əhatə etmir).
+      **Hazırdır:** sinif səviyyəsi etiketləri (2-ci … 11-ci sinif) — həmin bölmələr
+      əlavə olunanda imtahanlar elə bu etiketlərlə işarələnəcək və kataloqda "Sinif"
+      filtri ilə tapılacaq. Ağac düyünləri, SEO mətnləri və sual bankı isə ayrıca işdir.
 - [ ] **Müəllim modulu açılanda** (`FEATURE_TEACHERS=true`) `Teacher/Questions/Create.vue` və
       `Teacher/Questions/Edit.vue` ortaq `Components/Questions/QuestionForm.vue` komponentinə
       keçirilməlidir. Hazırda onların öz markup-u var və **sual tipi radioları icazəli

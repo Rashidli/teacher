@@ -104,6 +104,12 @@ const dashboardRoute = computed(() => {
                                         Fənlər
                                     </NavLink>
                                     <NavLink
+                                        :href="route('admin.tags.index')"
+                                        :active="route().current('admin.tags.*')"
+                                    >
+                                        Etiketlər
+                                    </NavLink>
+                                    <NavLink
                                         :href="route('admin.groups.index')"
                                         :active="route().current('admin.groups.*')"
                                     >
@@ -251,6 +257,12 @@ const dashboardRoute = computed(() => {
                                 :active="route().current('admin.subjects.*')"
                             >
                                 Fənlər
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                :href="route('admin.tags.index')"
+                                :active="route().current('admin.tags.*')"
+                            >
+                                Etiketlər
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 :href="route('admin.groups.index')"

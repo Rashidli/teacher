@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Subject;
 use App\Services\ExamGeneration\ExamGenerator;
+use App\Models\Tag;
 use App\Support\Sector;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,6 +30,8 @@ class AdminExamGenerationController extends Controller
     public function create(): Response
     {
         return Inertia::render('Admin/Exams/Generate', [
+            // Etiketlər: generasiya olunan bütün variantlara eyni etiketlər bağlanır
+            'tags' => Tag::active()->ordered()->get(['id', 'name', 'kind']),
             // Fənn siyahısı sektora görə fərqlənir (ana dili): hər sektor ayrıca göndərilir
             'categories' => Category::active()
                 ->where('has_exams', true)
@@ -69,6 +72,8 @@ class AdminExamGenerationController extends Controller
             'options_per_question' => ['required', 'integer', 'in:4,5'],
             'counts' => ['required', 'array', 'min:1'],
             'counts.*' => ['nullable', 'integer', 'min:0', 'max:200'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['integer', Rule::exists('tags', 'id')],
         ], [
             'counts.required' => 'Ən azı bir fənn üçün sual sayı göstərilməlidir.',
         ]);
@@ -97,6 +102,11 @@ class AdminExamGenerationController extends Controller
             return back()->withInput()->withErrors([
                 'bank' => implode(' ', $result->shortfallMessages()),
             ]);
+        }
+
+        // Etiketlər bütün variantlara eyni cür bağlanır (məs. "9-cu sinif")
+        if (($validated['tags'] ?? []) !== []) {
+            $result->exams->each(fn ($exam) => $exam->tags()->sync($validated['tags']));
         }
 
         $first = $result->exams->first();

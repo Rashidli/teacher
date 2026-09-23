@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 
@@ -43,6 +43,24 @@ const heading = computed(() => {
 const ariaLabel = computed(
     () => (trailText.value ? `${trailText.value} — ${heading.value}` : heading.value),
 );
+
+/** Sinif etiketi kartda nişan kimi görünür (məs. "9-cu sinif") */
+const gradeTags = computed(() => (props.exam.tags ?? []).filter((tag) => tag.kind === 'grade'));
+
+const otherTags = computed(() => (props.exam.tags ?? []).filter((tag) => tag.kind !== 'grade'));
+
+/*
+ * "Ətraflı": bölmələr, müddət və izah KART DAXİLİNDƏ açılır — səhifəni tərk etmək
+ * lazım gəlmir. Düymə `position: relative` ilə başlığın örtən linkindən (stretched
+ * link) YUXARIDA durur, ona görə kliki imtahan səhifəsini açmır.
+ */
+const open = ref(false);
+
+const detailsId = computed(() => `exam-details-${props.exam.id}`);
+
+const hasDetails = computed(
+    () => Boolean(props.exam.description) || (props.exam.sections ?? []).length > 0,
+);
 </script>
 
 <template>
@@ -65,10 +83,42 @@ const ariaLabel = computed(
             · {{ exam.duration_minutes }} {{ $t('category_page.minutes') }}
         </p>
 
+        <p v-if="gradeTags.length" class="card-grades">
+            <span v-for="tag in gradeTags" :key="tag.id" class="tag tag--grade">{{ tag.name }}</span>
+        </p>
+
         <p class="card-foot">
             <span v-if="exam.is_free" class="tag tag--free">{{ $t('category_page.free') }}</span>
             <span v-else class="tag tag--price">{{ exam.price }} AZN</span>
+
+            <button
+                v-if="hasDetails"
+                type="button"
+                class="details-toggle"
+                :aria-expanded="open"
+                :aria-controls="detailsId"
+                @click="open = !open"
+            >{{ open ? $t('exam_catalog.details_hide') : $t('exam_catalog.details') }}</button>
         </p>
+
+        <div v-if="open" :id="detailsId" class="details">
+            <ul v-if="exam.sections?.length" class="details-list">
+                <li v-for="(section, index) in exam.sections" :key="index">
+                    <span class="details-name">{{ section.subject }}</span>
+                    <span class="details-value">{{ section.question_count }} {{ $t('category_page.questions') }}</span>
+                </li>
+            </ul>
+
+            <p class="details-meta">
+                {{ exam.duration_minutes }} {{ $t('category_page.minutes') }}
+                · {{ exam.questions_count }} {{ $t('category_page.questions') }}
+                <template v-if="otherTags.length">
+                    · {{ otherTags.map((tag) => tag.name).join(', ') }}
+                </template>
+            </p>
+
+            <p v-if="exam.description" class="details-text">{{ exam.description }}</p>
+        </div>
     </article>
 </template>
 
@@ -191,6 +241,88 @@ const ariaLabel = computed(
 .tag--price {
     background: var(--paper-sunk);
     color: var(--graphite);
+}
+
+.tag--grade {
+    background: #E9ECF6;
+    color: var(--pen);
+}
+
+.card-grades {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 2px 0 0;
+}
+
+/* ------------------------------------------------------------- Ətraflı */
+
+/*
+ * Düymə örtən linkdən (`.card-link::after`) YUXARIDADIR: `position: relative` +
+ * `z-index` olmasa klik kartın əsas linkini tətikləyərdi.
+ */
+.details-toggle {
+    position: relative;
+    z-index: 1;
+    margin-left: auto;
+    /* Toxunma sahəsi 44px, amma kartı hündürlətməsin deyə mənfi boşluqla */
+    min-height: 44px;
+    margin-block: -10px;
+    padding: 10px 4px;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--pen);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+}
+
+.details {
+    position: relative;
+    z-index: 1;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--ink-red-line);
+}
+
+.details-list {
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.details-list li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.875rem;
+}
+
+.details-name {
+    font-weight: 600;
+    color: var(--graphite);
+}
+
+.details-value {
+    color: var(--muted);
+}
+
+.details-meta {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--muted);
+}
+
+.details-text {
+    margin: 8px 0 0;
+    font-size: 0.875rem;
+    color: var(--muted);
 }
 
 @media (min-width: 640px) {

@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\AdminQuestionBankController;
 use App\Http\Controllers\Admin\AdminQuestionController;
 use App\Http\Controllers\Admin\AdminQuestionImportController;
 use App\Http\Controllers\Admin\AdminSubjectController;
+use App\Http\Controllers\Admin\AdminTagController;
 use App\Http\Controllers\Admin\AdminTopicController;
 use App\Http\Controllers\Admin\AdminTeacherController;
 use App\Http\Controllers\Admin\Auth\AdminLoginController;
@@ -116,6 +117,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/topics', [AdminTopicController::class, 'store'])->name('topics.store');
         Route::put('/topics/{topic}', [AdminTopicController::class, 'update'])->name('topics.update');
         Route::delete('/topics/{topic}', [AdminTopicController::class, 'destroy'])->name('topics.destroy');
+
+        // Etiketlər (sinif səviyyəsi və sərbəst etiketlər)
+        Route::get('/tags', [AdminTagController::class, 'index'])->name('tags.index');
+        Route::post('/tags', [AdminTagController::class, 'store'])->name('tags.store');
+        Route::put('/tags/{tag}', [AdminTagController::class, 'update'])->name('tags.update');
+        Route::delete('/tags/{tag}', [AdminTagController::class, 'destroy'])->name('tags.destroy');
 
         // Subjects
         Route::get('/subjects', [AdminSubjectController::class, 'index'])->name('subjects.index');

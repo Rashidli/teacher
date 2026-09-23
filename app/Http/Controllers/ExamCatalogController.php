@@ -168,7 +168,7 @@ class ExamCatalogController extends Controller
      */
     private function cardRelations(): array
     {
-        return ['sections.subject:id,name', 'category.parent.parent'];
+        return ['sections.subject:id,name', 'category.parent.parent', 'tags'];
     }
 
     /**

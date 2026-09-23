@@ -14,7 +14,7 @@ import { trans } from 'laravel-vue-i18n';
  */
 const props = defineProps({
     // Hansı ölçülər göstərilsin: 'sektor' | 'kateqoriya' | 'nov' | 'rub' | 'fenn' | 'qiymet'
-    facets: { type: Array, default: () => ['nov', 'rub', 'fenn', 'qiymet'] },
+    facets: { type: Array, default: () => ['nov', 'rub', 'fenn', 'etiket', 'qiymet'] },
     options: { type: Object, default: () => ({}) },
     filters: { type: Object, default: () => ({}) },
     // 'top' — siyahının üstündə, 'side' — masaüstündə yan sütunda
@@ -51,6 +51,10 @@ const subjects = computed(() => (allSubjects.value
 
 const hiddenSubjects = computed(() => Math.max(0, list('subjects').length - SUBJECT_LIMIT));
 
+// Sinif etiketləri ayrıca göstərilir: kataloqda ən çox işlənən filtr onlardır
+const grades = computed(() => list('tags').filter((tag) => tag.kind === 'grade'));
+const otherTags = computed(() => list('tags').filter((tag) => tag.kind !== 'grade'));
+
 /** Seçilmiş filtrlərin oxunaqlı adları — silinə bilən çiplər üçün */
 const chosen = computed(() => {
     const rows = [];
@@ -82,6 +86,14 @@ const chosen = computed(() => {
         }
     }
 
+    if (props.filters.etiket) {
+        const found = label('etiket', list('tags'), props.filters.etiket);
+
+        if (found) {
+            rows.push({ key: 'etiket', name: found.name });
+        }
+    }
+
     if (props.filters.qiymet) {
         rows.push({ key: 'qiymet', name: trans(`category_page.prices.${props.filters.qiymet}`) });
     }
@@ -94,6 +106,7 @@ const chosen = computed(() => {
 });
 
 const visible = computed(() => has('sektor') && props.canSwitchSector
+    || has('etiket') && list('tags').length > 0
     || has('kateqoriya') && list('categories').length > 1
     || has('nov') && list('kinds').length > 1
     || has('fenn') && list('subjects').length > 1
@@ -270,6 +283,47 @@ const visible = computed(() => has('sektor') && props.canSwitchSector
                         :aria-expanded="allSubjects"
                         @click="allSubjects = !allSubjects"
                     >{{ allSubjects ? $t('exam_catalog.less') : $t('exam_catalog.more', { count: hiddenSubjects }) }}</button>
+                </div>
+            </div>
+
+            <!--
+                Etiketlər: sinif səviyyəsi ayrıca qrupdur (kataloqda ən çox işlənən filtr),
+                sərbəst etiketlər onun altında.
+            -->
+            <div v-if="has('etiket') && grades.length" class="filter">
+                <span id="f-grade" class="filter-label">{{ $t('exam_catalog.filter_grade') }}</span>
+                <div class="chips" role="group" aria-labelledby="f-grade">
+                    <button
+                        type="button"
+                        class="chip"
+                        :class="{ 'chip--on': !filters.etiket }"
+                        :aria-pressed="!filters.etiket"
+                        @click="emit('update', 'etiket', null)"
+                    >{{ $t('category_page.filter_all') }}</button>
+                    <button
+                        v-for="option in grades"
+                        :key="option.value"
+                        type="button"
+                        class="chip chip--grade"
+                        :class="{ 'chip--on': filters.etiket === option.value }"
+                        :aria-pressed="filters.etiket === option.value"
+                        @click="emit('update', 'etiket', option.value)"
+                    >{{ option.name }} ({{ option.count }})</button>
+                </div>
+            </div>
+
+            <div v-if="has('etiket') && otherTags.length" class="filter">
+                <span id="f-tag" class="filter-label">{{ $t('exam_catalog.filter_tag') }}</span>
+                <div class="chips" role="group" aria-labelledby="f-tag">
+                    <button
+                        v-for="option in otherTags"
+                        :key="option.value"
+                        type="button"
+                        class="chip"
+                        :class="{ 'chip--on': filters.etiket === option.value }"
+                        :aria-pressed="filters.etiket === option.value"
+                        @click="emit('update', 'etiket', filters.etiket === option.value ? null : option.value)"
+                    >{{ option.name }} ({{ option.count }})</button>
                 </div>
             </div>
 
@@ -462,6 +516,7 @@ const visible = computed(() => has('sektor') && props.canSwitchSector
 .chip--kind-subject { border-left: 4px solid #6B3FA0; }
 .chip--kind-practice { border-left: 4px solid #0F766E; }
 .chip--free { border-left: 4px solid var(--correct); }
+.chip--grade { border-left: 4px solid var(--pen); }
 
 .chip--more {
     border-style: dashed;

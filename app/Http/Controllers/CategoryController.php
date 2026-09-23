@@ -28,7 +28,7 @@ class CategoryController extends Controller
     private const TOPIC_TRIAL_SEGMENT = 'movzu-sinagi';
 
     /** Bu səhifədə kateqoriya və axtarış filtri yoxdur: əhatə onsuz da bu düyündür */
-    private const FACETS = ['nov', 'rub', 'fenn', 'qiymet'];
+    private const FACETS = ['nov', 'rub', 'fenn', 'etiket', 'qiymet'];
 
     public function show(Request $request, string $path): Response|RedirectResponse
     {
@@ -270,7 +270,7 @@ class CategoryController extends Controller
     {
         // Rüb seçimi səhifəsində imtahan siyahısı göstərilmir
         if ($view === 'topic_trial' && $quarter === null) {
-            return ['exams' => [], 'filterOptions' => ['kinds' => [], 'quarters' => [], 'subjects' => [], 'prices' => []]];
+            return ['exams' => [], 'filterOptions' => ['kinds' => [], 'quarters' => [], 'subjects' => [], 'tags' => [], 'prices' => []]];
         }
 
         $scope = fn () => Exam::query()
@@ -283,7 +283,7 @@ class CategoryController extends Controller
 
         $exams = CatalogFilters::apply($scope(), $filters)
             // Kateqoriya zənciri kart üçün: `trail()` əlavə sorğu etməsin
-            ->with(['sections.subject:id,name', 'category.parent.parent'])
+            ->with(['sections.subject:id,name', 'category.parent.parent', 'tags'])
             ->withCount('questions')
             ->latest('exams.id')
             ->get();
@@ -323,6 +323,20 @@ class CategoryController extends Controller
             'questions_count' => $exam->questions_count,
             'is_free' => $exam->is_free,
             'price' => $exam->price,
+            'description' => $exam->description,
+            // "Ətraflı" akkordeonu: bölmələr kart daxilində açılır
+            'sections' => $exam->sections->map(fn ($section) => [
+                'subject' => $section->subject?->name,
+                'question_count' => $section->question_count,
+            ])->all(),
+            // Sinif etiketi kartda nişan kimi görünür, qalanları "Ətraflı"-da
+            'tags' => $exam->relationLoaded('tags')
+                ? $exam->tags->map(fn ($tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'kind' => $tag->kind,
+                ])->all()
+                : [],
         ];
     }
 }

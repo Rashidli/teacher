@@ -10,6 +10,42 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — İmtahan etiketləri və kartda "Ətraflı" akkordeonu
+
+**Etiketlər (çox-çoxa).** `tags` + `exam_tag` cədvəlləri. Etiket kateqoriya ağacına
+**ortoqonaldır**: kateqoriya imtahanın növünü bildirir (abituriyent II qrup, sürücülük),
+etiket isə əlavə əlaməti — ən əsası **sinif səviyyəsini**. Eyni "9-cu sinif" etiketi həm
+buraxılış, həm olimpiada imtahanında ola bilər.
+
+- `TagSeeder`: 2-ci … 11-ci sinif. Şəkilçilər ahəng qanununa görə açıq yazılıb
+  (2-ci, 3-cü, 4-cü, 5-ci, 6-cı, 7-ci, 8-ci, 9-cu, 10-cu, 11-ci) — avtomatik qurulanda
+  "9-ci sinif" kimi səhv çıxırdı. Açar `kind + order` cütüdür, ona görə ad düzəldiləndə
+  mövcud sətir yenilənir və imtahanlarla əlaqə qalır.
+- **Admin:** `/admin/tags` — siyahı, yeni etiket, aktiv/deaktiv. **İmtahana bağlı etiket
+  silinmir**, yalnız deaktiv edilir: əks halda kataloq filtri ilə mövcud imtahanlar
+  arasındakı əlaqə səssizcə itərdi. Menyuda "Etiketlər" bəndi.
+- **İmtahan formasında və bankdan generasiyada** ortaq `TagPicker` komponenti; generasiyada
+  seçilmiş etiketlər bütün variantlara bağlanır.
+- **Kataloqda** ayrıca filtr bölməsi: "Sinif" (öz sırası ilə, əlifba ilə yox) və "Etiket".
+  Sayğaclar var, seçim URL-də `?etiket=` kimi qalır, silinə bilən çip kimi görünür.
+  Kateqoriya səhifəsində də işləyir.
+- **Kartda** sinif etiketi kiçik nişan kimi göstərilir.
+- Nümunə məzmunda buraxılış imtahanları 9/11, abituriyent 11-ci sinif etiketi alır.
+
+**Kartda "Ətraflı" akkordeonu.** Klikləyəndə kart daxilində bölmələr (fənn və sual sayı),
+müddət, digər etiketlər və qısa izah açılır — səhifəni tərk etmək lazım gəlmir. Düymə
+`position: relative` + `z-index` ilə başlığın örtən linkindən (stretched link) yuxarıdadır,
+ona görə klik imtahan səhifəsini **açmır**. Toxunma sahəsi 44px, mobildə də işləyir.
+
+**ROADMAP P3:** kateqoriya ağacına "Liseylərə qəbul" və "Olimpiadalar" bölmələri (ibtidai və
+orta siniflər üçün) — sinif etiketləri artıq hazırdır, qalan ağac düyünləri və sual bankıdır.
+
+**Testlər:** `ExamTagTest` (8) — filtr sayğacları və sinif sırası, filtrin siyahını
+daraltması, deaktiv etiketin gizlənməsi, kartın etiket və bölmələri daşıması, kateqoriya
+səhifəsindəki filtr, admin əməliyyatları və işlənən etiketin silinməməsi (496 → 504 test).
+
+---
+
 ### 2026-09-23 — Şagird panelinin vizual dili və "imtahan vərəqi"
 
 **Panel ictimai tərəflə birləşdi** (nümunənin davamı). Ortaq tokenlər `:root`-da, ortaq

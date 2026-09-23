@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             GroupSeeder::class,
             SubjectGroupScoreSeeder::class,
             CategorySeeder::class,
+            TagSeeder::class,
             AdminUserSeeder::class,
         ]);
     }

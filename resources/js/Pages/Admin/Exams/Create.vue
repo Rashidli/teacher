@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
+import TagPicker from '@/Components/Admin/TagPicker.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -8,6 +9,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
 const props = defineProps({
+    tags: { type: Array, default: () => [] },
     // Müəllim modulu söndürülübsə boş massiv gəlir və müəllim seçimi göstərilmir
     teachers: { type: Array, default: () => [] },
     subjects: { type: Array, default: () => [] },
@@ -18,6 +20,7 @@ const props = defineProps({
 const form = useForm({
     teacher_id: '',
     category_id: '',
+    tags: [],
     subject_id: '',
     group_id: '',
     title: '',
@@ -159,6 +162,9 @@ const submit = () => {
                             </p>
                             <InputError :message="form.errors.category_id" class="mt-2" />
                         </div>
+
+                        <!-- Etiketlər: sinif səviyyəsi və sərbəst etiketlər -->
+                        <TagPicker v-model="form.tags" :tags="tags" :error="form.errors.tags" />
 
 
                         <div>

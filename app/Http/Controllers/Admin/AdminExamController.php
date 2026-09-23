@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Group;
 use App\Models\Subject;
+use App\Models\Tag;
 use App\Models\User;
 use App\Support\Sector;
 use Illuminate\Http\Request;
@@ -103,6 +104,15 @@ class AdminExamController extends Controller
         return $validated;
     }
 
+    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
+    private function tagOptions()
+    {
+        return Tag::active()
+            ->ordered()
+            ->get(['id', 'name', 'kind'])
+            ->map(fn (Tag $tag) => ['id' => $tag->id, 'name' => $tag->name, 'kind' => $tag->kind]);
+    }
+
     /** İmtahan bağlana bilən kateqoriyalar (yalnız test keçirilənlər) */
     private function categoryOptions()
     {
@@ -146,6 +156,9 @@ class AdminExamController extends Controller
             // Qrup yalnız abituriyent kateqoriyalarında olur; digərlərində NULL qalır
             'group_id' => ['nullable', 'exists:groups,id'],
             'category_id' => ['nullable', Rule::exists('categories', 'id')],
+            // Etiketlər: sinif səviyyəsi və sərbəst etiketlər (çox-çoxa)
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['integer', Rule::exists('tags', 'id')],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'duration_minutes' => ['required', 'integer', 'min:10', 'max:180'],
@@ -161,7 +174,11 @@ class AdminExamController extends Controller
         $validated['created_by'] = $request->user()->id;
         $validated['created_by_admin'] = true;
 
+        $tags = $validated['tags'] ?? [];
+        unset($validated['tags']);
+
         $exam = Exam::create($validated);
+        $exam->tags()->sync($tags);
 
         // Hər imtahanın ən azı bir bölməsi olur: bal hesablaması və səhifələr tək məntiqlə işləyir
         $exam->sections()->create([
@@ -213,7 +230,7 @@ class AdminExamController extends Controller
 
     public function edit(Exam $exam)
     {
-        $exam->load(['teacher', 'subject', 'group']);
+        $exam->load(['teacher', 'subject', 'group', 'tags:id']);
 
         return Inertia::render('Admin/Exams/Edit', [
             'exam' => $exam,
@@ -221,6 +238,7 @@ class AdminExamController extends Controller
             'teachers' => config('features.teachers') ? User::verifiedTeachers()->with('subjects')->get() : [],
             'subjects' => Subject::active()->get(),
             'groups' => Group::active()->orderBy('number')->get(),
+            'tags' => $this->tagOptions(),
             'sectors' => Sector::ALL,
             // Sual bağlandıqdan sonra sektor dəyişmir (suallar başqa dildə qalardı)
             'sectorLocked' => $exam->questions()->exists(),
@@ -238,6 +256,9 @@ class AdminExamController extends Controller
             'is_active' => ['boolean'],
             'category_id' => ['nullable', Rule::exists('categories', 'id')],
             'sector' => ['nullable', Rule::in(Sector::ALL)],
+            // Etiketlər: sinif səviyyəsi və sərbəst etiketlər (çox-çoxa)
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['integer', Rule::exists('tags', 'id')],
         ], $this->priceMessages());
 
         // Sual bağlanmış imtahanın sektorunu dəyişmək sualların dilini imtahandan ayırardı
@@ -248,7 +269,11 @@ class AdminExamController extends Controller
             ]);
         }
 
+        $tags = $validated['tags'] ?? [];
+        unset($validated['tags']);
+
         $exam->update($this->normalisePrice($this->applyCategoryGroup($validated)));
+        $exam->tags()->sync($tags);
 
         return redirect()->route('admin.exams.show', $exam)
             ->with('success', 'İmtahan uğurla yeniləndi.');

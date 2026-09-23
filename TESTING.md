@@ -3,7 +3,7 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 496 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 504 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` və `php artisan files:backup`
@@ -189,6 +189,11 @@ bölmələrə) və **`/imtahanlar`** — ağacdan asılı olmayan ümumi siyahı
 | P6 | "Çap et / PDF" düyməsini bas | Menyu, düymələr və qrafik kağıza düşmür; vərəq ağ fonda, sual ortadan kəsilmir |
 | K48a | Şagird kimi panelə keç, sonra menyudan "İmtahanlar" | `/imtahanlar` açılır; loqo da ana səhifəyə aparır — paneldə qapalı qalmırsan |
 | K48b | "Mənim imtahanlarım" boş olanda | "Kataloqdan yeni imtahan seç" + "Kataloqa keç" düyməsi `/imtahanlar`-a aparır |
+| K48c | Kataloqda filtr panelindəki **"Sinif"** bölməsi | 9-cu / 11-ci sinif çipləri sayğaclarla görünür; seçim ünvanda `?etiket=` kimi qalır |
+| K48d | Kartdakı **"Ətraflı"** düyməsini bas | Bölmələr (fənn və sual sayı), müddət və izah **kart daxilində** açılır; səhifə dəyişmir, imtahan səhifəsi AÇILMIR |
+| K48e | Sinif etiketi olan karta bax | Başlıq altında kiçik mavi **"9-cu sinif"** nişanı görünür |
+| K48f | Admin → Etiketlər | Sinif etiketləri siyahıda; yeni sərbəst etiket əlavə etmək, deaktiv etmək olur; imtahana bağlı etiketdə "Sil" düyməsi yoxdur |
+| K48g | Admin → imtahan yaratma və bankdan generasiya | "Etiketlər" bölməsində sinif seçilir; generasiyada bütün variantlara eyni etiket bağlanır |
 | K49 | Pullu imtahanda "Al" bas | Bank səhifəsi açılmır: ödəniş dərhal təsdiqlənir, "Test rejimi" bildirişi görünür, imtahan açılır və "Başla" işləyir |
 | K50 | `/imtahanlar`-da masaüstündə siyahını aşağı sürüşdür | Filtr paneli **ekranda qalır**; panel uzundursa öz daxilində sürüşür, səhifə ilə birlikdə yuxarı getmir |
 | K51 | Sürücülük imtahanını başlat | Suallarda **yol nişanı şəkilləri** görünür; mobildə şəkil ekrana sığır, üfüqi sürüşmə yaratmır |

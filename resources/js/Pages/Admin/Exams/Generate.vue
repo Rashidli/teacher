@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
+import TagPicker from '@/Components/Admin/TagPicker.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -8,11 +9,13 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 
 const props = defineProps({
+    tags: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
 });
 
 const form = useForm({
     category_id: '',
+    tags: [],
     // Sektor həm fənn siyahısını, həm də sual hovuzunun dilini təyin edir
     sector: 'az',
     quarter: '',
@@ -86,6 +89,9 @@ const totalQuestions = computed(() => Object.entries(form.counts)
                         </select>
                         <InputError :message="form.errors.category_id" class="mt-2" />
                     </div>
+
+                    <!-- Etiketlər: sinif səviyyəsi və sərbəst etiketlər -->
+                    <TagPicker v-model="form.tags" :tags="tags" :error="form.errors.tags" />
 
                     <div>
                         <InputLabel for="sector" value="Tədris sektoru" />

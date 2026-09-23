@@ -134,7 +134,7 @@ const total = computed(() => (props.mode === 'grouped'
             <div class="layout">
                 <CatalogFilters
                     class="layout-filters"
-                    :facets="['sektor', 'kateqoriya', 'nov', 'rub', 'fenn', 'qiymet']"
+                    :facets="['sektor', 'kateqoriya', 'nov', 'rub', 'fenn', 'etiket', 'qiymet']"
                     :options="filterOptions"
                     :filters="filters"
                     :sector="sector"

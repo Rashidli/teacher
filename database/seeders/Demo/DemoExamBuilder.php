@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamSection;
 use App\Models\Question;
 use App\Models\Subject;
+use App\Models\Tag;
 use App\Support\QuestionTypes;
 use Illuminate\Support\Collection;
 
@@ -43,11 +44,17 @@ class DemoExamBuilder
     /**
      * @param  array<string, Subject>  $subjects  slug → fənn
      */
+    /** @var array<int, int> sinif nömrəsi → tag id */
+    private array $gradeTags = [];
+
     public function __construct(
         private readonly DemoBankBuilder $bank,
         private readonly array $subjects,
         private readonly ?int $createdBy,
-    ) {}
+    ) {
+        // Sinif etiketləri `TagSeeder`-dən gəlir; yoxdursa etiket bağlanmır
+        $this->gradeTags = Tag::grades()->pluck('id', 'order')->all();
+    }
 
     /** @param  array<string, Category>  $categories  path → kateqoriya */
     public function build(array $categories): void
@@ -181,6 +188,12 @@ class DemoExamBuilder
         }
 
         $this->syncSections($exam, $sectionSubjects, $category, $picks, $perSection);
+
+        // Sinif etiketləri: buraxılış 9/11, abituriyent 11 və s.
+        $exam->tags()->sync(array_values(array_filter(array_map(
+            fn (int $grade) => $this->gradeTags[$grade] ?? null,
+            $node['grades'] ?? [],
+        ))));
 
         return $exam;
     }

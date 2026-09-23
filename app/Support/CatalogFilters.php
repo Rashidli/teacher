@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Exam;
+use App\Models\Tag;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class CatalogFilters
     public const SEARCH_MAX = 80;
 
     /** Bütün ölçülər. Səhifə yalnız özünə lazım olanları istəyir. */
-    public const FACETS = ['kateqoriya', 'nov', 'rub', 'fenn', 'qiymet', 'axtar'];
+    public const FACETS = ['kateqoriya', 'nov', 'rub', 'fenn', 'etiket', 'qiymet', 'axtar'];
 
     /** Sıralama variantları (`?sirala=`) */
     public const SORT_NEW = 'yeni';
@@ -60,8 +61,11 @@ class CatalogFilters
         $price = (string) $request->query('qiymet');
         $search = trim((string) $request->query('axtar'));
 
+        $tag = (int) $request->query('etiket');
+
         $filters = [
             'kateqoriya' => $category > 0 ? $category : null,
+            'etiket' => $tag > 0 ? $tag : null,
             'nov' => $kind,
             // Rüb yalnız mövzu sınağı seçiləndə mənalıdır
             'rub' => $kind === Exam::KIND_TOPIC_TRIAL && $quarter >= 1 && $quarter <= 4 ? $quarter : null,
@@ -121,6 +125,8 @@ class CatalogFilters
              */
             ->when($filters['fenn'] ?? null, fn (Builder $builder, int $subjectId) => $builder
                 ->whereHas('sections', fn ($section) => $section->where('subject_id', $subjectId)))
+            ->when($filters['etiket'] ?? null, fn (Builder $builder, int $tagId) => $builder
+                ->whereHas('tags', fn ($tag) => $tag->where('tags.id', $tagId)))
             ->when($filters['qiymet'] ?? null, fn (Builder $builder, string $price) => $builder
                 ->where('exams.is_free', $price === self::PRICE_FREE))
             ->when($filters['axtar'] ?? null, fn (Builder $builder, string $term) => $builder
@@ -143,8 +149,39 @@ class CatalogFilters
             'kinds' => self::kinds($scope),
             'quarters' => self::quarters($scope),
             'subjects' => self::subjects($scope),
+            'tags' => self::tags($scope),
             'prices' => self::prices($scope),
         ];
+    }
+
+    /**
+     * Etiketlər. Sinif etiketləri əvvəldə, öz sırası ilə (2-ci … 11-ci sinif) —
+     * əlifba sırası burada mənasız olardı.
+     *
+     * @return array<int, array{value: int, name: string, kind: string, count: int}>
+     */
+    private static function tags(Builder $scope): array
+    {
+        return (clone $scope)
+            ->join('exam_tag', 'exam_tag.exam_id', '=', 'exams.id')
+            ->join('tags', 'tags.id', '=', 'exam_tag.tag_id')
+            ->where('tags.is_active', true)
+            // `order` SQLite-da qorunmuş sözdür: `selectRaw`-da işlənmir, sıralama üçün
+            // isə sorğu qurucusunun özü sütun adını düzgün sitatlayır
+            ->selectRaw('tags.id as tag_id, tags.name as tag_name, tags.kind as tag_kind')
+            ->selectRaw('count(distinct exams.id) as total')
+            ->groupBy('tags.id', 'tags.name', 'tags.kind', 'tags.order')
+            ->orderByRaw('CASE WHEN tags.kind = ? THEN 0 ELSE 1 END', [Tag::KIND_GRADE])
+            ->orderBy('tags.order')
+            ->orderBy('tags.name')
+            ->get()
+            ->map(fn ($row) => [
+                'value' => (int) $row->tag_id,
+                'name' => $row->tag_name,
+                'kind' => $row->tag_kind,
+                'count' => (int) $row->total,
+            ])
+            ->all();
     }
 
     /** @return array<int, array{value: string, count: int}> */
