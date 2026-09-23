@@ -24,6 +24,16 @@ return [
     ],
 
     /*
+    | DİM bal qrupu OLMAYAN imtahanda (sürücülük, MİQ, sertifikasiya, magistratura,
+    | dövlət qulluğu) cərimə əmsalı. Bu imtahanlarda `exams.group_id` NULL-dur, yəni
+    | mərhələ anlayışı yoxdur — yanlış cavab bal aparmır.
+    |
+    | KEÇİCİ: hər kateqoriyanın öz qaydası ROADMAP P3-dəki ayrıca ScoringStrategy-lərlə
+    | gələcək; hazırda hamısı DİM düsturu ilə hesablanır.
+    */
+    'penalty_without_group' => 0.0,
+
+    /*
     | Yazılı (open_written) sual həm məxrəcdə, həm də balda bu çəki ilə iştirak edir.
     */
     'open_written_weight' => 2,

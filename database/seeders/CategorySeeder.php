@@ -222,30 +222,50 @@ class CategorySeeder extends Seeder
                 'short' => 'MİQ, sertifikasiya, diaqnostik qiymətləndirmə',
                 'translations' => ['ru' => ['name' => 'Учителя', 'short' => 'MİQ, сертификация, диагностика']],
                 'children' => [
+                    /*
+                     * Müəllim imtahanlarının quruluşu ikiqatdır: müəllimin ÖZ FƏNNİ (Riyaziyyat,
+                     * Azərbaycan dili, Tarix …) + "Kurikulum və metodika". Burada yalnız ikinci
+                     * blok siyahılanır — fənn bloku imtahan yaradılanda seçilir, çünki hər
+                     * namizəd öz fənnindən imtahan verir.
+                     */
                     // Mövcud ünvan qorunur: ağacda burada, URL-də kökdə
                     ['slug' => 'miq', 'name' => 'MİQ (müəllimlərin işə qəbulu)', 'path' => 'miq', 'ru_path' => 'miq',
-                        'translations' => ['ru' => ['name' => 'MİQ', 'short' => 'Приём учителей на работу']]],
+                        'translations' => ['ru' => ['name' => 'MİQ', 'short' => 'Приём учителей на работу']],
+                        'subjects' => ['kurikulum-ve-metodika' => ['max_score' => 60]]],
                     ['slug' => 'sertifikasiya', 'name' => 'Sertifikasiya',
-                        'description' => '60 sual: fənn, metodika və təlim strategiyaları.'],
-                    ['slug' => 'diaqnostik-qiymetlendirme', 'name' => 'Diaqnostik qiymətləndirmə'],
-                    ['slug' => 'mektebeqeder', 'name' => 'Məktəbəqədər (bağça tərbiyəçiləri)'],
+                        'description' => '60 sual: fənn, metodika və təlim strategiyaları.',
+                        'subjects' => ['kurikulum-ve-metodika' => ['max_score' => 60]]],
+                    ['slug' => 'diaqnostik-qiymetlendirme', 'name' => 'Diaqnostik qiymətləndirmə',
+                        'subjects' => ['kurikulum-ve-metodika' => ['max_score' => 50]]],
+                    ['slug' => 'mektebeqeder', 'name' => 'Məktəbəqədər (bağça tərbiyəçiləri)',
+                        'subjects' => ['kurikulum-ve-metodika' => ['max_score' => 50]]],
                 ],
             ],
             [
                 'slug' => 'suruculuk-imtahani', 'name' => 'Sürücülük vəsiqəsi',
                 'short' => 'Nəzəri imtahan: yol nişanları, qaydalar, ilk yardım',
                 'translations' => ['ru' => ['name' => 'Водительские права', 'short' => 'Теория, дорожные знаки']],
+                // Nəzəri imtahan tək fənndir; hər alt düyün onu valideyndən deyil, öz
+                // sətri ilə alır (pivot miras qalmır), ona görə aşağıda təkrarlanır.
+                'subjects' => ['yol-hereketi-qaydalari' => ['max_score' => 100]],
                 'children' => [
                     [
                         'slug' => 'kateqoriyalar', 'name' => 'Kateqoriyalar',
+                        'subjects' => ['yol-hereketi-qaydalari' => ['max_score' => 100]],
                         'children' => array_map(
-                            fn (string $code) => ['slug' => mb_strtolower($code), 'name' => $code.' kateqoriyası'],
+                            fn (string $code) => [
+                                'slug' => mb_strtolower($code),
+                                'name' => $code.' kateqoriyası',
+                                'subjects' => ['yol-hereketi-qaydalari' => ['max_score' => 100]],
+                            ],
                             ['A', 'B', 'C', 'D', 'BE', 'CE', 'DE']
                         ),
                     ],
                     ['slug' => 'movzu-testleri', 'name' => 'Mövzu testləri',
-                        'description' => 'Mövzular admin paneldən redaktə olunur (Mərhələ 2).'],
-                    ['slug' => 'biletler', 'name' => 'İmtahan biletləri / tam sınaq'],
+                        'description' => 'Mövzular admin paneldən redaktə olunur (Mərhələ 2).',
+                        'subjects' => ['yol-hereketi-qaydalari' => ['max_score' => 100]]],
+                    ['slug' => 'biletler', 'name' => 'İmtahan biletləri / tam sınaq',
+                        'subjects' => ['yol-hereketi-qaydalari' => ['max_score' => 100]]],
                 ],
             ],
             [

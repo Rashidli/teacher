@@ -40,10 +40,12 @@ class Question extends Model
     protected $fillable = [
         'subject_id', 'topic_id', 'question_text', 'question_image', 'type', 'difficulty',
         'language', 'translation_group_id', 'accepted_answers', 'explanation', 'source', 'is_active',
+        'is_demo',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_demo' => 'boolean',
         'accepted_answers' => 'array',
     ];
 
@@ -95,6 +97,12 @@ class Question extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /** `DemoContentSeeder`-in yaratdığı nümunə suallar (`demo:clear` bunları silir) */
+    public function scopeDemo($query)
+    {
+        return $query->where('is_demo', true);
     }
 
     public function scopeMultipleChoice($query)

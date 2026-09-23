@@ -84,8 +84,13 @@ class AdminExamController extends Controller
     }
 
     /**
-     * Kateqoriyanın bal qrupu varsa, imtahanın qrupu ondan götürülür — iki mənbə
-     * arasında ziddiyyət yaranmasın (kateqoriya ağacı və bal matrisi uyğun qalsın).
+     * İmtahanın bal qrupu kateqoriyadan götürülür — iki mənbə arasında ziddiyyət
+     * yaranmasın (kateqoriya ağacı və bal matrisi uyğun qalsın).
+     *
+     * Kateqoriyanın qrupu yoxdursa (sürücülük, MİQ, sertifikasiya, magistratura, dövlət
+     * qulluğu) sahə NULL qalır: DİM qrupları yalnız abituriyent qəbuluna aiddir, uydurma
+     * qrup isə statistikada və hesabatlarda səhv qruplaşdırma yaradır. Formada seçim
+     * edilibsə belə, kateqoriya son sözü deyir.
      */
     private function applyCategoryGroup(array $validated): array
     {
@@ -93,11 +98,7 @@ class AdminExamController extends Controller
             return $validated;
         }
 
-        $groupId = Category::whereKey($validated['category_id'])->value('group_id');
-
-        if ($groupId) {
-            $validated['group_id'] = $groupId;
-        }
+        $validated['group_id'] = Category::whereKey($validated['category_id'])->value('group_id');
 
         return $validated;
     }
@@ -142,7 +143,8 @@ class AdminExamController extends Controller
         $validated = $request->validate([
             'teacher_id' => $teachersEnabled ? ['required', 'exists:users,id'] : ['exclude'],
             'subject_id' => ['required', 'exists:subjects,id'],
-            'group_id' => ['required', 'exists:groups,id'],
+            // Qrup yalnız abituriyent kateqoriyalarında olur; digərlərində NULL qalır
+            'group_id' => ['nullable', 'exists:groups,id'],
             'category_id' => ['nullable', Rule::exists('categories', 'id')],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],

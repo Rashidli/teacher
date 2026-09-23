@@ -127,13 +127,17 @@ const submit = () => {
                                     id="group_id"
                                     v-model="form.group_id"
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    required
                                 >
-                                    <option value="">Qrup seçin</option>
+                                    <option value="">Qrupsuz</option>
                                     <option v-for="group in groups" :key="group.id" :value="group.id">
                                         {{ group.name }}
                                     </option>
                                 </select>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    DİM bal qrupları yalnız abituriyent qəbuluna aiddir. Kateqoriya
+                                    seçiləndə qrup ondan götürülür; sürücülük, MİQ, sertifikasiya,
+                                    magistratura və dövlət qulluğu imtahanı qrupsuz qalır.
+                                </p>
                                 <InputError :message="form.errors.group_id" class="mt-2" />
                             </div>
                         </div>

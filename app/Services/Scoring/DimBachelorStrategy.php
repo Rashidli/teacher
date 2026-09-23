@@ -51,8 +51,23 @@ class DimBachelorStrategy implements ScoringStrategy
         );
     }
 
-    private function penaltyFor(string $stage): float
+    /**
+     * Yanlış cavabın cəriməsi imtahanın mərhələsindən gəlir.
+     *
+     * Mərhələ isə DİM bal qrupundandır; sürücülük, MİQ, sertifikasiya, magistratura və
+     * dövlət qulluğu imtahanının belə qrupu yoxdur (`exams.group_id = NULL`) — orada
+     * cərimə tətbiq EDİLMİR (`scoring.penalty_without_group`).
+     *
+     * KEÇİCİ HƏLL: bu kateqoriyaların öz qaydaları var (dövlət qulluğunda açıq sual 2 bal,
+     * sürücülükdə keçdi/kəsildi). Onlar ROADMAP P3-dəki ayrıca `ScoringStrategy`-lərə
+     * qədər hamısı bu DİM düsturu ilə hesablanır — demo və sınaq üçün kifayətdir.
+     */
+    private function penaltyFor(?string $stage): float
     {
+        if ($stage === null) {
+            return (float) config('scoring.penalty_without_group', 0.0);
+        }
+
         $penalties = (array) config('scoring.penalty_per_wrong', []);
 
         return (float) ($penalties[$stage] ?? 0.0);

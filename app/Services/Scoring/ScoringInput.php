@@ -9,6 +9,7 @@ class ScoringInput
 {
     /**
      * @param  array<int, float>  $writtenRatios  qiymətləndirilmiş yazılı cavabların şkala qiymətləri
+     * @param  ?string  $stage  imtahanın DİM mərhələsi; qrupu olmayan imtahanda NULL (cərimə tətbiq edilmir)
      */
     public function __construct(
         public readonly int $closedTotal,
@@ -19,7 +20,7 @@ class ScoringInput
         public readonly int $writtenTotal,
         public readonly array $writtenRatios = [],
         public readonly float $maxScore = 100.0,
-        public readonly string $stage = 'second_stage',
+        public readonly ?string $stage = 'second_stage',
     ) {
     }
 }

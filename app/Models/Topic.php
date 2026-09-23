@@ -16,12 +16,13 @@ class Topic extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['subject_id', 'parent_id', 'name', 'slug', 'quarter', 'order', 'is_active'];
+    protected $fillable = ['subject_id', 'parent_id', 'name', 'slug', 'quarter', 'order', 'is_active', 'is_demo'];
 
     protected $casts = [
         'quarter' => 'integer',
         'order' => 'integer',
         'is_active' => 'boolean',
+        'is_demo' => 'boolean',
     ];
 
     public function subject(): BelongsTo

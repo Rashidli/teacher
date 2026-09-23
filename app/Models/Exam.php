@@ -33,7 +33,7 @@ class Exam extends Model
         'teacher_id', 'created_by', 'subject_id', 'group_id', 'category_id', 'kind', 'sector', 'quarter', 'is_cumulative',
         'slug', 'title', 'description',
         'duration_minutes', 'options_per_question', 'price', 'is_free', 'is_active', 'is_published',
-        'published_at', 'created_by_admin'
+        'published_at', 'created_by_admin', 'is_demo',
     ];
 
     /**
@@ -63,6 +63,7 @@ class Exam extends Model
         'duration_minutes' => 'integer',
         'options_per_question' => 'integer',
         'created_by_admin' => 'boolean',
+        'is_demo' => 'boolean',
         'quarter' => 'integer',
         'is_cumulative' => 'boolean',
     ];
@@ -119,6 +120,12 @@ class Exam extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /** `DemoContentSeeder`-in yaratdığı nümunə imtahanlar (`demo:clear` bunları silir) */
+    public function scopeDemo($query)
+    {
+        return $query->where('is_demo', true);
     }
 
     public function scopeForSector($query, string $sector)

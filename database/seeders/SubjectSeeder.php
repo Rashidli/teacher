@@ -30,6 +30,13 @@ class SubjectSeeder extends Seeder
             // Dövlət qulluğu və magistratura üçün (fənlər kateqoriyalar arasında paylaşılır)
             ['name' => 'Qanunvericilik', 'category' => 'humanitarian', 'order' => 15],
             ['name' => 'Məntiq', 'category' => 'technical', 'order' => 16],
+            /*
+             * Abituriyent qəbulundan kənar kateqoriyaların öz fənləri. Heç bir DİM qrupuna
+             * bağlanmır, ona görə `subject_group_scores` matrisinə təsir etmir — maksimal
+             * balları `category_subject.max_score`-dan gəlir.
+             */
+            ['name' => 'Yol hərəkəti qaydaları', 'category' => 'technical', 'order' => 17],
+            ['name' => 'Kurikulum və metodika', 'category' => 'humanitarian', 'order' => 18],
         ];
 
         // Idempotent: seeder təkrar işlədiləndə mövcud fənlər yenilənir, dublikat yaranmır.

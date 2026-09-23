@@ -297,9 +297,16 @@ Sual bankı üzərində qurulur: bölmə fənni göstərir, suallar bankdan seç
 - [ ] Məhsul növləri: fənn paketi, qrup paketi, abunə (hazırda yalnız tək imtahan satılır).
 - [ ] Rollar: rəyçi (sualı təsdiqləyən) və qiymətləndirici; sual təsdiq axını
       (müəllif → rəyçi → təsdiqlənmiş suallar imtahana düşür); sualda müəllif (gəlir bölgüsü üçün).
-- [ ] Digər bal strategiyaları: `DimGraduation9/11`, `DimMaster`, `CivilService`, `TeacherMiq`,
-      `DrivingTheory`. Dövlət qulluğunun bilinən qaydası: qapalı 1 bal, açıq 2 bal, yanlış/boş 0;
-      müddət qapalı 1:30, açıq 2:00, esse 30 dəq.
+- [ ] **Hər kateqoriya üçün ayrıca `ScoringStrategy`**: `DimGraduation9/11`, `DimMaster`,
+      `CivilService`, `TeacherMiq`, `DrivingTheory`. Hazırda HAMISI `DimBachelorStrategy` ilə
+      hesablanır — demo və sınaq üçün kifayətdir, amma qaydalar fərqlidir:
+      - dövlət qulluğu: qapalı 1 bal, açıq 2 bal, yanlış/boş cavaba **cərimə yoxdur**;
+        müddət qapalı 1:30, açıq 2:00, esse 30 dəq;
+      - sürücülük: bal yox, **keçdi/kəsildi** (buraxılış həddi).
+      Keçici həll qurulub: cərimə əmsalı artıq qrupdan yox, imtahanın mərhələsindən gəlir və
+      DİM qrupu olmayan imtahanda (`exams.group_id = NULL` — sürücülük, MİQ, sertifikasiya,
+      magistratura, dövlət qulluğu) `scoring.penalty_without_group` = 0 işləyir. Strategiya
+      seçimi kateqoriyaya görə edilməlidir (`DimBachelorStrategy::penaltyFor()`-dakı qeydə bax).
 - [ ] İmtahan interfeysində sual naviqasiya paneli (cavablanmış / boş / işarələnmiş), oflayn dayanıqlıq.
 - [ ] Bank inteqrasiyası (hazırda FakePaymentGateway; produksiyada onlayn alış bağlıdır).
 - [ ] Faza 4: repetitor modulu — şagird qrupları, imtahan təyini, kağız cavab kartlarının

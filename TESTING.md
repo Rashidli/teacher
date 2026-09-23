@@ -3,10 +3,37 @@
 Bu siyahı canlı saytda (https://teacher.cvhazirla.az) əl ilə keçirilən yoxlama üçündür.
 Hər bəndin yanında **gözlənilən nəticə** yazılıb — fərqli nəticə görsən, qeyd et.
 
-Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 430 test),
+Avtomatik testlər bu axınların çoxunu onsuz da yoxlayır (`php artisan test` — 437 test),
 buradakı məqsəd interfeysin real brauzerdə davranışıdır.
 
 **Yoxlamadan əvvəl:** `php artisan db:backup` (test datası yaradacaqsan).
+
+---
+
+## Demo məzmun
+
+Kataloqun hər düyünündə imtahan, hər filtrdə variant olsun deyə nümunə məzmun ayrıca
+seeder ilə qurulur. Real data ilə qarışmır: bütün qeydlər `is_demo = 1` ilə işarələnir,
+imtahan başlıqları və sual mətnləri isə **`[DEMO]`** ilə başlayır.
+
+```bash
+php artisan db:seed --class=DemoContentSeeder --force   # qurur (idempotent)
+php artisan demo:clear --dry-run                        # nə silinəcəyini göstərir
+php artisan demo:clear --force                          # silir
+```
+
+- Seeder produksiyada xəbərdarlıq verir və `--force` (və ya interaktiv təsdiq) olmadan
+  heç nə yazmır. `DatabaseSeeder`-ə qoşulmayıb: adi `db:seed` onu çağırmır.
+- Təkrar işlədilə bilər — mövzu `slug`, sual `source`, imtahan `slug` açarı ilə tapılır,
+  data ikiləşmir.
+- Hər sektor üçün bir demo şagird yaradılır (`demo.az@example.test`, `demo.ru@example.test`).
+  **Parol hər işə salmada yenidən təsadüfi qurulur və yalnız seeder çıxışında göstərilir** —
+  kodda saxlanılmır. Bu hesablarda tamamlanmış cəhdlər var, ona görə nəticə, statistika və
+  admin qiymətləndirmə ekranları boş qalmır.
+- `demo:clear` real dataya toxunmur: demo sual real imtahanda işlənibsə, demo mövzuya real
+  sual bağlıdırsa — saxlanılır və hesabatda göstərilir.
+- **Real istifadəçi gəlməzdən əvvəl `demo:clear` işlədilməlidir** (demo imtahanlar dərc
+  olunmuş olduğu üçün kataloqda hamıya görünür).
 
 ---
 

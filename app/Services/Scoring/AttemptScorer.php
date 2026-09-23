@@ -68,7 +68,9 @@ class AttemptScorer
                     writtenTotal: $tally['written_total'],
                     writtenRatios: $tally['written_ratios'],
                     maxScore: $maxScore,
-                    stage: $group?->stage ?? Group::STAGE_SECOND,
+                    // Qrupu olmayan imtahanda (sürücülük, MİQ, dövlət qulluğu …) mərhələ yoxdur:
+                    // strategiya cərimə tətbiq etmir. Uydurma qrup yazılmır.
+                    stage: $group?->stage,
                 ));
 
                 $this->writeAnswerScores($tally['outcomes'], $result->subjectPointsPerRawPoint());

@@ -10,6 +10,63 @@
 
 ## Jurnal (yeni dəyişikliklər üstdə)
 
+### 2026-09-23 — Demo məzmun, `is_demo` bayrağı və qrupsuz imtahanlar
+
+**Demo məzmun.** Kataloqun heç bir düyünü və heç bir filtri boş qalmasın deyə
+`DemoContentSeeder` əlavə olundu (`php artisan db:seed --class=DemoContentSeeder --force`).
+
+- **Əhatə:** `DemoCatalog`-dakı 36 düyünün hər birinə 4 imtahan — **ümumi sınaq**,
+  **mövzu sınağı** (rüb düyündən-düyünə dəyişir), **fənn sınağı**, **məşq testi**. Beləcə
+  NÖV filtrində dörd variantın, QİYMƏT filtrində isə hər iki variantın (yarısı pulsuz,
+  yarısı 3–10 AZN) hamısı hər düyündə görünür.
+- **Rus sektoru:** `ru_enabled` olan 15 düyündə eyni dəst `sector = ru` ilə də qurulur,
+  adları və sualları rusca.
+- **Sual bankı:** hər fənn üçün rüblərə bölünmüş 4 mövzu və hər mövzuya 8 sual. Növlər
+  qarışıq — qapalı (4 və 5 variantlı), açıq kodlaşdırılan, açıq yazılı; bir hissəsində
+  hesablanmış **KaTeX düsturu** (`DemoFormulas` — cavablar həqiqətən doğrudur), bir
+  hissəsində uzun situasiya/oxu mətni. Suallar taksonomiyadan qurulduğu üçün cavabları
+  yoxlanıla biləndir, hamısı `[DEMO]` ilə başlayır.
+- **Demo şagirdlər:** hər sektor üçün bir hesab (`demo.az@example.test`, `demo.ru@example.test`),
+  `is_demo` işarəli. Parol hər işə salmada təsadüfi qurulur və **yalnız seeder çıxışında**
+  göstərilir. Cəhdlər real axınla yaradılır (sual siyahısı dondurulur) və **`AttemptScorer`**
+  ilə qiymətləndirilir — ballar uydurulmur. Bir neçə cəhd yoxlanmamış yazılı cavabla qalır
+  ki, admin qiymətləndirmə ekranı da boş olmasın.
+- **İdempotentlik:** mövzu `subject_id + slug`, sual `source` (`DEMO:fənn:dil:rüb:nömrə`),
+  imtahan `slug` açarı ilə tapılır. İkinci işə salmada heç nə yaradılmır.
+- **Təhlükəsizlik:** produksiyada xəbərdarlıq verib dayanır, `--force` və ya açıq təsdiq
+  tələb edir. `DatabaseSeeder`-ə **qoşulmayıb** — adi `db:seed` onu çağırmır.
+- **Hesabat:** seeder sonda kateqoriya üzrə imtahan sayını (alt ağac, az/ru ayrıca) və
+  boş qalan filtr variantlarını cədvəldə göstərir.
+
+**`is_demo` bayrağı** (`exams`, `questions`, `topics`, `users`) və **`php artisan demo:clear`**:
+demo imtahan, bölmə, sual, variant, mövzu, cəhd, cavab, giriş hüququ, ödəniş və demo hesabları
+silir. `--dry-run` nə silinəcəyini göstərir. Real data qorunur: demo sual REAL imtahanda
+işlənibsə, demo mövzuya REAL sual bağlıdırsa — saxlanılır və hesabatda bildirilir. Cəhdlər
+ayrıca bayraq daşımır, demo imtahana və ya demo şagirdə bağlılıqla tapılır.
+
+**Yeni fənlər** (demo deyil, real): **Yol hərəkəti qaydaları** və **Kurikulum və metodika**.
+`category_subject` ilə sürücülük və müəllim kateqoriyalarına bağlandı. Heç bir DİM qrupuna
+bağlanmadığı üçün `subject_group_scores` matrisinə təsir etmir — balları pivotdan gəlir.
+MİQ və sertifikasiya imtahanları **ikibölməli** qurulur: müəllimin öz fənni (imtahandan-imtahana
+dəyişir) + Kurikulum və metodika.
+
+**Qrupsuz imtahanlar.** `exams.group_id` və `exam_attempts.group_id` artıq **nullable**-dır
+(`cascade` → `nullOnDelete`). DİM bal qrupları yalnız abituriyent qəbuluna aiddir; sürücülük,
+MİQ, sertifikasiya, magistratura və dövlət qulluğu imtahanına əvvəllər uydurma qrup (I qrup)
+yazılırdı və bu, statistikada səhv qruplaşdırma yaradırdı.
+
+- `AdminExamController`: qrup kateqoriyadan götürülür — kateqoriyanın qrupu yoxdursa sahə
+  NULL qalır (formada seçim edilsə belə). Admin formasında qrup artıq məcburi deyil ("Qrupsuz").
+- **Cərimə əmsalı qrupdan ayrıldı:** `ScoringInput::$stage` nullable oldu, qrupsuz imtahanda
+  `scoring.penalty_without_group` (= 0) işləyir. Keçici həll — hər kateqoriya üçün ayrıca
+  `ScoringStrategy` ROADMAP P3-dədir, kodda da qeyd olunub.
+
+**Testlər:** `tests/Feature/DemoContentTest.php` — əhatə, rus sektoru, qrup qaydaları, sual
+növlərinin qarışığı, demo şagirdlərin hesablanmış cəhdləri, idempotentlik və `demo:clear`-in
+real dataya toxunmaması (430 → 437 test).
+
+---
+
 ### 2026-09-22 — İmtahanın tək əsas ünvanı və panelin sadələşdirilməsi
 
 **SEO.** İmtahan məzmunu tərcümə olunmur, ona görə hər imtahanın **tək əsas ünvanı** var:
